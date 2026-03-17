@@ -276,7 +276,40 @@ def _resolve_chartqa_image_path(
         if path.exists():
             return path.resolve()
 
+    recursive_match = _find_chartqa_image_recursive(raw_data_root, split, candidate)
+    if recursive_match is not None:
+        return recursive_match
+
     raise FileNotFoundError(f"Could not resolve ChartQA image '{raw_image}' from {annotation_file}")
+
+
+def _find_chartqa_image_recursive(raw_data_root: Path, split: str, candidate: Path) -> Path | None:
+    """Fallback for official ChartQA layouts where annotations store only the filename."""
+    search_name = candidate.name or str(candidate)
+    split_root = raw_data_root / split
+
+    search_roots = [split_root, raw_data_root]
+    for root in search_roots:
+        if not root.exists():
+            continue
+        matches = sorted(
+            path for path in root.rglob(search_name)
+            if path.is_file()
+        )
+        if matches:
+            return matches[0].resolve()
+
+        if not candidate.suffix:
+            expanded_matches: list[Path] = []
+            for suffix in [".png", ".jpg", ".jpeg", ".webp"]:
+                expanded_matches.extend(
+                    path for path in root.rglob(f"{search_name}{suffix}")
+                    if path.is_file()
+                )
+            if expanded_matches:
+                return sorted(expanded_matches)[0].resolve()
+
+    return None
 
 
 def _infer_question_type(question: str) -> str:

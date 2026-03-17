@@ -178,6 +178,37 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertEqual(cases[0].metadata["image_width"], 23)
             self.assertEqual(cases[0].metadata["image_height"], 17)
 
+    def test_chartqa_normalization_finds_images_in_nested_official_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw_root = root / "ChartQA Dataset"
+            normalized_root = root / "normalized"
+            image_path = raw_root / "train" / "png" / "two_col_103562.png"
+            self._write_image(image_path, size=(19, 13))
+            (raw_root / "train" / "train_augmented.json").parent.mkdir(parents=True, exist_ok=True)
+            (raw_root / "train" / "train_augmented.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "sample_nested",
+                            "question": "Which bar is highest?",
+                            "answer": "B",
+                            "imgname": "two_col_103562.png",
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            manifest = normalize_chartqa_dataset(raw_root, normalized_root, splits=["train"])
+            cases = load_normalized_cases(normalized_root, "chartqa", "train")
+
+            self.assertEqual(manifest["splits"]["train"]["count"], 1)
+            self.assertEqual(len(cases), 1)
+            self.assertTrue(cases[0].image_path.endswith("two_col_103562.png"))
+            self.assertEqual(cases[0].metadata["image_width"], 19)
+            self.assertEqual(cases[0].metadata["image_height"], 13)
+
     def test_online_evolve_skips_initially_correct_cases_and_reuses_shared_skill(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
