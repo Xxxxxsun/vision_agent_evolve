@@ -389,6 +389,34 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertTrue(check_chartqa_answer("The answer is 4", "4"))
         self.assertTrue(check_chartqa_answer("4.0", "4"))
         self.assertFalse(check_chartqa_answer("5", "4"))
+        self.assertTrue(
+            check_chartqa_answer(
+                "The Mexican government spent 6.61 billion dollars on the military in the year 2020.",
+                "2020",
+                prompt="In what year did the Mexican government spend 6.61 billion dollars in the military?",
+            )
+        )
+        self.assertTrue(
+            check_chartqa_answer(
+                "The Mexican government spent 6.61 billion dollars on the military in the year 2020.",
+                "6.61",
+                prompt="How much did the Mexican government spend in the military a year earlier?",
+            )
+        )
+        self.assertTrue(
+            check_chartqa_answer(
+                "The U.S. exports of goods and services made up 9.23 percent of its GDP in the year 1990.",
+                "1990",
+                prompt="In what year did the U.S. exports of goods and services make up 9.23 percent of its GDP?",
+            )
+        )
+        self.assertTrue(
+            check_chartqa_answer(
+                "In 1990, exports accounted for 9.23% of the GDP of the United States.",
+                "9.23",
+                prompt="What percentage of the GDP of the United States was exported in 1990?",
+            )
+        )
 
     def test_run_settings_normalize_self_evolve_alias(self):
         self.assertEqual(_normalize_settings(["self_evolve"]), ["online_evolve"])

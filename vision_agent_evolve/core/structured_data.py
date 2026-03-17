@@ -123,7 +123,7 @@ def load_normalized_cases(
     return cases
 
 
-def check_chartqa_answer(actual: str, expected: str) -> bool:
+def check_chartqa_answer(actual: str, expected: str, prompt: str = "") -> bool:
     """Dataset-specific answer checker for ChartQA-style short answers."""
     actual_text = _normalize_answer_text(actual)
     expected_text = _normalize_answer_text(expected)
@@ -133,17 +133,24 @@ def check_chartqa_answer(actual: str, expected: str) -> bool:
     if actual_text == expected_text:
         return True
 
+    if _contains_expected_text(actual_text, expected_text):
+        return True
+
     actual_number = _parse_number(actual_text)
     expected_number = _parse_number(expected_text)
     if actual_number is not None and expected_number is not None:
+        question_hint = prompt.lower()
+        candidates = _numeric_candidates_by_intent(actual, expected, question_hint)
+        if any(abs(candidate - expected_number) <= 1e-6 for candidate in candidates):
+            return True
         return abs(actual_number - expected_number) <= 1e-6
 
-    return expected_text in actual_text or actual_text in expected_text
+    return False
 
 
 def check_chartqa_case_answer(actual: str, case: TaskCase) -> bool:
     """TaskCase wrapper for EvolutionLoop answer checking."""
-    return check_chartqa_answer(actual, case.gold_answer)
+    return check_chartqa_answer(actual, case.gold_answer, prompt=case.prompt)
 
 
 def _discover_chartqa_annotation_files(raw_data_root: Path, split: str) -> list[Path]:
@@ -336,6 +343,98 @@ def _normalize_answer_text(value: str) -> str:
     text = re.sub(r"\s+", " ", text)
     text = text.replace(",", "")
     return text.strip(" .")
+
+
+def _contains_expected_text(actual_text: str, expected_text: str) -> bool:
+    """Check whether the normalized expected answer appears as a standalone span."""
+    if not expected_text:
+        return False
+
+    if " " in expected_text:
+        return expected_text in actual_text
+
+    pattern = re.compile(rf"(?<![a-z0-9]){re.escape(expected_text)}(?![a-z0-9])")
+    return bool(pattern.search(actual_text))
+
+
+def _numeric_candidates_by_intent(actual: str, expected: str, question_hint: str) -> list[float]:
+    """Extract candidate numeric answers, biased by the question intent."""
+    candidates = _extract_numeric_tokens(actual)
+    if not candidates:
+        return []
+
+    expected_number = _parse_number(_normalize_answer_text(expected))
+    expected_is_year = _looks_like_year(expected_number)
+    asks_for_year = _question_asks_for_year(question_hint) or expected_is_year
+    asks_for_ratio = _question_asks_for_ratio(question_hint)
+
+    year_values = [value for value, raw in candidates if _looks_like_year_token(raw)]
+    non_year_values = [value for value, raw in candidates if not _looks_like_year_token(raw)]
+
+    if asks_for_year:
+        return year_values or [value for value, _ in candidates]
+
+    if asks_for_ratio:
+        return non_year_values or [value for value, _ in candidates]
+
+    if expected_number is not None and not expected_is_year and non_year_values:
+        return non_year_values + year_values
+
+    return [value for value, _ in candidates]
+
+
+def _extract_numeric_tokens(text: str) -> list[tuple[float, str]]:
+    """Extract numeric spans in order of appearance."""
+    matches = re.findall(r"[-+]?\d+(?:\.\d+)?", str(text).replace(",", ""))
+    tokens: list[tuple[float, str]] = []
+    for raw in matches:
+        try:
+            tokens.append((float(raw), raw))
+        except ValueError:
+            continue
+    return tokens
+
+
+def _looks_like_year(value: float | None) -> bool:
+    if value is None:
+        return False
+    return float(int(value)) == value and 1500 <= value <= 2100
+
+
+def _looks_like_year_token(raw: str) -> bool:
+    if not re.fullmatch(r"\d{4}", raw):
+        return False
+    value = int(raw)
+    return 1500 <= value <= 2100
+
+
+def _question_asks_for_year(question_hint: str) -> bool:
+    return any(
+        phrase in question_hint
+        for phrase in [
+            "what year",
+            "in what year",
+            "which year",
+            "year did",
+            "year was",
+        ]
+    )
+
+
+def _question_asks_for_ratio(question_hint: str) -> bool:
+    return any(
+        phrase in question_hint
+        for phrase in [
+            "what percentage",
+            "what percent",
+            "percentage of",
+            "percent of",
+            "how much",
+            "how many",
+            "what was the value",
+            "what is the value",
+        ]
+    )
 
 
 def _parse_number(value: str) -> float | None:
