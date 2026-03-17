@@ -133,6 +133,7 @@ class EvolutionLoop:
             self._log_phase(case.case_id, attempt, "analyzer", "end")
 
             print(f"Analysis: {analysis.root_cause}")
+            self._print_analysis_details(analysis)
             print(f"Next action: {analysis.next_action}")
 
             # Give up if recommended
@@ -186,6 +187,7 @@ class EvolutionLoop:
                     chain_context=chain_context,
                 )
                 print(f"Generated: {step.skill_proposal.name}")
+                self._print_skill_content("Generated skill draft", step.skill_proposal.content)
                 if hasattr(self.generator, "review_skill"):
                     print("Reviewing generated skill with full context...")
                     step.skill_proposal = self.generator.review_skill(
@@ -198,6 +200,7 @@ class EvolutionLoop:
                         family_examples,
                         self.store.list_failure_skills(case.problem_id, limit=3),
                     )
+                    self._print_skill_content("Reviewed skill draft", step.skill_proposal.content)
                 self._log_phase(case.case_id, attempt, "skill_generation", "end")
 
                 print(f"Validating skill...")
@@ -580,3 +583,27 @@ Reply with only one word: CORRECT or INCORRECT"""
             artifacts = [artifact] if artifact else []
             observations.append((combined, artifacts))
         return observations
+
+    @staticmethod
+    def _print_skill_content(label: str, content: str) -> None:
+        """Print the generated skill content for real-time debugging."""
+        print(f"{label}:")
+        print("--- SKILL START ---")
+        print(content.strip() or "(empty)")
+        print("--- SKILL END ---")
+
+    @staticmethod
+    def _print_analysis_details(analysis) -> None:
+        """Print the analyzer's structured reasoning in a readable way."""
+        details = [
+            ("Observed", getattr(analysis, "rationale", "")),
+            ("Missing step", getattr(analysis, "missing_step", "")),
+            ("Tool goal", getattr(analysis, "tool_goal", "")),
+            ("Skill note", getattr(analysis, "skill_update_note", "")),
+            ("Confidence", f"{getattr(analysis, 'confidence', 0.0):.2f}" if hasattr(analysis, "confidence") else ""),
+        ]
+        for label, value in details:
+            text = str(value).strip()
+            if not text:
+                continue
+            print(f"  {label}: {text}")

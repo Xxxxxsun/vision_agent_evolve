@@ -30,6 +30,7 @@ class StructuredExperimentConfig:
     k: int = 200
     max_attempts: int = 10
     readability_judge_enabled: bool = False
+    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"])
 
 
 @dataclass
@@ -177,19 +178,26 @@ class StructuredBenchmarkRunner:
 
         self.records_path.write_text("", encoding="utf-8")
         records: list[StructuredCaseRecord] = []
+        snapshot_name = ""
 
-        print(f"=== Direct VLM baseline on {self.config.evolve_split}[:{self.config.k}] ===")
-        records.extend(self._run_direct_vlm(evolve_cases))
+        if "direct_vlm" in self.config.settings:
+            print(f"=== Direct VLM baseline on {self.config.evolve_split}[:{self.config.k}] ===")
+            records.extend(self._run_direct_vlm(evolve_cases))
 
-        print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{self.config.k}] ===")
-        records.extend(self._run_pure_react(evolve_cases))
+        if "pure_react" in self.config.settings:
+            print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{self.config.k}] ===")
+            records.extend(self._run_pure_react(evolve_cases))
 
-        print(f"\n=== Online evolve on {self.config.evolve_split}[:{self.config.k}] ===")
-        online_records, snapshot_name = self._run_online_evolve(evolve_cases)
-        records.extend(online_records)
+        if "online_evolve" in self.config.settings:
+            print(f"\n=== Online evolve on {self.config.evolve_split}[:{self.config.k}] ===")
+            online_records, snapshot_name = self._run_online_evolve(evolve_cases)
+            records.extend(online_records)
 
-        print(f"\n=== Frozen transfer on {self.config.held_out_split} ===")
-        records.extend(self.run_frozen_transfer(snapshot_name=snapshot_name, cases=held_out_cases))
+        if "frozen_transfer" in self.config.settings:
+            print(f"\n=== Frozen transfer on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(self.run_frozen_transfer(snapshot_name=snapshot_name, cases=held_out_cases))
 
         summary = self._write_summary(records, snapshot_name=snapshot_name)
         return summary

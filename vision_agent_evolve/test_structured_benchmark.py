@@ -22,6 +22,7 @@ from evolution.structured_runner import (
     _aggregate_records,
 )
 from evolution.types import SkillProposal, ToolChainContext
+from scripts.run_structured_experiment import _normalize_settings
 
 
 class DummyClient:
@@ -365,6 +366,13 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertTrue(check_chartqa_answer("The answer is 4", "4"))
         self.assertTrue(check_chartqa_answer("4.0", "4"))
         self.assertFalse(check_chartqa_answer("5", "4"))
+
+    def test_run_settings_normalize_self_evolve_alias(self):
+        self.assertEqual(_normalize_settings(["self_evolve"]), ["online_evolve"])
+        self.assertEqual(
+            _normalize_settings(["direct_vlm", "self_evolve"]),
+            ["direct_vlm", "online_evolve"],
+        )
 
 
 if __name__ == "__main__":

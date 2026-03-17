@@ -25,7 +25,15 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=200)
     parser.add_argument("--max-attempts", type=int, default=10)
     parser.add_argument("--enable-readability-judge", action="store_true")
+    parser.add_argument(
+        "--settings",
+        nargs="+",
+        default=["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"],
+        help="Subset of settings to run. Choices: direct_vlm pure_react online_evolve frozen_transfer self_evolve all",
+    )
     args = parser.parse_args()
+
+    settings = _normalize_settings(args.settings)
 
     config = StructuredExperimentConfig(
         dataset=args.dataset,
@@ -37,10 +45,27 @@ def main() -> None:
         k=args.k,
         max_attempts=args.max_attempts,
         readability_judge_enabled=args.enable_readability_judge,
+        settings=settings,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+def _normalize_settings(raw_settings: list[str]) -> list[str]:
+    expanded: list[str] = []
+    for setting in raw_settings:
+        normalized = setting.strip().lower()
+        if normalized == "all":
+            expanded.extend(["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"])
+            continue
+        if normalized == "self_evolve":
+            normalized = "online_evolve"
+        if normalized not in {"direct_vlm", "pure_react", "online_evolve", "frozen_transfer"}:
+            raise SystemExit(f"Unknown setting: {setting}")
+        if normalized not in expanded:
+            expanded.append(normalized)
+    return expanded
 
 
 if __name__ == "__main__":

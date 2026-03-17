@@ -642,6 +642,13 @@ Return JSON:
         reviewed = self._normalize_skill_proposal(case, analysis, proposal_dict, tool_proposal, existing_skill_content)
         return reviewed
 
+    def _format_known_failure_lessons(self, lessons: list[Skill]) -> str:
+        """Render reusable failure lessons for skill review prompts."""
+        return "\n\n".join(
+            f"- {lesson.description or lesson.name}\nApplicability: {lesson.applicability_conditions or 'N/A'}\n{lesson.content.strip()}"
+            for lesson in lessons
+        )
+
     def _format_family_examples(self, cases: list[TaskCase]) -> str:
         lines: list[str] = []
         for index, example in enumerate(cases, start=1):
