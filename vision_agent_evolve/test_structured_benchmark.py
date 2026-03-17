@@ -288,11 +288,10 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertFalse(records[2].evolve_triggered)
             self.assertTrue(records[2].correct)
             self.assertTrue((root / "learned" / "snapshots" / snapshot_name).exists())
-            saved_reports = sorted((runner.evolve_reports_dir).glob("*.json"))
+            saved_reports = json.loads(runner.evolve_reports_path.read_text(encoding="utf-8"))
             self.assertEqual(len(saved_reports), 1)
-            payload = json.loads(saved_reports[0].read_text(encoding="utf-8"))
-            self.assertEqual(payload["case_id"], "2")
-            self.assertEqual(payload["attempts"][0]["decision"], "keep")
+            self.assertEqual(saved_reports[0]["case_id"], "2")
+            self.assertEqual(saved_reports[0]["attempts"][0]["decision"], "keep")
 
     def test_frozen_transfer_uses_existing_capabilities_without_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:
