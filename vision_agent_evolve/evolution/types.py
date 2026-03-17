@@ -17,6 +17,31 @@ class FailureAnalysis:
     failure_stage: str = ""
     missing_capabilities: list[str] = field(default_factory=list)
     rationale: str = ""
+    differentiation_note: str = ""
+
+
+@dataclass
+class FailedDirection:
+    """Semantic record of one tried-and-failed evolve direction."""
+
+    case_id: str
+    attempt: int
+    created_at: str
+    root_cause: str
+    missing_step: str
+    next_action: Literal["generate_tool", "generate_skill", "generate_both", "give_up"]
+    tool_goal: str = ""
+    skill_update_note: str = ""
+    chain_trace: list[str] = field(default_factory=list)
+    used_tool: str | None = None
+    retry_answer: str | None = None
+    failure_reason: str = ""
+    source: str = "retry_failed"
+    direction_signature: str = ""
+    times_failed: int = 1
+    last_failed_at: str = ""
+    last_case_id: str = ""
+    last_attempt: int = 0
 
 
 @dataclass

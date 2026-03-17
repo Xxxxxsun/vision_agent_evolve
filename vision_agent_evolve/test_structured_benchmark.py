@@ -14,6 +14,7 @@ from core.structured_data import (
 )
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
 from evolution.loop import EvolutionLoop
+from evolution.roles import AnalyzerDecider
 from evolution.store import CapabilityStore
 from evolution.structured_runner import (
     StructuredBenchmarkRunner,
@@ -21,7 +22,7 @@ from evolution.structured_runner import (
     StructuredExperimentConfig,
     _aggregate_records,
 )
-from evolution.types import SkillProposal, ToolChainContext
+from evolution.types import FailedDirection, FailureAnalysis, SkillProposal, ToolChainContext, ValidationResult
 from scripts.run_structured_experiment import _normalize_settings
 
 
@@ -130,6 +131,82 @@ class FakeLoop:
 class FrozenLoop(FakeLoop):
     def run_single_case(self, case):
         raise AssertionError("Frozen evaluation must not mutate or evolve")
+
+
+class RecordingClient:
+    def __init__(self, response: str):
+        self.response = response
+        self.messages = None
+
+    def chat(self, messages, settings=None):
+        self.messages = messages
+        return self.response, DummyUsage()
+
+
+class DummyUsage:
+    total_tokens = 0
+    prompt_tokens = 0
+    completion_tokens = 0
+
+    def __add__(self, other):
+        return self
+
+
+class LoopAnalyzerStub:
+    total_usage = DummyUsage()
+
+    def analyze_and_decide(self, **kwargs):
+        self.last_kwargs = kwargs
+        return FailureAnalysis(
+            root_cause="Read the wrong year.",
+            next_action="generate_skill",
+            confidence=0.8,
+            missing_step="Locate the exact year label before reading the value.",
+            skill_update_note="Read the label first, then the bar value.",
+            rationale="The value lookup is fine, but year alignment is off.",
+            differentiation_note="Use year-label alignment instead of generic rereading.",
+        )
+
+
+class LoopGeneratorStub:
+    total_usage = DummyUsage()
+
+    def generate_skill(self, *args, **kwargs):
+        return SkillProposal(
+            name="chartqa",
+            description="Use year alignment before reading the bar.",
+            applicability_conditions="Use when neighboring years are easy to confuse.",
+            content="## SOP\n1. Find the year label.\n2. Read only the aligned value.",
+            level="mid",
+            depends_on=[],
+        )
+
+
+class LoopValidatorStub:
+    def build_chain_context(self, case: TaskCase, skill_content: str | None, attempt=None):
+        return ToolChainContext(latest_input_image=case.image_path)
+
+    def validate_skill(self, proposal, problem_id):
+        return ValidationResult(passed=True)
+
+    def is_untrusted_tool_code(self, code: str) -> bool:
+        return False
+
+
+class SequenceAgent:
+    def __init__(self, answers: list[str]):
+        self.answers = list(answers)
+
+    def run(self, task: str, image_path: str = "", initial_observations=None) -> AgentResult:
+        answer = self.answers.pop(0)
+        return AgentResult(
+            task=task,
+            final_answer=answer,
+            steps=[],
+            total_turns=1,
+            success=True,
+            all_artifacts=[],
+        )
 
 
 class TestStructuredRunner(StructuredBenchmarkRunner):
@@ -417,6 +494,134 @@ class StructuredBenchmarkTests(unittest.TestCase):
                 prompt="What percentage of the GDP of the United States was exported in 1990?",
             )
         )
+
+    def test_failed_direction_store_persists_and_dedupes_similar_directions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = CapabilityStore(Path(tmp) / "learned")
+            first = FailedDirection(
+                case_id="case_1",
+                attempt=1,
+                created_at="2026-03-18T10:00:00",
+                root_cause="Read the wrong year.",
+                missing_step="Locate the exact year label before reading the value.",
+                next_action="generate_skill",
+                skill_update_note="Read the year label first and only then the bar value.",
+                failure_reason="Retry still picked the neighboring year.",
+                source="retry_failed",
+            )
+            second = FailedDirection(
+                case_id="case_2",
+                attempt=2,
+                created_at="2026-03-18T10:05:00",
+                root_cause="Still using the neighboring year.",
+                missing_step="Locate the exact year label before reading the bar value.",
+                next_action="generate_skill",
+                skill_update_note="Align to the year label before reading the value.",
+                failure_reason="Retry still picked the neighboring year.",
+                source="retry_failed",
+            )
+
+            first_save = store.save_failed_direction("chartqa", first)
+            second_save = store.save_failed_direction("chartqa", second)
+            loaded = store.list_failed_directions("chartqa", limit=5)
+
+            self.assertFalse(first_save["deduped"])
+            self.assertTrue(second_save["deduped"])
+            self.assertEqual(len(loaded), 1)
+            self.assertEqual(loaded[0].times_failed, 2)
+            self.assertEqual(loaded[0].last_case_id, "case_2")
+
+    def test_analyzer_prompt_includes_recent_failed_directions(self):
+        client = RecordingClient(
+            json.dumps(
+                {
+                    "root_cause": "Used a repeated direction.",
+                    "missing_step": "Try a different chart grounding step.",
+                    "next_action": "generate_tool",
+                    "tool_goal": "Highlight the target year column.",
+                    "skill_update_note": "",
+                    "differentiation_note": "Switching from strategy advice to visual grounding.",
+                    "confidence": 0.7,
+                    "rationale": "A visual tool is more distinct than another SOP rewrite.",
+                }
+            )
+        )
+        analyzer = AnalyzerDecider(client)
+        case = TaskCase(case_id="1", problem_id="chartqa", prompt="Q", gold_answer="A")
+        result = AgentResult(task="Q", final_answer="wrong", steps=[], total_turns=1, success=True)
+        failed_direction = FailedDirection(
+            case_id="old_case",
+            attempt=1,
+            created_at="2026-03-18T09:00:00",
+            root_cause="Read the wrong year.",
+            missing_step="Locate the exact year label before reading the value.",
+            next_action="generate_skill",
+            skill_update_note="Read the label first, then the bar value.",
+            failure_reason="Retry still failed.",
+            source="retry_failed",
+        )
+
+        analysis = analyzer.analyze_and_decide(
+            case=case,
+            result=result,
+            current_capabilities=["- none"],
+            failed_directions=[failed_direction],
+        )
+
+        prompt_text = client.messages[1]["content"]
+        self.assertIn("Previously tried and failed directions for this task family", prompt_text)
+        self.assertIn("old_case", prompt_text)
+        self.assertEqual(analysis.differentiation_note, "Switching from strategy advice to visual grounding.")
+
+    def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+                subset_id="chartqa_refocus_v1",
+                answer_checker=lambda answer, case: answer == case.gold_answer,
+            )
+            loop.analyzer_decider = LoopAnalyzerStub()
+            loop.generator = LoopGeneratorStub()
+            loop.validator = LoopValidatorStub()
+
+            answers = SequenceAgent(["wrong", "still wrong"])
+            loop._create_agent = lambda *args, **kwargs: answers
+
+            case = TaskCase(
+                case_id="case_1",
+                problem_id="chartqa",
+                prompt="What is the value?",
+                gold_answer="19.31",
+            )
+            solved = loop.run_single_case(case)
+            directions = loop.store.list_failed_directions("chartqa", limit=5)
+
+            self.assertFalse(solved)
+            self.assertEqual(len(directions), 1)
+            self.assertEqual(directions[0].source, "retry_failed")
+            self.assertEqual(directions[0].retry_answer, "still wrong")
+            self.assertIn("stored_failed_direction", loop.last_case_report["attempts"][0])
+            self.assertFalse(loop.last_case_report["attempts"][0]["direction_duplicate"])
+
+            clean_loop = EvolutionLoop(
+                work_dir=root / "work2",
+                learned_dir=root / "learned2",
+                skills_dir=root / "skills2",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+                subset_id="chartqa_refocus_v2",
+                answer_checker=lambda answer, task_case: answer == task_case.gold_answer,
+            )
+            clean_loop._create_agent = lambda *args, **kwargs: SequenceAgent(["19.31"])
+            clean_loop.validator = LoopValidatorStub()
+            solved_clean = clean_loop.run_single_case(case)
+            self.assertTrue(solved_clean)
+            self.assertEqual(clean_loop.store.list_failed_directions("chartqa", limit=5), [])
 
     def test_run_settings_normalize_self_evolve_alias(self):
         self.assertEqual(_normalize_settings(["self_evolve"]), ["online_evolve"])

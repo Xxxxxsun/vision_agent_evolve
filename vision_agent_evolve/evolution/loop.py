@@ -1,6 +1,8 @@
 """Main evolution loop - focused on single case until solved."""
 
 from __future__ import annotations
+from datetime import datetime
+import inspect
 import json
 from pathlib import Path
 from typing import Callable
@@ -9,7 +11,7 @@ from core.types import TaskCase, AgentResult
 from core.agent import ReActAgent, AgentConfig
 from core.vlm_client import VLMClient, UsageStats
 from skills import Skill, render_skills
-from .types import EvolutionStep, ToolChainContext, ToolAvailabilitySnapshot
+from .types import EvolutionStep, FailedDirection, ToolChainContext, ToolAvailabilitySnapshot
 from .roles import AnalyzerDecider, Generator
 from .validator import Validator
 from .store import CapabilityStore
@@ -70,6 +72,7 @@ class EvolutionLoop:
         self.generator.total_usage = UsageStats()
         previous_attempts: list[str] = []
         carried_artifacts: list[str] = []
+        duplicate_direction_streak = 0
         family_examples = self._family_examples_for_review(case)
         case_report = self._new_case_report(case)
         self.last_case_report = case_report
@@ -130,22 +133,38 @@ class EvolutionLoop:
             image_artifacts = result.get_image_artifacts()
             if image_artifacts:
                 print(f"  → Processing {len(image_artifacts)} artifact images for analysis")
+            recent_failed_directions = self.store.list_failed_directions(case.problem_id, limit=8)
+            if recent_failed_directions:
+                print(f"  → Loaded {len(recent_failed_directions)} recent failed directions")
             self._log_phase(case.case_id, attempt, "analyzer", "start")
-            analysis = self.analyzer_decider.analyze_and_decide(
-                case=case,
-                result=result,
-                current_capabilities=capability_snapshot.capability_lines(),
-                previous_attempts=previous_attempts,
-                attempt=attempt,
-                extra_artifacts=self._merge_analysis_artifacts(chain_context.artifacts, carried_artifacts),
-                chain_context=chain_context,
-                capability_snapshot=capability_snapshot.summary(),
-                known_failure_lessons=self.store.list_failure_skills(case.problem_id, limit=3),
-            )
+            analyze_kwargs = {
+                "case": case,
+                "result": result,
+                "current_capabilities": capability_snapshot.capability_lines(),
+                "previous_attempts": previous_attempts,
+                "attempt": attempt,
+                "extra_artifacts": self._merge_analysis_artifacts(chain_context.artifacts, carried_artifacts),
+                "chain_context": chain_context,
+                "capability_snapshot": capability_snapshot.summary(),
+                "known_failure_lessons": self.store.list_failure_skills(case.problem_id, limit=3),
+            }
+            if "failed_directions" in inspect.signature(self.analyzer_decider.analyze_and_decide).parameters:
+                analyze_kwargs["failed_directions"] = recent_failed_directions
+            analysis = self.analyzer_decider.analyze_and_decide(**analyze_kwargs)
             self._log_phase(case.case_id, attempt, "analyzer", "end")
+
+            matched_failed_directions = self.store.find_similar_failed_directions(
+                case.problem_id,
+                analysis,
+                limit=3,
+            )
+            direction_duplicate = bool(matched_failed_directions)
+            duplicate_direction_streak = duplicate_direction_streak + 1 if direction_duplicate else 0
+            direction_stuck = duplicate_direction_streak >= 2
 
             print(f"Analysis: {analysis.root_cause}")
             self._print_analysis_details(analysis)
+            self._print_failed_direction_matches(matched_failed_directions)
             print(f"Next action: {analysis.next_action}")
             attempt_report = {
                 "attempt": attempt,
@@ -153,14 +172,30 @@ class EvolutionLoop:
                 "initial_correct": False,
                 "chain_trace": list(chain_context.tool_sequence),
                 "analysis": self._analysis_summary(analysis),
+                "matched_failed_directions": matched_failed_directions,
+                "direction_duplicate": direction_duplicate,
+                "direction_stuck": direction_stuck,
             }
+            if direction_stuck:
+                case_report["direction_stuck"] = True
 
             # Give up if recommended
             if analysis.next_action == "give_up":
                 print(f"Giving up on this case: {analysis.rationale}")
                 self._save_failure_lesson(case, analysis, result, chain_context)
+                stored_direction = self._record_failed_direction(
+                    case=case,
+                    attempt=attempt,
+                    analysis=analysis,
+                    chain_context=chain_context,
+                    used_tool=None,
+                    retry_answer=None,
+                    failure_reason=analysis.rationale or "Analyzer chose give_up.",
+                    source="give_up",
+                )
                 self._log_give_up(case, attempt, analysis)
                 attempt_report["decision"] = "give_up"
+                attempt_report["stored_failed_direction"] = stored_direction
                 case_report["attempts"].append(attempt_report)
                 self._finalize_case_report(case_report, solved=False, final_result=result, attempts_used=attempt)
                 return False
@@ -294,6 +329,16 @@ class EvolutionLoop:
                     retry_result.get_image_artifacts(),
                     step.validation.artifacts if step.validation else [],
                 )
+                attempt_report["stored_failed_direction"] = self._record_failed_direction(
+                    case=case,
+                    attempt=attempt,
+                    analysis=analysis,
+                    chain_context=chain_context,
+                    used_tool=staged_tool.name if staged_tool else None,
+                    retry_answer=retry_result.final_answer,
+                    failure_reason="Retry with generated capability still failed.",
+                    source="retry_failed",
+                )
 
                 previous_attempts.append(
                     self._summarize_attempt(
@@ -322,6 +367,16 @@ class EvolutionLoop:
                     step.validation.artifacts if step.validation else [],
                 )
                 attempt_report["decision"] = step.decision
+                attempt_report["stored_failed_direction"] = self._record_failed_direction(
+                    case=case,
+                    attempt=attempt,
+                    analysis=analysis,
+                    chain_context=chain_context,
+                    used_tool=step.tool_proposal.name if step.tool_proposal else None,
+                    retry_answer=None,
+                    failure_reason=self._validation_failure_reason(step),
+                    source="validation_failed",
+                )
 
             # Log step
             self._log_step(step)
@@ -638,6 +693,7 @@ Reply with only one word: CORRECT or INCORRECT"""
             ("Missing step", getattr(analysis, "missing_step", "")),
             ("Tool goal", getattr(analysis, "tool_goal", "")),
             ("Skill note", getattr(analysis, "skill_update_note", "")),
+            ("Differentiation", getattr(analysis, "differentiation_note", "")),
             ("Confidence", f"{getattr(analysis, 'confidence', 0.0):.2f}" if hasattr(analysis, "confidence") else ""),
         ]
         for label, value in details:
@@ -645,6 +701,21 @@ Reply with only one word: CORRECT or INCORRECT"""
             if not text:
                 continue
             print(f"  {label}: {text}")
+
+    @staticmethod
+    def _print_failed_direction_matches(matches: list[dict]) -> None:
+        """Print the closest historical failed directions for debugging."""
+        if not matches:
+            return
+        print(f"  Similar failed directions: {len(matches)}")
+        for match in matches[:3]:
+            missing_step = str(match.get("missing_step", "")).strip() or "N/A"
+            similarity = float(match.get("similarity", 0.0))
+            print(
+                f"    - case={match.get('case_id')} attempt={match.get('attempt')} "
+                f"action={match.get('next_action')} similarity={similarity:.2f} "
+                f"missing_step={missing_step}"
+            )
 
     @staticmethod
     def _new_case_report(case: TaskCase) -> dict:
@@ -657,6 +728,7 @@ Reply with only one word: CORRECT or INCORRECT"""
             "image_path": case.image_path,
             "metadata": dict(case.metadata),
             "attempts": [],
+            "direction_stuck": False,
         }
 
     @staticmethod
@@ -702,6 +774,7 @@ Reply with only one word: CORRECT or INCORRECT"""
             "tool_goal": analysis.tool_goal,
             "skill_update_note": analysis.skill_update_note,
             "rationale": analysis.rationale,
+            "differentiation_note": analysis.differentiation_note,
         }
 
     @staticmethod
@@ -745,3 +818,48 @@ Reply with only one word: CORRECT or INCORRECT"""
             "chain_trace": list(validation.chain_trace),
             "replaced_existing_tool": validation.replaced_existing_tool,
         }
+
+    def _record_failed_direction(
+        self,
+        case: TaskCase,
+        attempt: int,
+        analysis,
+        chain_context: ToolChainContext | None,
+        used_tool: str | None,
+        retry_answer: str | None,
+        failure_reason: str,
+        source: str,
+    ) -> dict:
+        """Persist one tried-and-failed direction and return a compact summary."""
+        direction = FailedDirection(
+            case_id=case.case_id,
+            attempt=attempt,
+            created_at=datetime.now().isoformat(),
+            root_cause=analysis.root_cause,
+            missing_step=analysis.missing_step,
+            next_action=analysis.next_action,
+            tool_goal=analysis.tool_goal,
+            skill_update_note=analysis.skill_update_note,
+            chain_trace=list(chain_context.tool_sequence) if chain_context else [],
+            used_tool=used_tool,
+            retry_answer=retry_answer,
+            failure_reason=failure_reason,
+            source=source,
+        )
+        saved = self.store.save_failed_direction(case.problem_id, direction)
+        summary = dict(saved.get("stored_direction", {}))
+        summary["deduped"] = bool(saved.get("deduped"))
+        summary["similarity"] = round(float(saved.get("similarity", 0.0)), 3)
+        return summary
+
+    @staticmethod
+    def _validation_failure_reason(step: EvolutionStep) -> str:
+        """Summarize why this attempted direction failed before retry."""
+        reasons: list[str] = []
+        if step.validation and step.validation.reason:
+            reasons.append(step.validation.reason)
+        if step.skill_proposal is not None and step.validation is None:
+            reasons.append("Skill was generated but no runtime retry occurred.")
+        if not reasons:
+            reasons.append("Generated capability did not reach a successful retry.")
+        return " ".join(reasons)

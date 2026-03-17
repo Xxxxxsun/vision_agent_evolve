@@ -9,7 +9,7 @@ from typing import Any
 from core.vlm_client import VLMClient, ModelSettings, UsageStats
 from core.types import AgentResult, TaskCase
 from skills.base import Skill
-from .types import FailureAnalysis, ToolProposal, SkillProposal, ToolChainContext
+from .types import FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, ToolChainContext
 
 
 class AnalyzerDecider:
@@ -33,6 +33,7 @@ class AnalyzerDecider:
         chain_context: ToolChainContext | None = None,
         capability_snapshot: str = "",
         known_failure_lessons: list[Skill] | None = None,
+        failed_directions: list[FailedDirection] | None = None,
     ) -> FailureAnalysis:
         """Analyze failure and decide next action in one LLM call."""
 
@@ -86,6 +87,12 @@ Current Capabilities:
 
 """
 
+        if failed_directions:
+            text_analysis += f"""Previously tried and failed directions for this task family:
+{self._format_failed_directions(failed_directions)}
+
+"""
+
         if has_images:
             text_analysis += """
 VISUAL ANALYSIS INSTRUCTIONS:
@@ -121,6 +128,7 @@ Provide response as JSON:
     "next_action": "generate_tool|generate_skill|generate_both|give_up",
     "tool_goal": "what the next tool should do, if any",
     "skill_update_note": "what the task-specific skill should tell the solver to do next time",
+    "differentiation_note": "how this direction differs from the closest failed directions, or why retrying is still justified",
     "confidence": 0.0-1.0,
     "rationale": "short reason this is the smallest useful next step"
 }
@@ -136,6 +144,9 @@ Guidelines:
 - generate_skill: use when the existing tools are already sufficient but the solver needs a better ordered rule.
 - generate_both: use when a new tool is needed and the solver should be told when to use it.
 - If previous attempts only updated the skill and the case still failed, strongly prefer generate_both unless the current tools are already clearly sufficient.
+- Do not merely rephrase a previously failed direction.
+- If your proposal is close to a prior failed direction, the differentiation_note must explain the concrete new angle or why retrying is still justified.
+- If no materially different direction exists, prefer give_up or switch action type instead of repeating the same idea.
 - give_up: if task seems unsolvable or we've tried too many times
 - Stay concrete and task-family-specific. Do not write a broad essay about VLM weaknesses.
 """
@@ -234,6 +245,7 @@ Guidelines:
                 analysis_dict.get("image_observation", ""),
                 analysis_dict.get("rationale", ""),
             ),
+            differentiation_note=analysis_dict.get("differentiation_note", ""),
         )
 
     def _extract_json(self, text: str) -> dict[str, Any]:
@@ -268,6 +280,30 @@ Guidelines:
             f"- {lesson.description or lesson.name}\nApplicability: {lesson.applicability_conditions or 'N/A'}\n{lesson.content.strip()}"
             for lesson in lessons
         )
+
+    def _format_failed_directions(self, directions: list[FailedDirection]) -> str:
+        return "\n".join(
+            self._format_failed_direction(direction, index)
+            for index, direction in enumerate(directions, start=1)
+        )
+
+    @staticmethod
+    def _format_failed_direction(direction: FailedDirection, index: int) -> str:
+        parts = [
+            f"{index}. case={direction.case_id}",
+            f"attempt={direction.attempt}",
+            f"action={direction.next_action}",
+            f"missing_step={direction.missing_step or 'N/A'}",
+        ]
+        if direction.tool_goal:
+            parts.append(f"tool_goal={direction.tool_goal}")
+        if direction.skill_update_note:
+            parts.append(f"skill_note={direction.skill_update_note}")
+        if direction.failure_reason:
+            parts.append(f"failed_because={direction.failure_reason}")
+        if direction.times_failed > 1:
+            parts.append(f"times_failed={direction.times_failed}")
+        return " | ".join(parts)
 
     def _log_analysis(
         self,
