@@ -1,0 +1,16 @@
+{
+  "id": 1.2,
+  "problem_id": "gear_rotation",
+  "image_path": "datasets/mira/gear_rotation/images/1.png",
+  "prompt": "If the first gear in the image rotates slightly in the direction opposite to the arrow, will the arrow on the final gear point to 1 or 2? Please answer with a number.",
+  "dense_caption": "",
+  "answer": 1
+}
+{
+  "id": 11.1,
+  "problem_id": "gear_rotation",
+  "image_path": "datasets/mira/gear_rotation/images/11.png",
+  "prompt": "If the first gear in the image rotates slightly in the direction of the arrow, will the arrow on the final gear point to 1 or 2? Please answer with a number.",
+  "dense_caption": "",
+  "answer": 2
+}

@@ -1,0 +1,40 @@
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "1", "attempt": 1, "phase": "tool_generation", "status": "end"}
+{"iteration": 1, "case_id": "1", "analysis": {"root_cause": "The agent failed to accurately estimate the spatial overlap of shapes when mentally superimposed.", "next_action": "generate_tool"}, "tool_generated": "shape_overlap_analyzer", "skill_generated": null, "validation_input_image": "", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "1", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "1", "attempt": 2, "phase": "solve", "status": "end"}
+{"case_id": "1", "solve_success": true, "attempts": 2}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "retry", "status": "end"}
+{"iteration": 1, "case_id": "14", "analysis": {"root_cause": "The agent failed to mentally align the shapes to calculate the overlap area, relying on visual estimation instead of geometric spatial reasoning.", "next_action": "generate_tool"}, "tool_generated": "shape_overlap_analyzer", "skill_generated": "overlap", "validation_input_image": "datasets/mira/overlap/images/14.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "tool_generation", "status": "end"}
+{"iteration": 2, "case_id": "14", "analysis": {"root_cause": "The previous tool failed to extract or overlay the shapes, resulting in useless artifacts. The agent cannot perform the spatial reasoning required to compare overlaps without a clear visual representation of the combined shapes.", "next_action": "generate_tool"}, "tool_generated": "shape_overlap_analyzer", "skill_generated": null, "validation_input_image": "datasets/mira/overlap/images/14.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 3, "phase": "retry", "status": "end"}
+{"iteration": 3, "case_id": "14", "analysis": {"root_cause": "The agent failed to accurately estimate the spatial overlap of the shapes when mentally or visually superimposed, leading to an incorrect guess.", "next_action": "generate_tool"}, "tool_generated": "overlay_shapes", "skill_generated": "overlap", "validation_input_image": "datasets/mira/overlap/images/14.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "promotion", "cap_type": "failure_skill", "name": "overlap:case_14", "decision": "keep", "timestamp": "2026-03-16T00:25:47.518983"}

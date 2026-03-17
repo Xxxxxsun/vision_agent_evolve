@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "rolling_dice_top",
+  "image_path": "datasets/mira/rolling_dice_top/images/2.png",
+  "prompt": "If the dice is rolled on the showed path, what will be the number on the top?",
+  "dense_caption": "This is a standard die, so opposite faces sum to 7. If the current visible state and the full path are correctly identified, the final top face can be computed programmatically by updating the die orientation step by step. In this image, the shown path should be read as: move right one step, then up one step, then right one step, then down one step.",
+  "answer": 6
+}
+{
+  "id": 14,
+  "problem_id": "rolling_dice_top",
+  "image_path": "datasets/mira/rolling_dice_top/images/14.png",
+  "prompt": "If the dice is rolled on the showed path, what will be the number on the top?",
+  "dense_caption": "This is a standard die, so opposite faces sum to 7. If the current visible state and the full path are correctly identified, the final top face can be computed programmatically by updating the die orientation step by step. Because this is a perspective drawing, the path should be read in grid steps rather than by raw screen direction. In this image, the shown path should be read as: move down one step, then right one step, then down one step, then right one step, then up two steps.",
+  "answer": 3
+}

@@ -1,0 +1,12 @@
+{
+  "name": "rotate_clock",
+  "description": "Applies a 180-degree rotation to an image, typically used to correct upside-down clock faces after a mirror flip.",
+  "applicability_conditions": "Use the validated tool output to answer this task family.",
+  "usage_example": "python -m tools rotate_clock artifacts/case_18/attempt_2/chain_1_mirror_flip/mirror_flip_output.png",
+  "created_at": "2026-03-15T05:48:52.521218",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

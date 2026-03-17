@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "rolling_dice_sum",
+  "image_path": "datasets/mira/rolling_dice_sum/images/2.png",
+  "prompt": "If the die is rolled along the shown path, what is the total sum of the numbers on the bottom face that touches the path at each step?",
+  "dense_caption": "",
+  "answer": 14
+}
+{
+  "id": 14,
+  "problem_id": "rolling_dice_sum",
+  "image_path": "datasets/mira/rolling_dice_sum/images/14.png",
+  "prompt": "If the die is rolled along the shown path, what is the total sum of the numbers on the bottom face that touches the path at each step?",
+  "dense_caption": "",
+  "answer": 28
+}

@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "cubes_count",
+  "image_path": "datasets/mira/cubes_count/images/2.png",
+  "prompt": "What's the number of cubes presented in the image?",
+  "dense_caption": "",
+  "answer": 43
+}
+{
+  "id": 15,
+  "problem_id": "cubes_count",
+  "image_path": "datasets/mira/cubes_count/images/15.png",
+  "prompt": "What's the number of cubes presented in the image?",
+  "dense_caption": "",
+  "answer": 24
+}

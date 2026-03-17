@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "paper_airplane",
+  "image_path": "datasets/mira/paper_airplane/images/2.png",
+  "prompt": "Based on the partial folding steps shown at the top of the image (ordered from left to right, top to bottom), can you infer which of the paper airplanes below is the final result?",
+  "dense_caption": "",
+  "answer": "C"
+}
+{
+  "id": 13,
+  "problem_id": "paper_airplane",
+  "image_path": "datasets/mira/paper_airplane/images/13.png",
+  "prompt": "Based on the partial folding steps shown at the top of the image (ordered from left to right, top to bottom), can you infer which of the paper airplanes below is the final result?",
+  "dense_caption": "",
+  "answer": "B"
+}

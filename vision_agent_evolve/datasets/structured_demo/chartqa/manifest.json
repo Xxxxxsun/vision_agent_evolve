@@ -1,0 +1,21 @@
+{
+  "dataset": "chartqa",
+  "raw_data_root": "datasets/chartqa_demo/raw",
+  "normalized_data_root": "datasets/structured_demo/chartqa",
+  "splits": {
+    "train": {
+      "count": 2,
+      "annotation_files": [
+        "datasets/chartqa_demo/raw/train.json"
+      ],
+      "output_file": "datasets/structured_demo/chartqa/train.jsonl"
+    },
+    "val": {
+      "count": 1,
+      "annotation_files": [
+        "datasets/chartqa_demo/raw/val.json"
+      ],
+      "output_file": "datasets/structured_demo/chartqa/val.jsonl"
+    }
+  }
+}

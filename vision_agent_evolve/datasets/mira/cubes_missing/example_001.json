@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "cubes_missing",
+  "image_path": "datasets/mira/cubes_missing/images/2.png",
+  "prompt": "What is the number of cubes needed to fill in the structure so that it becomes a solid block with no internal gaps?",
+  "dense_caption": "",
+  "answer": 17
+}
+{
+  "id": 15,
+  "problem_id": "cubes_missing",
+  "image_path": "datasets/mira/cubes_missing/images/15.png",
+  "prompt": "What is the number of cubes needed to fill in the structure so that it becomes a solid block with no internal gaps?",
+  "dense_caption": "",
+  "answer": 24
+}

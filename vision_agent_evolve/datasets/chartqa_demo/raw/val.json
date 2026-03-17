@@ -1,0 +1,10 @@
+[
+  {
+    "id": "chartqa_val_001",
+    "question": "How many categories have value greater than 4?",
+    "answer": "2",
+    "imgname": "val_001.png",
+    "question_type": "count_or_total",
+    "answer_type": "numeric"
+  }
+]

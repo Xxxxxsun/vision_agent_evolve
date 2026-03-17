@@ -1,0 +1,12 @@
+{
+  "name": "billiards_simulator",
+  "description": "Simulates the trajectory of a billiards ball reflecting off table rails until it reaches a pocket.",
+  "applicability_conditions": "Use when the task involves predicting the final pocket of a ball on a billiards table given an initial velocity vector (arrow).",
+  "usage_example": "python -m tools billiards_simulator datasets/mira/billiards/images/2.png",
+  "created_at": "2026-03-15T18:04:12.668163",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "dice_grid_annotator",
+  "description": "Annotates the grid path and dice position to help track orientation changes during movement.",
+  "applicability_conditions": "Use when a die is placed on a grid and needs to be tracked through a sequence of movements.",
+  "usage_example": "python -m tools dice_grid_annotator datasets/mira/rolling_dice_top/images/14.png",
+  "created_at": "2026-03-15T21:53:41.712915",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

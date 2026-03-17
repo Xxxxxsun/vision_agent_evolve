@@ -1,0 +1,8 @@
+{"type": "promotion", "cap_type": "tool", "name": "billiards_path_tracer", "decision": "keep", "timestamp": "2026-03-15T18:33:15.312592"}
+{"type": "promotion", "cap_type": "skill", "name": "billiards", "decision": "keep", "timestamp": "2026-03-15T18:33:15.313285"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent likely miscalculated the angle of reflection off the bottom rail, leading to an incorrect pocket prediction.", "next_action": "generate_tool"}, "tool_generated": "billiards_path_tracer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "keep"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"type": "promotion", "cap_type": "tool", "name": "billiards_geometric_solver", "decision": "keep", "timestamp": "2026-03-15T18:35:14.731548"}
+{"type": "promotion", "cap_type": "skill", "name": "billiards", "decision": "keep", "timestamp": "2026-03-15T18:35:14.731822"}
+{"iteration": 1, "case_id": "11", "analysis": {"root_cause": "The billiards_path_tracer tool failed to correctly identify the initial vector and performed an incorrect reflection calculation, leading to a hallucinated trajectory.", "next_action": "generate_tool"}, "tool_generated": "billiards_geometric_solver", "skill_generated": "billiards", "validation_input_image": "artifacts/problem_billiards/case_11/attempt_1/chain_1_billiards_path_tracer/billiards_path_output.png", "validation_chain_trace": ["billiards_path_tracer"], "decision": "keep"}
+{"case_id": "11", "solve_success": true, "attempts": 1}

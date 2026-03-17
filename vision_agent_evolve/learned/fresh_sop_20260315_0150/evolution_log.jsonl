@@ -1,0 +1,4 @@
+{"type": "promotion", "cap_type": "tool", "name": "mirror_flip", "decision": "keep", "timestamp": "2026-03-15T02:10:07.790680"}
+{"type": "promotion", "cap_type": "skill", "name": "mirror_clock", "decision": "keep", "timestamp": "2026-03-15T02:10:07.791695"}
+{"iteration": 1, "case_id": 2, "analysis": {"root_cause": "The agent failed to perform the horizontal flip transformation required to read the mirror image correctly and then calculate the time offset.", "next_action": "generate_both"}, "tool_generated": "mirror_flip", "skill_generated": "mirror_clock", "decision": "keep"}
+{"case_id": 2, "solve_success": true, "attempts": 1}

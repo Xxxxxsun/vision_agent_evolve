@@ -1,0 +1,11 @@
+{
+  "name": "rotation_fixer",
+  "description": "Corrects the orientation of an upside-down analog clock face by rotating it 180 degrees.",
+  "usage_example": "python -m tools rotation_fixer artifacts/case_18/attempt_1/chain_1_mirror_fixer/mirror_fixer_output.png",
+  "created_at": "2026-03-15T04:42:17.520771",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

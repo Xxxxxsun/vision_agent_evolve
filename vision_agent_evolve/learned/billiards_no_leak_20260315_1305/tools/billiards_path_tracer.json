@@ -1,0 +1,13 @@
+{
+  "name": "billiards_path_tracer",
+  "description": "Detects the ball and the green direction arrow, then visualizes the trajectory path on the billiards table to assist in determining the target pocket.",
+  "applicability_conditions": "Use when a billiards table image is provided with a blue ball and a green direction arrow, and geometric path calculation is required.",
+  "usage_example": "python -m tools billiards_path_tracer datasets/mira/billiards/images/2.png",
+  "created_at": "2026-03-15T19:16:49.805399",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

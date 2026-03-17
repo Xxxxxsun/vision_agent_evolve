@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "multi_piece_puzzle",
+  "image_path": "datasets/mira/multi_piece_puzzle/images/2.png",
+  "prompt": "Which three of the nine pieces on the right can be combined to exactly match the shape on the left? Please list the three piece numbers (comma‑separated, ascending order).",
+  "dense_caption": "",
+  "answer": "1,3,9"
+}
+{
+  "id": 15,
+  "problem_id": "multi_piece_puzzle",
+  "image_path": "datasets/mira/multi_piece_puzzle/images/15.png",
+  "prompt": "Which three of the nine pieces on the right can be combined to exactly match the shape on the left? Please list the three piece numbers (comma‑separated, ascending order).",
+  "dense_caption": "",
+  "answer": "1,4,5"
+}

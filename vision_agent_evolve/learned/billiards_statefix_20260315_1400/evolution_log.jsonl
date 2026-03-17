@@ -1,0 +1,34 @@
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "end"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent failed to perform a geometric projection of the ball's trajectory, which requires calculating reflections off the rails.", "next_action": "generate_tool"}, "tool_generated": "billiards_trajectory_plotter", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "end"}
+{"iteration": 2, "case_id": "2", "analysis": {"root_cause": "The trajectory plotting tool is incorrectly calculating the vector direction (inverting the arrow's orientation) and failing to simulate the reflection physics correctly.", "next_action": "generate_tool"}, "tool_generated": "billiards_physics_simulator", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "retry", "status": "end"}
+{"iteration": 3, "case_id": "2", "analysis": {"root_cause": "The existing trajectory plotter tool is producing hallucinated, non-physical paths that do not follow the law of reflection (angle of incidence equals angle of reflection).", "next_action": "generate_tool"}, "tool_generated": "billiards_geometry_solver", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "promotion", "cap_type": "failure_skill", "name": "billiards:case_2", "decision": "keep", "timestamp": "2026-03-15T19:55:35.319264"}

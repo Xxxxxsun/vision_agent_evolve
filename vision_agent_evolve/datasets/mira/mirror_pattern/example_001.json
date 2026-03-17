@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "problem_id": "mirror_pattern",
+  "image_path": "datasets/mira/mirror_pattern/images/1.png",
+  "prompt": "Which option can be obtained by mirroring the original image once?",
+  "dense_caption": "",
+  "answer": "C"
+}
+{
+  "id": 15,
+  "problem_id": "mirror_pattern",
+  "image_path": "datasets/mira/mirror_pattern/images/15.png",
+  "prompt": "Which option can be obtained by mirroring the original image once?",
+  "dense_caption": "",
+  "answer": "D"
+}

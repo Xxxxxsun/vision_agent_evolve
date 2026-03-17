@@ -1,0 +1,12 @@
+{
+  "name": "billiards_trajectory_solver",
+  "description": "Calculates the final pocket for a billiards ball by simulating reflection-based trajectory tracing on the table boundaries.",
+  "applicability_conditions": "Use when an initial trajectory has been identified but the final pocket is unknown due to multiple rail reflections.",
+  "usage_example": "python -m tools billiards_trajectory_solver artifacts/problem_billiards/case_11/attempt_1/chain_1_billiards_path_tracer/billiards_path_output.png",
+  "created_at": "2026-03-15T17:11:38.156934",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

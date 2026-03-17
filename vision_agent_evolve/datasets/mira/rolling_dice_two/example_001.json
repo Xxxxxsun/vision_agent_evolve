@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "rolling_dice_two",
+  "image_path": "datasets/mira/rolling_dice_two/images/2.png",
+  "prompt": "When the die is rolled along the black and red paths respectively, which path yields a higher total sum of the numbers on the bottom face at each step (answer with \"red\", \"black\" or \"same\")? What is the total sum for that path? Note: both paths have the same length.",
+  "dense_caption": "",
+  "answer": "black, 14"
+}
+{
+  "id": 14,
+  "problem_id": "rolling_dice_two",
+  "image_path": "datasets/mira/rolling_dice_two/images/14.png",
+  "prompt": "When the die is rolled along the black and red paths respectively, which path yields a higher total sum of the numbers on the bottom face at each step (answer with \"red\", \"black\" or \"same\")? What is the total sum for that path? Note: both paths have the same length.",
+  "dense_caption": "",
+  "answer": "black, 28"
+}

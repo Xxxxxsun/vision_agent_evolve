@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "defuse_a_bomb",
+  "image_path": "datasets/mira/defuse_a_bomb/images/2.png",
+  "prompt": "Bomb in a Box — which wire will you cut to defuse it? You can’t open the box or see beneath the metal slats, and the wires only change direction where they’re visible.",
+  "dense_caption": "",
+  "answer": "C"
+}
+{
+  "id": 13,
+  "problem_id": "defuse_a_bomb",
+  "image_path": "datasets/mira/defuse_a_bomb/images/13.png",
+  "prompt": "Bomb in a Box — which wire will you cut to defuse it? You can’t open the box or see beneath the metal slats, and the wires only change direction where they’re visible.",
+  "dense_caption": "",
+  "answer": "A"
+}

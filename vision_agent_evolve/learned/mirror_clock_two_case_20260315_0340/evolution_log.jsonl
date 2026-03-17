@@ -1,0 +1,7 @@
+{"type": "promotion", "cap_type": "tool", "name": "mirror_flip", "decision": "keep", "timestamp": "2026-03-15T03:11:35.600532"}
+{"type": "promotion", "cap_type": "skill", "name": "mirror_clock", "decision": "keep", "timestamp": "2026-03-15T03:11:35.601264"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent failed to perform the horizontal flip transformation required to interpret the mirror image correctly before calculating the time offset.", "next_action": "generate_both"}, "tool_generated": "mirror_flip", "skill_generated": "mirror_clock", "decision": "keep"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"iteration": 1, "case_id": "18", "analysis": {"root_cause": "The agent misread the mirror-flipped clock face (7:10 instead of 4:10) and performed incorrect arithmetic.", "next_action": "generate_skill"}, "tool_generated": null, "skill_generated": "mirror_clock", "decision": "discard"}
+{"iteration": 2, "case_id": "18", "analysis": {"root_cause": "The agent misread the mirror-flipped clock face. The hour hand is between 4 and 5, and the minute hand is at 2 (10 minutes), making the time 4:10, not 7:10.", "next_action": "generate_skill"}, "tool_generated": null, "skill_generated": "mirror_clock", "decision": "discard"}
+{"iteration": 3, "case_id": "18", "analysis": {"root_cause": "The agent correctly flipped the image but misread the time on the corrected clock (reading 7:10 instead of 4:10).", "next_action": "generate_skill"}, "tool_generated": null, "skill_generated": "mirror_clock", "decision": "discard"}

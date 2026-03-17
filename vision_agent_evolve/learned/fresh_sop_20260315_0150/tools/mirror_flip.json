@@ -1,0 +1,11 @@
+{
+  "name": "mirror_flip",
+  "description": "Performs a horizontal flip on an image to correct mirror reflections, useful for reading clock faces or text in mirror images.",
+  "usage_example": "python -m tools mirror_flip datasets/mira/images/2.png",
+  "created_at": "2026-03-15T02:10:07.790177",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

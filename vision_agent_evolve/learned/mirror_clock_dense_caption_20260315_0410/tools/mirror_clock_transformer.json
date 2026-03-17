@@ -1,0 +1,11 @@
+{
+  "name": "mirror_clock_transformer",
+  "description": "Flips a mirrored clock image horizontally to restore standard orientation for time reading.",
+  "usage_example": "python -m tools mirror_clock_transformer datasets/mira/images/2.png",
+  "created_at": "2026-03-15T03:28:47.819890",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

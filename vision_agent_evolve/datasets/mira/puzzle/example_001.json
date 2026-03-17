@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "puzzle",
+  "image_path": "datasets/mira/puzzle/images/puzzle2.jpg",
+  "prompt": "Given the object above. There is a missing piece in the white area. Which of the five pieces (A, B, C, D, or E) fits perfectly into the missing part of the object?",
+  "dense_caption": "",
+  "answer": "C"
+}
+{
+  "id": 13,
+  "problem_id": "puzzle",
+  "image_path": "datasets/mira/puzzle/images/puzzle13.jpg",
+  "prompt": "Given the object above. There is a missing piece in the white area. Which of the five pieces (A, B, C, D, or E) fits perfectly into the missing part of the object?",
+  "dense_caption": "",
+  "answer": "C"
+}

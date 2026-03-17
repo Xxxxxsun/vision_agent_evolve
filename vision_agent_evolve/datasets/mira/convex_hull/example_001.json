@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "problem_id": "convex_hull",
+  "image_path": "datasets/mira/convex_hull/images/1.png",
+  "prompt": "Given 10 blue points, they form a blue convex hull. Given 10 green points, they form a green convex hull. How many red points fall in the overlapping portion of the blue and green convex hulls? Answer with only one digit.",
+  "dense_caption": "",
+  "answer": "4"
+}
+{
+  "id": 15,
+  "problem_id": "convex_hull",
+  "image_path": "datasets/mira/convex_hull/images/15.png",
+  "prompt": "Given 10 blue points, they form a blue convex hull. Given 10 green points, they form a green convex hull. How many red points fall in the overlapping portion of the blue and green convex hulls? Answer with only one digit.",
+  "dense_caption": "",
+  "answer": "3"
+}

@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "trailer_cubes_count",
+  "image_path": "datasets/mira/trailer_cubes_count/images/2.jpg",
+  "prompt": "Based on the three views, what's the maximum number of cubes that could be present?",
+  "dense_caption": "",
+  "answer": 33
+}
+{
+  "id": 13,
+  "problem_id": "trailer_cubes_count",
+  "image_path": "datasets/mira/trailer_cubes_count/images/13.jpg",
+  "prompt": "Based on the three views, what's the maximum number of cubes that could be present?",
+  "dense_caption": "",
+  "answer": 48
+}

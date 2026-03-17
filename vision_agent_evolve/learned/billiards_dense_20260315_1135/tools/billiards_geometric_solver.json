@@ -1,0 +1,12 @@
+{
+  "name": "billiards_geometric_solver",
+  "description": "Calculates the trajectory of a billiards ball by detecting the ball position and arrow vector, then simulating reflections off the table rails.",
+  "applicability_conditions": "Use when the initial path tracing fails or needs verification for a billiards table task with numbered pockets.",
+  "usage_example": "python -m tools billiards_geometric_solver datasets/mira/billiards/images/11.png",
+  "created_at": "2026-03-15T18:35:14.731110",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

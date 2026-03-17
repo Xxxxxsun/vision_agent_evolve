@@ -1,0 +1,12 @@
+{
+  "name": "rotate_180",
+  "description": "Rotates an image 180 degrees to correct upside-down orientation.",
+  "applicability_conditions": "Use this tool when an image (or a previously mirrored artifact) is upside down, typically identified in clock-reading tasks where the clock face is inverted.",
+  "usage_example": "python -m tools rotate_180 artifacts/case_18/attempt_1/chain_1_mirror_flip/mirror_flip_output.png",
+  "created_at": "2026-03-15T04:58:34.041784",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

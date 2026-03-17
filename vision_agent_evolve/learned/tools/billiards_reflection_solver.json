@@ -1,0 +1,6 @@
+{
+  "name": "billiards_reflection_solver",
+  "description": "Detects the blue ball, the muted green direction arrow, the inner rail bounds, and traces the reflected path until it reaches a pocket.",
+  "applicability_conditions": "Use for billiards tasks with a visible blue ball, a muted green direction arrow, and a rectangular table with six numbered pockets.",
+  "usage_example": "python -m tools billiards_reflection_solver <image_path>"
+}

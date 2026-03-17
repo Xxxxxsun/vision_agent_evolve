@@ -1,0 +1,26 @@
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "end"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 1, "phase": "retry", "status": "end"}
+{"iteration": 1, "case_id": "14", "analysis": {"root_cause": "The agent misidentified the initial state or the path steps, leading to an incorrect calculation of the final orientation.", "next_action": "generate_skill"}, "tool_generated": null, "skill_generated": "rolling_dice_top", "validation_input_image": null, "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "14", "attempt": 2, "phase": "retry", "status": "end"}
+{"type": "promotion", "cap_type": "tool", "name": "dice_grid_annotator", "decision": "keep", "timestamp": "2026-03-15T21:53:41.713930"}
+{"type": "promotion", "cap_type": "skill", "name": "rolling_dice_top", "decision": "keep", "timestamp": "2026-03-15T21:53:41.714566"}
+{"iteration": 2, "case_id": "14", "analysis": {"root_cause": "The agent failed to correctly track the orientation of the die through the sequence of rolls, likely misinterpreting the 3D perspective of the grid path.", "next_action": "generate_tool"}, "tool_generated": "dice_grid_annotator", "skill_generated": "rolling_dice_top", "validation_input_image": "datasets/mira/rolling_dice_top/images/14.png", "validation_chain_trace": [], "decision": "keep"}
+{"case_id": "14", "solve_success": true, "attempts": 2}

@@ -1,0 +1,1151 @@
+"""Simplified roles for evolution (2 roles instead of 10)."""
+
+from __future__ import annotations
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+from core.vlm_client import VLMClient, ModelSettings, UsageStats
+from core.types import AgentResult, TaskCase
+from skills.base import Skill
+from .types import FailureAnalysis, ToolProposal, SkillProposal, ToolChainContext
+
+
+class AnalyzerDecider:
+    """Combined role: analyzes failure and decides next action."""
+
+    def __init__(self, client: VLMClient, debug_dir: Path | None = None):
+        self.client = client
+        self.total_usage = UsageStats()
+        self.debug_dir = debug_dir
+        if self.debug_dir is not None:
+            self.debug_dir.mkdir(parents=True, exist_ok=True)
+
+    def analyze_and_decide(
+        self,
+        case: TaskCase,
+        result: AgentResult,
+        current_capabilities: list[str],
+        previous_attempts: list[str] | None = None,
+        attempt: int | None = None,
+        extra_artifacts: list[str] | None = None,
+        chain_context: ToolChainContext | None = None,
+        capability_snapshot: str = "",
+        known_failure_lessons: list[Skill] | None = None,
+    ) -> FailureAnalysis:
+        """Analyze failure and decide next action in one LLM call."""
+
+        # Build analysis with visual context if available
+        analysis_artifacts = self._merge_artifacts(result.get_image_artifacts(), extra_artifacts or [])
+        has_images = bool(case.image_path) or bool(analysis_artifacts)
+
+        prompt_parts = []
+
+        # Text description
+        text_analysis = f"""You are analyzing why an agent failed to solve a vision task.
+
+IMPORTANT:
+- Do not think too much.
+- Do not produce long reasoning.
+- Do not write an essay.
+- Return compact JSON as quickly as possible.
+
+Task: {case.prompt}
+Task Family: {case.problem_id}
+Expected Answer: {case.gold_answer}
+Agent's Answer: {result.final_answer}
+Agent Steps: {len(result.steps)} turns
+Dense Caption: {case.dense_caption() or "N/A"}
+
+Current Capabilities:
+{chr(10).join(current_capabilities)}
+
+"""
+        if capability_snapshot:
+            text_analysis += f"""Capability Snapshot:
+{capability_snapshot}
+
+"""
+        if chain_context:
+            text_analysis += f"""Current Tool Chain:
+{chain_context.summary()}
+
+"""
+
+        if previous_attempts:
+            history_text = "\n".join(f"- {entry}" for entry in previous_attempts)
+            text_analysis += f"""Previous failed evolve attempts for this same case:
+{history_text}
+
+"""
+
+        if known_failure_lessons:
+            text_analysis += f"""Known Failure Lessons:
+{self._format_known_failure_lessons(known_failure_lessons)}
+
+"""
+
+        if has_images:
+            text_analysis += """
+VISUAL ANALYSIS INSTRUCTIONS:
+You will see the original input image and any artifacts (processed images) generated during execution.
+Compare them carefully to understand:
+1. Did the tool correctly process the image?
+2. What's the quality/correctness of the processed output?
+3. Are there visual issues (blur, wrong transformation, missing elements)?
+4. Does the visual output match what the task needed?
+
+Before deciding the next action, explicitly inspect and describe:
+- what you see in the original image
+- what you see in each tool-generated artifact image
+- the most important visual difference between the original image and the artifact
+- based on the visual details above, what they imply for the next step
+- even if an existing tool succeeded on a previous example, treat the current case as potentially having new visual properties that may require an additional tool for further processing
+
+"""
+
+        text_analysis += """
+Focus on the MINIMAL missing step needed to solve this task family.
+
+1. What did the agent already try?
+2. What visual transformation or computation is still missing?
+3. If there are already tools or a task-specific skill, why were they insufficient for this image?
+4. What is the next smallest useful addition: a new tool, a skill update, both, or give up?
+
+Provide response as JSON:
+{
+    "image_observation": "short description of the original image and the tool-generated image(s)",
+    "root_cause": "short explanation of why the current solve failed",
+    "missing_step": "the next missing transformation or computation",
+    "next_action": "generate_tool|generate_skill|generate_both|give_up",
+    "tool_goal": "what the next tool should do, if any",
+    "skill_update_note": "what the task-specific skill should tell the solver to do next time",
+    "confidence": 0.0-1.0,
+    "rationale": "short reason this is the smallest useful next step"
+}
+
+Guidelines:
+- Choose the change that is most suitable for helping the current VLM solve this task correctly.
+- Prefer tools when changing the image or extracting intermediate information would make the task substantially easier for the current VLM.
+- Prefer skills when the needed capability already exists and the main problem is strategy, ordering, or tool selection.
+- If a validated tool already produced a useful artifact but the solver still keeps failing, actively consider that this case may be outside the scope of the current SOP and may need an additional tool plus a new step.
+- If the current tool changed the image but the solver still cannot reliably read or use the transformed result, prefer generate_both over repeated generate_skill updates.
+- If an existing tool chain already produced an intermediate artifact, decide whether the missing capability should happen after that artifact rather than on the raw image.
+- generate_tool: use when a new transformation/computation is missing.
+- generate_skill: use when the existing tools are already sufficient but the solver needs a better ordered rule.
+- generate_both: use when a new tool is needed and the solver should be told when to use it.
+- If previous attempts only updated the skill and the case still failed, strongly prefer generate_both unless the current tools are already clearly sufficient.
+- give_up: if task seems unsolvable or we've tried too many times
+- Stay concrete and task-family-specific. Do not write a broad essay about VLM weaknesses.
+"""
+
+        # Build message with images if available
+        if has_images:
+            # Create multimodal content
+            content_parts = [{"type": "text", "text": text_analysis}]
+
+            # Add original image
+            if case.image_path:
+                from pathlib import Path
+                if Path(case.image_path).exists():
+                    content_parts.append({
+                        "type": "text",
+                        "text": "\n--- ORIGINAL INPUT IMAGE ---"
+                    })
+                    # Add image
+                    import base64
+                    with open(case.image_path, "rb") as f:
+                        img_data = base64.b64encode(f.read()).decode()
+                    suffix = Path(case.image_path).suffix.lower()
+                    mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
+                    mime = mime_map.get(suffix, 'image/png')
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{img_data}"}
+                    })
+
+            # Add artifact images
+            image_artifacts = analysis_artifacts
+            if image_artifacts:
+                content_parts.append({
+                    "type": "text",
+                    "text": f"\n--- TOOL-GENERATED ARTIFACTS ({len(image_artifacts)} images) ---"
+                })
+
+                for i, artifact_path in enumerate(image_artifacts[:3]):  # Limit to 3 artifacts
+                    from pathlib import Path
+                    if Path(artifact_path).exists():
+                        content_parts.append({
+                            "type": "text",
+                            "text": f"\nArtifact {i+1}: {Path(artifact_path).name}"
+                        })
+                        import base64
+                        with open(artifact_path, "rb") as f:
+                            img_data = base64.b64encode(f.read()).decode()
+                        suffix = Path(artifact_path).suffix.lower()
+                        mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
+                        mime = mime_map.get(suffix, 'image/png')
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{img_data}"}
+                        })
+
+            messages = [
+                {"role": "system", "content": "You are an expert AI system analyzer with vision capabilities. Do not think too much. Return compact JSON only."},
+                {"role": "user", "content": content_parts},
+            ]
+        else:
+            # Text-only analysis
+            messages = [
+                {"role": "system", "content": "You are an expert AI system analyzer. Do not think too much. Return compact JSON only."},
+                {"role": "user", "content": text_analysis},
+            ]
+
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.3, max_tokens=16000))
+        self.total_usage = self.total_usage + usage
+
+        # Print usage
+        print(f"  [AnalyzerDecider] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+
+        # Extract JSON
+        analysis_dict = self._extract_json(response)
+        self._log_analysis(
+            case=case,
+            attempt=attempt,
+            prompt_text=text_analysis,
+            attached_images=self._attached_image_refs(case, analysis_artifacts),
+            chain_summary=chain_context.summary() if chain_context else "",
+            capability_snapshot=capability_snapshot,
+            raw_response=response,
+            parsed_analysis=analysis_dict,
+        )
+
+        return FailureAnalysis(
+            root_cause=analysis_dict.get("root_cause", "Unknown"),
+            next_action=analysis_dict.get("next_action", "give_up"),
+            confidence=float(analysis_dict.get("confidence", 0.5)),
+            missing_step=analysis_dict.get("missing_step", ""),
+            tool_goal=analysis_dict.get("tool_goal", ""),
+            skill_update_note=analysis_dict.get("skill_update_note", ""),
+            failure_stage=analysis_dict.get("failure_stage", "Unknown"),
+            missing_capabilities=analysis_dict.get("missing_capabilities", []),
+            rationale=self._merge_rationale(
+                analysis_dict.get("image_observation", ""),
+                analysis_dict.get("rationale", ""),
+            ),
+        )
+
+    def _extract_json(self, text: str) -> dict[str, Any]:
+        """Extract JSON from text."""
+        # Try to find JSON block
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        # Fallback to empty dict
+        return {}
+
+    def _attached_image_refs(self, case: TaskCase, image_artifacts: list[str]) -> list[str]:
+        refs: list[str] = []
+        if case.image_path:
+            refs.append(case.image_path)
+        refs.extend(image_artifacts[:3])
+        return refs
+
+    def _merge_artifacts(self, primary: list[str], secondary: list[str]) -> list[str]:
+        merged: list[str] = []
+        for artifact in [*primary, *secondary]:
+            if artifact and artifact not in merged:
+                merged.append(artifact)
+        return merged
+
+    def _format_known_failure_lessons(self, lessons: list[Skill]) -> str:
+        return "\n\n".join(
+            f"- {lesson.description or lesson.name}\nApplicability: {lesson.applicability_conditions or 'N/A'}\n{lesson.content.strip()}"
+            for lesson in lessons
+        )
+
+    def _log_analysis(
+        self,
+        case: TaskCase,
+        attempt: int | None,
+        prompt_text: str,
+        attached_images: list[str],
+        chain_summary: str,
+        capability_snapshot: str,
+        raw_response: str,
+        parsed_analysis: dict[str, Any],
+    ) -> None:
+        if self.debug_dir is None:
+            return
+
+        filename = f"case_{case.case_id}_attempt_{attempt or 'unknown'}.json"
+        payload = {
+            "case_id": case.case_id,
+            "problem_id": case.problem_id,
+            "attempt": attempt,
+            "prompt_text": prompt_text,
+            "attached_images": attached_images,
+            "chain_summary": chain_summary,
+            "capability_snapshot": capability_snapshot,
+            "raw_response": raw_response,
+            "parsed_analysis": parsed_analysis,
+        }
+        (self.debug_dir / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def _merge_rationale(self, image_observation: str, rationale: str) -> str:
+        observation = str(image_observation).strip()
+        reason = str(rationale).strip()
+        if observation and reason:
+            return f"{observation} {reason}".strip()
+        return observation or reason
+
+
+class Generator:
+    """Generates tools and skills based on analysis."""
+
+    def __init__(self, client: VLMClient):
+        self.client = client
+        self.total_usage = UsageStats()
+
+    def generate_tool(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        chain_context: ToolChainContext | None = None,
+    ) -> ToolProposal:
+        """Generate a new tool based on failure analysis."""
+        prompt = self._build_tool_prompt(case, analysis, chain_context)
+        messages = self._build_tool_messages(case, prompt, chain_context)
+
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.4, max_tokens=12000))
+        self.total_usage = self.total_usage + usage
+
+        # Print usage
+        print(f"  [Generator/Tool] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+
+        # Extract JSON
+        proposal_dict = self._extract_json(response)
+        return self._normalize_tool_proposal(proposal_dict)
+
+    def _build_tool_messages(
+        self,
+        case: TaskCase,
+        prompt: str,
+        chain_context: ToolChainContext | None,
+    ) -> list[dict[str, Any]]:
+        content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+
+        image_refs: list[tuple[str, str]] = []
+        if case.image_path:
+            image_refs.append(("ORIGINAL INPUT IMAGE", case.image_path))
+
+        latest_artifact = chain_context.latest_artifact if chain_context else ""
+        if latest_artifact:
+            image_refs.append(("LATEST INTERMEDIATE ARTIFACT", latest_artifact))
+
+        for label, image_path in image_refs:
+            path = Path(image_path)
+            if not path.exists():
+                continue
+            content.append({"type": "text", "text": f"\n--- {label}: {path.name} ---"})
+            content.append({"type": "image_url", "image_url": {"url": self._image_data_url(path)}})
+
+        return [
+            {"role": "system", "content": "You are an expert Python developer for vision tools."},
+            {"role": "user", "content": content if len(content) > 1 else prompt},
+        ]
+
+    def _build_tool_prompt(self, case: TaskCase, analysis: FailureAnalysis, chain_context: ToolChainContext | None) -> str:
+        chain_summary = chain_context.summary() if chain_context else "No existing tool chain."
+        latest_artifact = chain_context.latest_artifact if chain_context else ""
+        return f"""You are generating a new Python tool to solve a vision task.
+
+Task: {case.prompt}
+Image: {case.image_path}
+Dense Caption: {case.dense_caption() or "N/A"}
+
+Failure Analysis:
+- Root Cause: {analysis.root_cause}
+- Missing step: {analysis.missing_step}
+- Tool goal: {analysis.tool_goal or analysis.rationale}
+Existing Tool Chain:
+{chain_summary}
+
+Generate a simple, focused tool that addresses this specific need.
+
+CRITICAL REQUIREMENTS:
+- Maximum 150 lines of code
+- Our runtime will call it as: `python -m tools <tool_name> <image_path>`
+- The `image_path` input may be an intermediate artifact from a previous tool, not just the raw image.
+- Put the real logic inside a top-level `run(image_path: str) -> ToolResult` function
+- `main()` is optional, but if you include it, it should only do `print(run(sys.argv[1]))`
+- Use libraries: opencv-python (cv2), numpy, PIL
+- Use shared helpers from `tools.implementations.shared` whenever possible
+- Save at least one real file under `artifacts/`
+- Return that exact relative path in `artifacts=[...]`
+- Print exactly one ToolResult and nothing else
+- Do not use abstract base classes unless truly necessary
+- Prefer a single short script over framework-heavy structure
+- Do not rely on custom CLI parsing; runtime can call `run(image_path)` directly
+- The easiest successful tools are usually: load image -> transform image -> save artifact -> return ToolResult
+- If there is already a tool chain, design this tool as the next processing step after the latest artifact: `{latest_artifact or "<artifact_path>"}`.
+- If the dense caption or failure analysis provides measurable visual cues (for example colors, markers, geometry, orientations, or other detectable properties), the code must include real detection/extraction steps that use those cues.
+- Do not skip those cues by hardcoding image-specific coordinates, fixed vectors, or a fixed final answer in place of detection.
+- Do not output the task's final answer from the tool itself.
+- `ToolResult.answer` should usually be empty, or at most a short intermediate status/result summary that helps debugging without solving the task for the agent.
+
+Follow this EXACT structure:
+
+```python
+from core.types import ToolResult
+from tools.implementations.shared import load_image, save_image
+
+def run(image_path: str) -> ToolResult:
+    try:
+        img = load_image(image_path)
+        # ... process img into processed_img ...
+
+        output_path = "artifacts/tool_name_output.png"
+        save_image(processed_img, output_path)
+
+        return ToolResult(
+            status="ok",
+            answer="",
+            artifacts=[output_path],
+        )
+    except Exception as e:
+        return ToolResult(status="error", answer="", error=str(e))
+
+def main():
+    import sys
+    if len(sys.argv) < 2:
+        print(f"Usage: python {{sys.argv[0]}} <image_path>")
+        sys.exit(1)
+
+    print(run(sys.argv[1]))
+
+if __name__ == "__main__":
+    main()
+```
+
+Provide response as JSON:
+{{
+    "name": "tool_name",
+    "description": "brief description",
+    "applicability_conditions": "when this tool should be used within the task family",
+    "code": "full Python code (with main() function)",
+    "usage_example": "python -m tools tool_name <image_path>",
+    "expected_inputs": ["image_path", "other params if needed"],
+    "expected_outputs": ["description of output", "artifacts/output.png"]
+}}
+
+IMPORTANT:
+- The tool MUST state its applicability conditions in a reusable, task-family-level way.
+- The applicability conditions must say what visual situation or intermediate artifact state makes this tool appropriate.
+- The validator will fail the tool unless stdout contains a ToolResult with an ARTIFACTS line.
+- The validator will reject tools that hardcode or directly output the task's final answer.
+- The saved file must actually exist at the same relative path you put inside `artifacts=[...]`.
+- Use a descriptive artifact path like `artifacts/<tool_name>_output.png`.
+- Agent runtime will discover this tool by filename, so keep `name` aligned with the file/tool name.
+- If a shared helper already exists for the transformation, import and use it instead of rewriting it.
+- Prefer one input image and one output artifact unless the task truly needs more.
+- Tool MUST print ToolResult in format:
+  ANSWER: <result>
+  STATUS: ok|error
+  ARTIFACTS: file1.png, file2.png
+"""
+
+    def generate_skill(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        tool_proposal: ToolProposal | None = None,
+        existing_skill_content: str | None = None,
+        chain_context: ToolChainContext | None = None,
+    ) -> SkillProposal:
+        """Generate a new skill based on failure analysis."""
+
+        tool_context = ""
+        if tool_proposal:
+            tool_context = f"""
+A tool is available for this task family:
+- Name: {tool_proposal.name}
+- Description: {tool_proposal.description}
+- Usage: {tool_proposal.usage_example}
+
+The skill MUST tell the solver to use this tool first when the rule applies.
+"""
+        else:
+            tool_context = """
+No tool is available for this rule.
+Write only a short solver rule. Do not invent any tools.
+"""
+
+        existing_sop_context = ""
+        if existing_skill_content:
+            existing_sop_context = f"""
+Existing task-family SOP:
+{existing_skill_content}
+
+This SOP already works for some examples, but it is not sufficient for the current example.
+Revise it so it still preserves the previously useful behavior while adding or adjusting the steps needed for this example.
+"""
+
+        prompt = f"""You are generating a SHORT SOP-style task prompt for the solver.
+
+Task family: {case.problem_id}
+Current question: {case.prompt}
+Current image path: {case.image_path or "<image_path>"}
+Dense caption: {case.dense_caption() or "N/A"}
+Current failure: {analysis.root_cause}
+Missing step: {analysis.missing_step}
+Skill update note: {analysis.skill_update_note or analysis.rationale}
+Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+
+{tool_context}
+{existing_sop_context}
+
+IMPORTANT CONTEXT:
+- This skill is for future solves of THIS task family only.
+- The current question, image path, and dense caption are provided only so you can avoid copying sample-specific details into the SOP.
+- The updated SOP must explicitly state its applicability conditions, including when the original tool alone is enough and when an added step/tool is needed.
+- Keep it short and operational.
+- Write it as an SOP, not as background explanation.
+- Make it reusable across future examples in the same task family.
+- The content must be Markdown only. Do NOT include frontmatter.
+- Use this exact structure:
+  ## SOP
+  1. ...
+  2. ...
+  3. ...
+  4. ...
+- If a tool is provided, step 1 or step 2 must contain the exact command pattern `python -m tools {tool_proposal.name if tool_proposal else "<tool_name>"} <image_path>`.
+- If this SOP extends an existing tool chain, write the next tool step using `<artifact_path>` as the input placeholder.
+- When a prior tool already exists, preserve that earlier step and add the new step after it.
+- Always use the placeholder `<image_path>`, not a concrete dataset path.
+- Tell the solver to wait for the Observation after running the tool, then use the tool output before answering.
+- Do not mention the specific numbers, arithmetic, or final answer from the current example.
+- Do not mention a concrete dataset path or filename from the current example.
+- Describe the final step generically as answering the original question from the corrected image or extracted result.
+- Do not explain evolve history, previous knowledge, common failures, or examples.
+- Do not say "mentally flip" or "visually flip" when a validated tool is available.
+
+Provide response as JSON:
+{{
+    "name": "{case.problem_id}",
+    "description": "one sentence describing the task-specific SOP",
+    "applicability_conditions": "when this SOP or this added step applies within the task family",
+    "content": "short markdown SOP only",
+    "level": "mid",
+    "depends_on": []
+}}
+"""
+
+        messages = [
+            {"role": "system", "content": "You are an expert in creating guidance documents."},
+            {"role": "user", "content": prompt},
+        ]
+
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.4, max_tokens=8000))
+        self.total_usage = self.total_usage + usage
+
+        # Print usage
+        print(f"  [Generator/Skill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+
+        # Extract JSON
+        proposal_dict = self._extract_json(response)
+
+        return self._normalize_skill_proposal(case, analysis, proposal_dict, tool_proposal, existing_skill_content)
+
+    def review_skill(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        draft_skill: SkillProposal,
+        tool_proposal: ToolProposal | None = None,
+        existing_skill_content: str | None = None,
+        chain_context: ToolChainContext | None = None,
+        family_examples: list[TaskCase] | None = None,
+        known_failure_lessons: list[Skill] | None = None,
+    ) -> SkillProposal:
+        """Review a drafted SOP with full context and fix missing conditions/branching."""
+        family_context = self._format_family_examples(family_examples or [case])
+        lesson_text = self._format_known_failure_lessons(known_failure_lessons or []) if known_failure_lessons else "N/A"
+        prompt = f"""You are reviewing a task-family SOP draft before it is used again.
+
+Task family: {case.problem_id}
+Current question: {case.prompt}
+Current image path: {case.image_path or "<image_path>"}
+Dense caption: {case.dense_caption() or "N/A"}
+Task-family examples seen so far:
+{family_context}
+
+Known Failure Lessons:
+{lesson_text}
+
+Failure analysis:
+- Root cause: {analysis.root_cause}
+- Missing step: {analysis.missing_step}
+- Skill update note: {analysis.skill_update_note or analysis.rationale}
+Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+
+Existing task-family SOP (if any):
+{existing_skill_content or "N/A"}
+
+Draft SOP to review:
+Description: {draft_skill.description}
+Applicability: {draft_skill.applicability_conditions}
+Content:
+{draft_skill.content}
+
+Available new tool:
+- {tool_proposal.name if tool_proposal else "N/A"}: {tool_proposal.description if tool_proposal else "N/A"}
+- Applicability: {tool_proposal.applicability_conditions if tool_proposal else "N/A"}
+
+Review goal:
+- Re-read the draft in light of the full context above.
+- Check whether it forgot important applicability conditions.
+- Check whether it should branch, for example when one example only needs the original tool but another example needs an added step.
+- Rewrite the SOP so it can cover the whole task family represented by the examples above, not just the current example.
+- Use the first/second/etc. example descriptions only to infer family-level conditions; do not copy their exact details into the final SOP.
+- Keep the SOP reusable across the task family, not tied to this single example.
+- Do not include concrete numbers, final answers, or dataset-specific file paths.
+- Keep command placeholders generic: `<image_path>` and `<artifact_path>`.
+- Treat the known failure lessons as reusable warnings and branch conditions, not as tool/runtime history.
+
+Return JSON:
+{{
+  "name": "{case.problem_id}",
+  "description": "reviewed one-sentence SOP description",
+  "applicability_conditions": "reviewed applicability conditions",
+  "content": "reviewed markdown SOP only",
+  "level": "mid",
+  "depends_on": []
+}}
+"""
+        messages = [
+            {"role": "system", "content": "You are an expert reviewer for task-specific SOPs. Revise only when needed."},
+            {"role": "user", "content": prompt},
+        ]
+
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=4000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/SkillReview] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal_dict = self._extract_json(response)
+        if not proposal_dict:
+            return draft_skill
+        reviewed = self._normalize_skill_proposal(case, analysis, proposal_dict, tool_proposal, existing_skill_content)
+        return reviewed
+
+    def _format_family_examples(self, cases: list[TaskCase]) -> str:
+        lines: list[str] = []
+        for index, example in enumerate(cases, start=1):
+            dense = example.dense_caption() or "N/A"
+            lines.append(
+                f"{index}. case_id={example.case_id}; dense_caption={dense}; prompt={example.prompt}"
+            )
+        return "\n".join(lines) if lines else "1. current example only; dense_caption=N/A"
+
+    def generate_failure_skill(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis | None,
+        result: AgentResult,
+        existing_skill_content: str | None = None,
+        chain_context: ToolChainContext | None = None,
+        family_examples: list[TaskCase] | None = None,
+    ) -> SkillProposal:
+        """Generate a failure lesson skill that captures helpful methods without promoting it."""
+        family_context = self._format_family_examples(family_examples or [case])
+        prompt = f"""You are writing a short failure lesson for a task family.
+
+Task family: {case.problem_id}
+Current question: {case.prompt}
+Dense caption: {case.dense_caption() or "N/A"}
+Expected answer: {case.gold_answer}
+Agent answer: {result.final_answer}
+Existing task-family SOP:
+{existing_skill_content or "N/A"}
+Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+Task-family examples seen so far:
+{family_context}
+
+Failure analysis:
+- Root cause: {analysis.root_cause if analysis else "N/A"}
+- Missing step: {analysis.missing_step if analysis else "N/A"}
+- Rationale: {analysis.rationale if analysis else "N/A"}
+
+Write a reusable lesson that captures:
+- what tends to help on this task family
+- what common mistake happened here
+- what extra condition or extra step should be considered next time
+
+IMPORTANT:
+- This is a failure lesson, not the main promoted solver SOP.
+- This lesson may later be shown to a real solver, so it must still be helpful even when no new tool was learned.
+- Focus on reusable visual cues, geometric checks, intermediate verification steps, and branch conditions that would help solve similar cases next time.
+- Ignore temporary tool registration, loading, promotion, or availability issues unless they reveal a genuine missing reasoning step. Do not center the lesson on missing tool names.
+- Do not mention a concrete generated tool, validator outcome, runtime error, or evolve-only implementation detail. Abstract them into a general lesson the solver can use later.
+- Keep it reusable across the task family.
+- Do not include concrete file paths, exact example arithmetic, or the final answer of this example.
+- Keep command placeholders generic.
+
+Return JSON:
+{{
+  "name": "{case.problem_id}",
+  "description": "short description of the failure lesson",
+  "applicability_conditions": "when this lesson is relevant",
+  "content": "markdown lesson only",
+  "level": "low",
+  "depends_on": []
+}}
+"""
+        messages = [
+            {"role": "system", "content": "You are an expert at writing reusable failure lessons for evolving agents."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.3, max_tokens=3000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/FailureSkill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal_dict = self._extract_json(response)
+        lesson = self._normalize_skill_proposal(
+            case,
+            analysis or FailureAnalysis(root_cause="unsolved case", next_action="give_up", confidence=0.0),
+            proposal_dict,
+            None,
+            existing_skill_content,
+        )
+        lesson.description = self._normalize_failure_description(lesson.description, case)
+        lesson.applicability_conditions = self._normalize_failure_applicability(
+            lesson.applicability_conditions,
+            case,
+            analysis,
+        )
+        lesson.content = self._build_failure_lesson_content(
+            case,
+            analysis,
+            result,
+            lesson.content,
+            chain_context,
+            family_examples or [case],
+        )
+        return lesson
+
+    def _extract_json(self, text: str) -> dict[str, Any]:
+        """Extract JSON from text."""
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return {}
+
+    def _normalize_tool_proposal(self, proposal_dict: dict[str, Any]) -> ToolProposal:
+        """Normalize generator output into the runtime contract."""
+        raw_name = str(proposal_dict.get("name", "unnamed_tool"))
+        name = self._normalize_tool_name(raw_name)
+        code = self._normalize_tool_code(str(proposal_dict.get("code", "")), name)
+        usage_example = proposal_dict.get("usage_example") or f"python -m tools {name} <image_path>"
+
+        return ToolProposal(
+            name=name,
+            description=str(proposal_dict.get("description", "")),
+            applicability_conditions=self._sanitize_applicability(
+                str(proposal_dict.get("applicability_conditions", "")) or proposal_dict.get("description", "") or "Use this tool when the current image or intermediate artifact still needs this specific transformation."
+            ),
+            code=code,
+            usage_example=str(usage_example).replace("python learned/tools/", "python -m tools ").replace(".py", ""),
+            expected_inputs=list(proposal_dict.get("expected_inputs", ["image_path"])),
+            expected_outputs=list(proposal_dict.get("expected_outputs", [f"artifacts/{name}_output.png"])),
+        )
+
+    def _normalize_tool_name(self, raw_name: str) -> str:
+        normalized = re.sub(r"[^a-z0-9_]+", "_", raw_name.strip().lower())
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        return normalized or "unnamed_tool"
+
+    def _normalize_tool_code(self, code: str, tool_name: str) -> str:
+        normalized = code.replace("Path(__file__).parents[3]", "Path(__file__).parents[2]")
+        if "python learned/tools/" in normalized:
+            normalized = normalized.replace("python learned/tools/", "python -m tools ")
+
+        has_run = bool(re.search(r"^def run\s*\(", normalized, re.MULTILINE))
+        has_main = bool(re.search(r"^def main\s*\(", normalized, re.MULTILINE))
+        if has_run and not has_main:
+            normalized = normalized.rstrip() + f"""
+
+def main():
+    import sys
+    if len(sys.argv) < 2:
+        print(f"Usage: python -m tools {tool_name} <image_path>")
+        raise SystemExit(1)
+
+    print(run(sys.argv[1]))
+
+if __name__ == "__main__":
+    main()
+"""
+
+        return normalized
+
+    def _normalize_skill_proposal(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        proposal_dict: dict[str, Any],
+        tool_proposal: ToolProposal | None,
+        existing_skill_content: str | None,
+    ) -> SkillProposal:
+        """Normalize a generated skill into a short task rule the solver can execute."""
+        description = self._sanitize_description(
+            str(proposal_dict.get("description", "")).strip(),
+            tool_proposal is not None,
+        )
+        raw_content = str(proposal_dict.get("content", "")).strip()
+        applicability_conditions = self._sanitize_applicability(
+            str(proposal_dict.get("applicability_conditions", "")).strip()
+            or self._derive_skill_applicability(raw_content, analysis, existing_skill_content, tool_proposal)
+        )
+        level = str(proposal_dict.get("level", "mid"))
+        depends_on = list(proposal_dict.get("depends_on", []))
+
+        if tool_proposal is None:
+            content = raw_content or self._build_plain_skill_content(analysis)
+        else:
+            content = self._build_tool_skill_content(case, raw_content, analysis, tool_proposal, existing_skill_content)
+
+        return SkillProposal(
+            name=case.problem_id,
+            description=description,
+            applicability_conditions=applicability_conditions,
+            content=content,
+            level=level if level in {"foundation", "high", "mid", "low"} else "mid",
+            depends_on=depends_on,
+        )
+
+    def _build_plain_skill_content(self, analysis: FailureAnalysis) -> str:
+        when_text = self._sanitize_context_text(analysis.missing_step or "When this exact task pattern appears.")
+        then_text = "Then answer the original question using the corrected interpretation for this task family."
+        still_text = self._sanitize_context_text(analysis.rationale or "State what remaining step is missing.")
+        return "\n".join([
+            "## SOP",
+            f"1. Check whether this task matches: {when_text}",
+            "2. Follow the task-specific steps before giving any final answer.",
+            f"3. {then_text}",
+            f"4. If still failing, {still_text}",
+        ])
+
+    def _build_tool_skill_content(
+        self,
+        case: TaskCase,
+        raw_content: str,
+        analysis: FailureAnalysis,
+        tool_proposal: ToolProposal,
+        existing_skill_content: str | None,
+    ) -> str:
+        sections = self._extract_markdown_sections(raw_content)
+        fallback_when = sections.get("When this applies") or sections.get("When to Use") or analysis.missing_step or "When this task pattern appears."
+        when_text = self._sanitize_context_text(fallback_when)
+        still_text = self._sanitize_context_text(
+            sections.get("If still failing") or analysis.rationale or "Explain what remaining transformation or computation is still missing."
+        )
+        generic_command = f"python -m tools {tool_proposal.name} <image_path>"
+        prior_tools = self._extract_tool_names(existing_skill_content or "")
+
+        if prior_tools and tool_proposal.name not in prior_tools:
+            prior_chain = self._format_existing_chain(prior_tools)
+            chained_command = f"python -m tools {tool_proposal.name} <artifact_path>"
+            return "\n".join([
+                "## SOP",
+                f"1. Confirm this applies: {self._strip_bullet(when_text)}",
+                f"2. Run the existing tool chain in order: {prior_chain}",
+                f"3. Wait for the Observation, then use the newest artifact as the input to `{chained_command}`.",
+                "4. Wait for the Observation again, then answer the original question using the final tool output instead of the raw image. "
+                f"If still failing, {self._strip_bullet(still_text)}",
+            ])
+
+        return "\n".join([
+            "## SOP",
+            f"1. Confirm this applies: {self._strip_bullet(when_text)}",
+            f"2. Run `{generic_command}`.",
+            "3. Wait for the Observation, then use the tool output artifact or observation before giving any final answer.",
+            "4. Answer the original question using the tool output instead of the raw image. "
+            f"If still failing, {self._strip_bullet(still_text)}",
+        ])
+
+    def _extract_markdown_sections(self, content: str) -> dict[str, str]:
+        """Extract simple markdown sections keyed by H2 heading."""
+        sections: dict[str, str] = {}
+        current: str | None = None
+        buffer: list[str] = []
+
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if line.startswith("## "):
+                if current is not None and buffer:
+                    sections[current] = "\n".join(buffer).strip()
+                current = line[3:].strip()
+                buffer = []
+                continue
+            if current is not None:
+                buffer.append(line)
+
+        if current is not None and buffer:
+            sections[current] = "\n".join(buffer).strip()
+
+        return sections
+
+    def _strip_bullet(self, text: str) -> str:
+        cleaned = " ".join(part.strip() for part in text.splitlines() if part.strip()).strip()
+        if cleaned.startswith("- "):
+            return cleaned[2:].strip()
+        return cleaned
+
+    def _sanitize_description(self, description: str, has_tool: bool) -> str:
+        if not description:
+            return "Use the validated tool before answering this task family." if has_tool else "Follow this task-family SOP before answering."
+        cleaned = self._sanitize_context_text(description)
+        if not cleaned or cleaned == description and self._looks_example_specific(description):
+            return "Use the validated tool before answering this task family." if has_tool else "Follow this task-family SOP before answering."
+        return cleaned
+
+    def _sanitize_applicability(self, text: str) -> str:
+        cleaned = self._sanitize_context_text(text)
+        cleaned = cleaned.replace("tool command `python -m tools <tool_name> <image_path>`", "the relevant tool step")
+        if not cleaned or self._looks_example_specific(cleaned):
+            return "Use this only when the current image or intermediate artifact matches this task-specific visual condition."
+        return cleaned
+
+    def _derive_skill_applicability(
+        self,
+        raw_content: str,
+        analysis: FailureAnalysis,
+        existing_skill_content: str | None,
+        tool_proposal: ToolProposal | None,
+    ) -> str:
+        sections = self._extract_markdown_sections(raw_content)
+        when_text = sections.get("When this applies") or sections.get("When to Use") or analysis.missing_step or analysis.root_cause
+        if existing_skill_content and tool_proposal:
+            return self._sanitize_applicability(
+                f"Use the existing tool path first, and add {tool_proposal.name} only when {when_text}"
+            )
+        return self._sanitize_applicability(when_text)
+
+    def _sanitize_context_text(self, text: str) -> str:
+        cleaned = text.strip()
+        cleaned = re.sub(r"`?python(?:3)?\s+-m\s+tools\s+\S+\s+\S+`?", "tool command `python -m tools <tool_name> <image_path>`", cleaned)
+        cleaned = re.sub(r"\b(?:datasets?|images?)\/[^\s`]+", "<image_path>", cleaned)
+        cleaned = re.sub(r"\b\.\/[^\s`]+\.(?:png|jpg|jpeg|webp|gif)\b", "<image_path>", cleaned)
+        cleaned = re.sub(r"\b\S+\.(?:png|jpg|jpeg|webp|gif)\b", "<image_path>", cleaned)
+        cleaned = re.sub(r"\badd(?:ing)?\s+\d+\s+hours?(?:\s+and\s+\d+\s+minutes?)?", "answer the question-specific time offset", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b\d+\s+hours?(?:\s+and\s+\d+\s+minutes?)?\b", "the question-specific time offset", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b\d{1,2}:\d{2}\b", "<time>", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+        if self._looks_example_specific(cleaned):
+            return "Use the validated tool output to answer this task family."
+        return cleaned
+
+    def _normalize_failure_description(self, description: str, case: TaskCase) -> str:
+        cleaned = self._sanitize_failure_text(description)
+        if not cleaned:
+            return f"Failure lesson for solving harder {case.problem_id} examples."
+        return cleaned
+
+    def _normalize_failure_applicability(
+        self,
+        applicability: str,
+        case: TaskCase,
+        analysis: FailureAnalysis | None,
+    ) -> str:
+        cleaned = self._sanitize_failure_text(applicability)
+        if cleaned:
+            return cleaned
+        fallback = (analysis.missing_step if analysis else "") or (analysis.root_cause if analysis else "")
+        cleaned_fallback = self._sanitize_failure_text(fallback)
+        if cleaned_fallback:
+            return cleaned_fallback
+        return f"When a standard {case.problem_id} SOP still fails on a harder visual variation."
+
+    def _build_failure_lesson_content(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis | None,
+        result: AgentResult,
+        raw_content: str,
+        chain_context: ToolChainContext | None,
+        family_examples: list[TaskCase],
+    ) -> str:
+        sections = self._extract_markdown_sections(raw_content)
+        helpful_text = self._sanitize_failure_text(
+            sections.get("Helpful method")
+            or sections.get("Method")
+            or (analysis.rationale if analysis else "")
+            or self._default_failure_method(case, analysis, chain_context)
+        )
+        common_mistake = self._sanitize_failure_text(
+            sections.get("Common mistake")
+            or sections.get("Mistake")
+            or (analysis.root_cause if analysis else "")
+            or "The solver trusted an incomplete intermediate interpretation before checking the key visual constraints."
+        )
+        next_step = self._sanitize_failure_text(
+            sections.get("Next time")
+            or sections.get("Next")
+            or (analysis.missing_step if analysis else "")
+            or self._default_failure_next_step(case, analysis, family_examples)
+        )
+
+        if not helpful_text:
+            helpful_text = self._default_failure_method(case, analysis, chain_context)
+        if not common_mistake:
+            common_mistake = "The solver followed an incomplete rule and skipped a necessary verification step."
+        if not next_step:
+            next_step = self._default_failure_next_step(case, analysis, family_examples)
+
+        family_branch_hint = self._failure_family_branch_hint(case, family_examples)
+        if family_branch_hint:
+            next_step = f"{next_step} {family_branch_hint}".strip()
+
+        return "\n".join(
+            [
+                "## SOP",
+                "1. Recognize that the current task-family SOP was not sufficient for this example and identify the stable visual anchors before answering.",
+                f"2. Helpful method: {helpful_text}",
+                f"3. Common mistake: {common_mistake}",
+                f"4. Next time, consider: {next_step}",
+            ]
+        )
+
+    def _sanitize_failure_text(self, text: str) -> str:
+        cleaned = self._sanitize_context_text(text or "")
+        replacements = [
+            (r"(?i)the agent failed because it tried to use a tool that wasn['’]?t registered\.?", "The solver relied on an unavailable intermediate step instead of reasoning from stable visual cues."),
+            (r"(?i)the agent attempted to use a tool that wasn['’]?t registered\.?", "The solver relied on an unavailable intermediate step instead of checking the core visual cues."),
+            (r"(?i)the agent attempted to call a non-existent tool '[^']+'", "The solver relied on an unavailable intermediate step instead of checking the image directly."),
+            (r"(?i)unknown tool:?\s*[a-zA-Z0-9_]+", "an unavailable intermediate step"),
+            (r"(?i)tool is marked untrusted due to hardcoded final answers", "an unreliable intermediate shortcut"),
+            (r"(?i)tool wasn['’]?t registered", "the needed intermediate step was unavailable"),
+            (r"(?i)tool was not registered", "the needed intermediate step was unavailable"),
+            (r"(?i)tool unavailable", "an intermediate step was unavailable"),
+            (r"(?i)non-existent tool", "unavailable intermediate step"),
+            (r"(?i)use a valid tool", "use a reliable intermediate check"),
+            (r"(?i)a generated tool failed", "the current procedure missed a reliable intermediate check"),
+            (r"(?i)this tool failed", "the current procedure missed a reliable intermediate check"),
+            (r"(?i)validator[^.]*", "an intermediate result was not trustworthy"),
+        ]
+        for pattern, replacement in replacements:
+            cleaned = re.sub(pattern, replacement, cleaned)
+        cleaned = re.sub(r"'[a-zA-Z0-9_]+'", "", cleaned)
+        cleaned = re.sub(r"\b[a-z]+(?:_[a-z0-9]+){1,}\b", "the current procedure", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+        if not cleaned:
+            return ""
+        return cleaned + "."
+
+    def _default_failure_method(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis | None,
+        chain_context: ToolChainContext | None,
+    ) -> str:
+        combined = " ".join(
+            filter(
+                None,
+                [
+                    case.problem_id,
+                    case.dense_caption() or "",
+                    analysis.root_cause if analysis else "",
+                    analysis.missing_step if analysis else "",
+                    analysis.rationale if analysis else "",
+                ],
+            )
+        ).lower()
+        if any(token in combined for token in ["billiards", "pocket", "trajectory", "rail", "reflection", "arrow"]):
+            base = "Start from the blue ball location, the arrow direction cue, and the true inner rail boundary, then trace the path segment by segment instead of guessing the final pocket."
+        elif any(token in combined for token in ["mirror", "clock", "rotate", "upside", "orientation"]):
+            base = "Normalize the image step by step and answer only from the latest trustworthy corrected view, not from the raw image."
+        else:
+            base = "Identify the most stable visual anchors first, then reason from them step by step before giving a final answer."
+        if chain_context and chain_context.artifacts:
+            return f"{base} Use intermediate artifacts as checks, but verify them against the original image before trusting them."
+        return base
+
+    def _default_failure_next_step(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis | None,
+        family_examples: list[TaskCase],
+    ) -> str:
+        combined = " ".join(
+            filter(
+                None,
+                [
+                    case.problem_id,
+                    case.dense_caption() or "",
+                    analysis.missing_step if analysis else "",
+                    analysis.rationale if analysis else "",
+                ],
+            )
+        ).lower()
+        if any(token in combined for token in ["billiards", "trajectory", "rail", "reflection", "arrow"]):
+            return "Verify the initial direction, use only the first dark inner rail as the reflection boundary, and check every bounce against the reflection law before naming the final pocket."
+        if any(token in combined for token in ["mirror", "clock", "rotate", "orientation", "upside"]):
+            return "Explicitly check whether the current example only needs the original correction or needs an additional orientation step before reading the final answer."
+        if len(family_examples) > 1:
+            return "Check which branch of the task-family procedure applies to the current image instead of forcing the same final step on every example."
+        return "Add the missing visual check or intermediate reasoning step before trusting the final answer."
+
+    def _failure_family_branch_hint(self, case: TaskCase, family_examples: list[TaskCase]) -> str:
+        dense_captions = [example.dense_caption() or "" for example in family_examples]
+        unique_dense = [caption for caption in dense_captions if caption]
+        if len(set(unique_dense)) > 1:
+            return "Use the current image to decide which family variant applies before reusing the same fixed procedure."
+        return ""
+
+    def _looks_example_specific(self, text: str) -> bool:
+        lowered = text.lower()
+        example_markers = [
+            "<image_path>",
+            "<time>",
+            "question-specific time offset",
+        ]
+        if any(marker in lowered for marker in example_markers):
+            return True
+        if re.search(r"\b\d+\b", lowered):
+            return True
+        return False
+
+    def _extract_tool_names(self, content: str) -> list[str]:
+        matches = re.findall(r"python(?:3)?\s+-m\s+tools\s+([a-zA-Z0-9_]+)\s+<(?:image|artifact)_path>", content)
+        ordered: list[str] = []
+        for name in matches:
+            if name not in ordered:
+                ordered.append(name)
+        return ordered
+
+    def _format_existing_chain(self, tool_names: list[str]) -> str:
+        commands: list[str] = []
+        for index, tool_name in enumerate(tool_names):
+            placeholder = "<image_path>" if index == 0 else "<artifact_path>"
+            commands.append(f"`python -m tools {tool_name} {placeholder}`")
+        return " then ".join(commands)
+
+    def _image_data_url(self, path: Path) -> str:
+        import base64
+
+        mime_map = {
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".webp": "image/webp",
+        }
+        mime = mime_map.get(path.suffix.lower(), "image/png")
+        encoded = base64.b64encode(path.read_bytes()).decode()
+        return f"data:{mime};base64,{encoded}"

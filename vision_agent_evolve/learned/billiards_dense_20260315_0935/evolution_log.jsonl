@@ -1,0 +1,8 @@
+{"type": "promotion", "cap_type": "tool", "name": "billiards_path_tracer", "decision": "keep", "timestamp": "2026-03-15T17:10:44.568706"}
+{"type": "promotion", "cap_type": "skill", "name": "billiards", "decision": "keep", "timestamp": "2026-03-15T17:10:44.568996"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent failed to perform the geometric trajectory calculation (bouncing off rails) required to determine the final pocket.", "next_action": "generate_tool"}, "tool_generated": "billiards_path_tracer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "keep"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"type": "promotion", "cap_type": "tool", "name": "billiards_trajectory_solver", "decision": "keep", "timestamp": "2026-03-15T17:11:38.157445"}
+{"type": "promotion", "cap_type": "skill", "name": "billiards", "decision": "keep", "timestamp": "2026-03-15T17:11:38.158683"}
+{"iteration": 1, "case_id": "11", "analysis": {"root_cause": "The current tool is failing to calculate the full trajectory including reflections, providing only a partial, incorrect path.", "next_action": "generate_tool"}, "tool_generated": "billiards_trajectory_solver", "skill_generated": "billiards", "validation_input_image": "artifacts/problem_billiards/case_11/attempt_1/chain_1_billiards_path_tracer/billiards_path_output.png", "validation_chain_trace": ["billiards_path_tracer"], "decision": "keep"}
+{"case_id": "11", "solve_success": true, "attempts": 1}

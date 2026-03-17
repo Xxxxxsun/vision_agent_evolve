@@ -1,0 +1,8 @@
+{"type": "promotion", "cap_type": "tool", "name": "mirror_flip", "decision": "keep", "timestamp": "2026-03-15T04:57:48.320819"}
+{"type": "promotion", "cap_type": "skill", "name": "mirror_clock", "decision": "keep", "timestamp": "2026-03-15T04:57:48.321382"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent failed to perform the horizontal flip transformation required to read the mirrored clock face correctly before calculating the time offset.", "next_action": "generate_tool"}, "tool_generated": "mirror_flip", "skill_generated": "mirror_clock", "validation_input_image": "datasets/mira/images/2.png", "validation_chain_trace": [], "decision": "keep"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"type": "promotion", "cap_type": "tool", "name": "rotate_180", "decision": "keep", "timestamp": "2026-03-15T04:58:34.042320"}
+{"type": "promotion", "cap_type": "skill", "name": "mirror_clock", "decision": "keep", "timestamp": "2026-03-15T04:58:34.042587"}
+{"iteration": 1, "case_id": "18", "analysis": {"root_cause": "The agent only performed a horizontal mirror flip, leaving the clock upside down. The VLM failed to recognize the clock is also rotated 180 degrees.", "next_action": "generate_both"}, "tool_generated": "rotate_180", "skill_generated": "mirror_clock", "validation_input_image": "artifacts/case_18/attempt_1/chain_1_mirror_flip/mirror_flip_output.png", "validation_chain_trace": ["mirror_flip"], "decision": "keep"}
+{"case_id": "18", "solve_success": true, "attempts": 1}

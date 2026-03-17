@@ -1,0 +1,5 @@
+{"type": "promotion", "cap_type": "tool", "name": "billiards_simulator", "decision": "keep", "timestamp": "2026-03-15T18:04:12.669017"}
+{"type": "promotion", "cap_type": "skill", "name": "billiards", "decision": "keep", "timestamp": "2026-03-15T18:04:12.669567"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent lacks a geometric simulation tool to trace the ball's path reflecting off the rails.", "next_action": "generate_tool"}, "tool_generated": "billiards_simulator", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "keep"}
+{"case_id": "2", "solve_success": true, "attempts": 1}
+{"case_id": "11", "solve_success": true, "attempts": 1}

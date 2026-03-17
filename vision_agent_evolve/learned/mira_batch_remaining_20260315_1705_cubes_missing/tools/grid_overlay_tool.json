@@ -1,0 +1,13 @@
+{
+  "name": "grid_overlay_tool",
+  "description": "Overlays a grid coordinate system on the cube structure to help the agent count cubes by identifying column positions and heights.",
+  "applicability_conditions": "Use when the task involves counting cubes in an isometric structure where occlusion makes it difficult to track individual column heights.",
+  "usage_example": "python -m tools grid_overlay_tool datasets/mira/cubes_missing/images/2.png",
+  "created_at": "2026-03-15T23:47:16.170586",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

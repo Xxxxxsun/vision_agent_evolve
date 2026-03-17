@@ -1,0 +1,15 @@
+{
+  "id": 2,
+  "problem_id": "mirror_clock",
+  "image_path": "datasets/mira/images/2.png",
+  "prompt": "This is what a clock looks like in a mirror. What time will it be in 8 hours and 10 minutes?",
+  "dense_caption": "This is a mirrored analog clock.",
+  "answer": "3:20"
+}
+{
+  "uid": 18,
+  "image_path": "./mirror_clock/image/18.png",
+  "question": "This is what a clock looks like in a mirror. What time will it be in 9 hours and 35 minutes?",
+  "dense_caption": "This is a mirrored analog clock that is also upside down.",
+  "answer": "1:40"
+}

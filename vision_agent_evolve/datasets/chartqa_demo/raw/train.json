@@ -1,0 +1,18 @@
+[
+  {
+    "id": "chartqa_train_001",
+    "question": "Which category has the highest value?",
+    "answer": "B",
+    "imgname": "train_001.png",
+    "question_type": "extrema",
+    "answer_type": "string"
+  },
+  {
+    "id": "chartqa_train_002",
+    "question": "What is the value of Feb?",
+    "answer": "7",
+    "imgname": "train_002.png",
+    "question_type": "lookup",
+    "answer_type": "numeric"
+  }
+]

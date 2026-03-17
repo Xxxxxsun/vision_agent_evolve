@@ -1,0 +1,12 @@
+{
+  "name": "billiards_reflection_calculator",
+  "description": "Calculates precise reflection paths for a billiards ball using geometric vector reflection (angle of incidence = angle of reflection) on table rails.",
+  "applicability_conditions": "Use when a coarse path projection has failed and a high-precision geometric calculation of the ball's trajectory is required to determine the final pocket.",
+  "usage_example": "python -m tools billiards_reflection_calculator artifacts/case_11/attempt_1/chain_1_billiards_full_path_projector/billiards_full_path_output.png",
+  "created_at": "2026-03-15T16:33:57.184259",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

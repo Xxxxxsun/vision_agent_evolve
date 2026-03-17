@@ -1,0 +1,11 @@
+{
+  "name": "mirror_fixer",
+  "description": "Flips a mirrored clock image horizontally to normalize the clock face for reading.",
+  "usage_example": "python -m tools mirror_fixer datasets/mira/images/2.png",
+  "created_at": "2026-03-15T04:41:43.953445",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

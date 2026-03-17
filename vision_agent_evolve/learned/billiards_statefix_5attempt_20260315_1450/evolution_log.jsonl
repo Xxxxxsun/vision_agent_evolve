@@ -1,0 +1,54 @@
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "end"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent attempted to complete the task without performing the necessary geometric ray-tracing calculation to determine the ball's path.", "next_action": "generate_tool"}, "tool_generated": "billiards_raytracer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "end"}
+{"iteration": 2, "case_id": "2", "analysis": {"root_cause": "The agent failed to interpret the trajectory path shown in the artifact, which clearly leads to pocket 2 after a reflection.", "next_action": "generate_skill"}, "tool_generated": null, "skill_generated": "billiards", "validation_input_image": null, "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "retry", "status": "end"}
+{"iteration": 3, "case_id": "2", "analysis": {"root_cause": "The agent failed to accurately calculate the reflection trajectory, likely misjudging the angle of incidence relative to the rail geometry.", "next_action": "generate_both"}, "tool_generated": "billiards_raytracer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 4, "phase": "retry", "status": "end"}
+{"iteration": 4, "case_id": "2", "analysis": {"root_cause": "The raytracer tool is failing to accurately map the green arrow's vector to the ball's position, leading to an incorrect bounce calculation.", "next_action": "generate_tool"}, "tool_generated": "billiards_trajectory_analyzer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 5, "phase": "retry", "status": "end"}
+{"iteration": 5, "case_id": "2", "analysis": {"root_cause": "The trajectory calculation tool is incorrectly interpreting the vector of the green arrow, leading to a wrong path projection.", "next_action": "generate_tool"}, "tool_generated": "billiards_raytracer", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "promotion", "cap_type": "failure_skill", "name": "billiards:case_2", "decision": "keep", "timestamp": "2026-03-15T20:29:10.056989"}

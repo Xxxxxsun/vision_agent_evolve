@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "problem_id": "overlap",
+  "image_path": "datasets/mira/overlap/images/1.png",
+  "prompt": "Choose two images from the four images A-D and overlay them according to the black coordinate axis borders of each image. This will produce the overlapping portion of the shapes in the image. Which combination has the largest overlapping area? Output only two letters to represent the combination, such as 'AC'.",
+  "dense_caption": "",
+  "answer": "AC"
+}
+{
+  "id": 14,
+  "problem_id": "overlap",
+  "image_path": "datasets/mira/overlap/images/14.png",
+  "prompt": "Choose two images from the four images A-D and overlay them according to the black coordinate axis borders of each image. This will produce the overlapping portion of the shapes in the image. Which combination has the largest overlapping area? Output only two letters to represent the combination, such as 'AC'.",
+  "dense_caption": "",
+  "answer": "CD"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "gear_tracker",
+  "description": "Detects gear centers and draws labels to help track rotation direction (CW/CCW) through a gear train.",
+  "applicability_conditions": "Use when the task involves a sequence of interconnected gears or belts where rotation direction needs to be manually traced.",
+  "usage_example": "python -m tools gear_tracker datasets/mira/gear_rotation/images/1.png",
+  "created_at": "2026-03-15T23:49:38.361930",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

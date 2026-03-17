@@ -1,0 +1,12 @@
+{
+  "name": "billiards_path_tracer",
+  "description": "Detects the green arrow, calculates the reflection trajectory of the ball, and visualizes the path to the pocket.",
+  "applicability_conditions": "Use when the billiards table, ball, and direction arrow are visible and the trajectory needs to be calculated.",
+  "usage_example": "python -m tools billiards_path_tracer datasets/mira/billiards/images/2.png",
+  "created_at": "2026-03-15T18:33:15.312097",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

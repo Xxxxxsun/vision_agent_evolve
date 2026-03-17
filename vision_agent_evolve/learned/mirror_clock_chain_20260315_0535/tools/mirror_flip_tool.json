@@ -1,0 +1,11 @@
+{
+  "name": "mirror_flip_tool",
+  "description": "Flips an image horizontally to correct mirrored clock faces.",
+  "usage_example": "python -m tools mirror_flip_tool datasets/mira/images/2.png",
+  "created_at": "2026-03-15T04:19:20.898036",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

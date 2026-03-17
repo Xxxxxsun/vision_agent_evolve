@@ -1,0 +1,16 @@
+{
+  "id": 2,
+  "problem_id": "localizer",
+  "image_path": "datasets/mira/localizer/images/2.png",
+  "prompt": "Tile the square on the right using the solid-outlined puzzle pieces on the left. Use all pieces; the final tiling must be exact—no leftovers, no gaps, and no overlaps. Each piece has a circle. After completing the tiling, return the coordinates of each circle in numerical order, using the format: [piece ID (e.g., 1), (x, y)]; separate entries with semicolons.",
+  "dense_caption": "",
+  "answer": "[1, (1,1)]; [2, (2,4)]; [3, (1,7)]; [4, (6,4)]"
+}
+{
+  "id": 12,
+  "problem_id": "localizer",
+  "image_path": "datasets/mira/localizer/images/12.png",
+  "prompt": "Tile the square on the right using the solid-outlined puzzle pieces on the left. Use all pieces; the final tiling must be exact—no leftovers, no gaps, and no overlaps. Each piece has a circle. After completing the tiling, return the coordinates of each circle in numerical order, using the format: [piece ID (e.g., 1), (x, y)]; separate entries with semicolons.",
+  "dense_caption": "",
+  "answer": "[1, (7,1)]; [2, (5,5)]; [3, (2,1)]; [4, (7,4)]; [5, (2,4)]"
+}

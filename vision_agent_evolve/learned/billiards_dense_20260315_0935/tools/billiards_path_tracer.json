@@ -1,0 +1,12 @@
+{
+  "name": "billiards_path_tracer",
+  "description": "Traces the trajectory of a ball on a billiards table, simulating reflections off rails until it hits a pocket.",
+  "applicability_conditions": "Use this tool when the task involves predicting the final destination of a ball on a billiards table given an initial direction vector.",
+  "usage_example": "python -m tools billiards_path_tracer artifacts/input_image.png",
+  "created_at": "2026-03-15T17:10:44.568317",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true
+  }
+}

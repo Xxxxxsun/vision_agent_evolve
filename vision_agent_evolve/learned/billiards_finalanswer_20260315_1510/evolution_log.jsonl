@@ -1,0 +1,28 @@
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 1, "phase": "retry", "status": "end"}
+{"iteration": 1, "case_id": "2", "analysis": {"root_cause": "The agent failed to accurately calculate the reflection trajectory from the ball's position and angle.", "next_action": "generate_tool"}, "tool_generated": "billiards_trajectory_plotter", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "solve", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "analyzer", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "tool_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "tool_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "skill_generation", "status": "end"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 2, "phase": "retry", "status": "end"}
+{"iteration": 2, "case_id": "2", "analysis": {"root_cause": "The previous tool failed to calculate the correct reflection path, and the agent is unable to visually trace the trajectory accurately.", "next_action": "generate_tool"}, "tool_generated": "billiards_trajectory_plotter", "skill_generated": "billiards", "validation_input_image": "datasets/mira/billiards/images/2.png", "validation_chain_trace": [], "decision": "discard"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "2", "attempt": 3, "phase": "solve", "status": "end"}
+{"case_id": "2", "solve_success": true, "attempts": 3}
+{"type": "phase", "case_id": "11", "attempt": 1, "phase": "solve", "status": "start"}
+{"type": "phase", "case_id": "11", "attempt": 1, "phase": "solve", "status": "end"}
+{"case_id": "11", "solve_success": true, "attempts": 1}
