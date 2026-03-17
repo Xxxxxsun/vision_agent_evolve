@@ -31,6 +31,7 @@ class StructuredExperimentConfig:
     max_attempts: int = 10
     readability_judge_enabled: bool = False
     settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"])
+    save_first_n_evolves: int = 10
 
 
 @dataclass
@@ -155,6 +156,7 @@ class StructuredBenchmarkRunner:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.records_path = self.output_dir / "per_case.jsonl"
         self.summary_path = self.output_dir / "summary.json"
+        self.evolve_reports_dir = self.output_dir / "evolve_case_reports"
         self.vlm_client = vlm_client or VLMClient()
         self.readability_judge = (
             ReadabilityJudge(self.vlm_client, project_root)
@@ -177,6 +179,8 @@ class StructuredBenchmarkRunner:
         )
 
         self.records_path.write_text("", encoding="utf-8")
+        if "online_evolve" in self.config.settings:
+            self._reset_evolve_reports_dir()
         records: list[StructuredCaseRecord] = []
         snapshot_name = ""
 
@@ -291,6 +295,7 @@ class StructuredBenchmarkRunner:
     def _run_online_evolve(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
         loop = self._make_online_loop()
         records: list[StructuredCaseRecord] = []
+        saved_evolve_reports = 0
 
         for index, case in enumerate(cases, start=1):
             initial_result, initial_chain = self._run_with_learned_capabilities(
@@ -308,6 +313,9 @@ class StructuredBenchmarkRunner:
             else:
                 evolve_triggered = True
                 evolve_success = loop.run_single_case(case)
+                if saved_evolve_reports < self.config.save_first_n_evolves:
+                    self._save_evolve_case_report(saved_evolve_reports + 1, loop.last_case_report)
+                    saved_evolve_reports += 1
                 final_result, final_chain = self._run_with_learned_capabilities(
                     loop,
                     case,
@@ -491,6 +499,25 @@ class StructuredBenchmarkRunner:
         }
         self.summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
         return summary
+
+    def _reset_evolve_reports_dir(self) -> None:
+        """Clear and recreate the evolve report directory for a fresh run."""
+        if self.evolve_reports_dir.exists():
+            for path in self.evolve_reports_dir.glob("*"):
+                if path.is_file():
+                    path.unlink()
+        else:
+            self.evolve_reports_dir.mkdir(parents=True, exist_ok=True)
+
+    def _save_evolve_case_report(self, ordinal: int, report: dict | None) -> None:
+        """Persist detailed evolve reports for the first N evolved cases."""
+        if not report:
+            return
+        self.evolve_reports_dir.mkdir(parents=True, exist_ok=True)
+        case_id = str(report.get("case_id", f"case_{ordinal}"))
+        filename = f"{ordinal:02d}_{case_id}.json"
+        path = self.evolve_reports_dir / filename
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _extract_tool_names(result: AgentResult) -> list[str]:

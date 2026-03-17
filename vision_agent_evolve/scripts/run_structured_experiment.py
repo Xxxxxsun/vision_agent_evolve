@@ -25,6 +25,7 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=200)
     parser.add_argument("--max-attempts", type=int, default=10)
     parser.add_argument("--enable-readability-judge", action="store_true")
+    parser.add_argument("--save-first-n-evolves", type=int, default=10)
     parser.add_argument(
         "--settings",
         nargs="+",
@@ -46,6 +47,7 @@ def main() -> None:
         max_attempts=args.max_attempts,
         readability_judge_enabled=args.enable_readability_judge,
         settings=settings,
+        save_first_n_evolves=args.save_first_n_evolves,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()

@@ -94,6 +94,25 @@ class FakeLoop:
 
     def run_single_case(self, case):
         self.run_single_case_calls.append(case.case_id)
+        self.last_case_report = {
+            "case_id": case.case_id,
+            "problem_id": case.problem_id,
+            "prompt": case.prompt,
+            "gold_answer": case.gold_answer,
+            "attempts": [
+                {
+                    "attempt": 1,
+                    "initial_result": {"final_answer": "wrong"},
+                    "analysis": {"next_action": "generate_skill"},
+                    "skill_proposal": {"name": "chartqa", "content": "## SOP\n1. Focus on the right bar."},
+                    "retry_result": {"final_answer": case.gold_answer},
+                    "decision": "keep",
+                }
+            ],
+            "solved": True,
+            "attempts_used": 1,
+            "final_result": {"final_answer": case.gold_answer},
+        }
         self.store.promote_skill(
             "chartqa",
             SkillProposal(
@@ -269,6 +288,11 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertFalse(records[2].evolve_triggered)
             self.assertTrue(records[2].correct)
             self.assertTrue((root / "learned" / "snapshots" / snapshot_name).exists())
+            saved_reports = sorted((runner.evolve_reports_dir).glob("*.json"))
+            self.assertEqual(len(saved_reports), 1)
+            payload = json.loads(saved_reports[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload["case_id"], "2")
+            self.assertEqual(payload["attempts"][0]["decision"], "keep")
 
     def test_frozen_transfer_uses_existing_capabilities_without_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -48,6 +48,7 @@ class EvolutionLoop:
         self.validator = Validator(work_dir, self.learned_dir)
         self.store = CapabilityStore(self.learned_dir)
         self.family_examples: dict[str, list[TaskCase]] = {}
+        self.last_case_report: dict | None = None
 
     def run_single_case(self, case: TaskCase) -> bool:
         """
@@ -70,6 +71,8 @@ class EvolutionLoop:
         previous_attempts: list[str] = []
         carried_artifacts: list[str] = []
         family_examples = self._family_examples_for_review(case)
+        case_report = self._new_case_report(case)
+        self.last_case_report = case_report
 
         for attempt in range(1, self.max_attempts + 1):
             print(f"\n--- Attempt {attempt}/{self.max_attempts} ---")
@@ -99,6 +102,15 @@ class EvolutionLoop:
                 print(f"✓ SOLVED! Answer: {result.final_answer}")
                 self._print_token_summary(attempt)
                 self._log_success(case, attempt)
+                case_report["attempts"].append(
+                    {
+                        "attempt": attempt,
+                        "initial_result": self._result_summary(result),
+                        "initial_correct": True,
+                        "chain_trace": list(chain_context.tool_sequence),
+                    }
+                )
+                self._finalize_case_report(case_report, solved=True, final_result=result, attempts_used=attempt)
                 return True
 
             print(f"✗ Failed. Answer: {result.final_answer} (expected: {case.gold_answer})")
@@ -135,12 +147,22 @@ class EvolutionLoop:
             print(f"Analysis: {analysis.root_cause}")
             self._print_analysis_details(analysis)
             print(f"Next action: {analysis.next_action}")
+            attempt_report = {
+                "attempt": attempt,
+                "initial_result": self._result_summary(result),
+                "initial_correct": False,
+                "chain_trace": list(chain_context.tool_sequence),
+                "analysis": self._analysis_summary(analysis),
+            }
 
             # Give up if recommended
             if analysis.next_action == "give_up":
                 print(f"Giving up on this case: {analysis.rationale}")
                 self._save_failure_lesson(case, analysis, result, chain_context)
                 self._log_give_up(case, attempt, analysis)
+                attempt_report["decision"] = "give_up"
+                case_report["attempts"].append(attempt_report)
+                self._finalize_case_report(case_report, solved=False, final_result=result, attempts_used=attempt)
                 return False
 
             # Generate capabilities based on decision
@@ -154,6 +176,7 @@ class EvolutionLoop:
                 step.tool_proposal = self.generator.generate_tool(case, analysis, chain_context=chain_context)
                 self._log_phase(case.case_id, attempt, "tool_generation", "end")
                 print(f"Generated: {step.tool_proposal.name}")
+                attempt_report["tool_proposal"] = self._tool_summary(step.tool_proposal)
 
                 print(f"Validating tool...")
                 step.validation = self.validator.validate_tool(
@@ -168,9 +191,11 @@ class EvolutionLoop:
                 if step.validation.passed:
                     print(f"✓ Tool runtime validation passed. Staging for immediate retry...")
                     staged_tool = step.tool_proposal
+                    attempt_report["tool_validation"] = self._validation_summary(step.validation)
                 else:
                     print(f"✗ Validation failed: {step.validation.reason}")
                     step.decision = "discard"
+                    attempt_report["tool_validation"] = self._validation_summary(step.validation)
 
             # Step 2: generate skill only after we know which tools are actually available
             # Pass the staged tool (may be None) so skill references only usable tools
@@ -188,6 +213,7 @@ class EvolutionLoop:
                 )
                 print(f"Generated: {step.skill_proposal.name}")
                 self._print_skill_content("Generated skill draft", step.skill_proposal.content)
+                attempt_report["skill_proposal"] = self._skill_summary(step.skill_proposal)
                 if hasattr(self.generator, "review_skill"):
                     print("Reviewing generated skill with full context...")
                     step.skill_proposal = self.generator.review_skill(
@@ -201,6 +227,7 @@ class EvolutionLoop:
                         self.store.list_failure_skills(case.problem_id, limit=3),
                     )
                     self._print_skill_content("Reviewed skill draft", step.skill_proposal.content)
+                    attempt_report["reviewed_skill_proposal"] = self._skill_summary(step.skill_proposal)
                 self._log_phase(case.case_id, attempt, "skill_generation", "end")
 
                 print(f"Validating skill...")
@@ -215,8 +242,10 @@ class EvolutionLoop:
                         level=step.skill_proposal.level,
                         depends_on=step.skill_proposal.depends_on,
                     )
+                    attempt_report["skill_validation"] = self._validation_summary(skill_validation)
                 else:
                     print(f"✗ Skill invalid: {skill_validation.reason}")
+                    attempt_report["skill_validation"] = self._validation_summary(skill_validation)
 
             if staged_tool or skill_for_retry:
                 retry_agent = self._create_agent(
@@ -245,6 +274,10 @@ class EvolutionLoop:
                     self._print_token_summary(attempt)
                     self._log_success(case, attempt)
                     self._remember_family_example(case)
+                    attempt_report["retry_result"] = self._result_summary(retry_result)
+                    attempt_report["decision"] = "keep"
+                    case_report["attempts"].append(attempt_report)
+                    self._finalize_case_report(case_report, solved=True, final_result=retry_result, attempts_used=attempt)
                     return True
 
                 print(f"✗ Retry with learned capability still failed: {retry_result.final_answer}")
@@ -254,6 +287,8 @@ class EvolutionLoop:
                     else:
                         self.store.remove_tool(staged_tool.name)
                 step.decision = "discard"
+                attempt_report["retry_result"] = self._result_summary(retry_result)
+                attempt_report["decision"] = "discard"
                 carried_artifacts = self._merge_analysis_artifacts(
                     result.get_image_artifacts(),
                     retry_result.get_image_artifacts(),
@@ -286,9 +321,11 @@ class EvolutionLoop:
                     [],
                     step.validation.artifacts if step.validation else [],
                 )
+                attempt_report["decision"] = step.decision
 
             # Log step
             self._log_step(step)
+            case_report["attempts"].append(attempt_report)
 
             # Continue to next attempt
 
@@ -305,6 +342,7 @@ class EvolutionLoop:
         final_chain = chain_context if "chain_context" in locals() else None
         self._save_failure_lesson(case, final_analysis, final_result, final_chain)
         self._print_token_summary(self.max_attempts)
+        self._finalize_case_report(case_report, solved=False, final_result=final_result, attempts_used=self.max_attempts)
         return False
 
     def _family_examples_for_review(self, case: TaskCase) -> list[TaskCase]:
@@ -607,3 +645,103 @@ Reply with only one word: CORRECT or INCORRECT"""
             if not text:
                 continue
             print(f"  {label}: {text}")
+
+    @staticmethod
+    def _new_case_report(case: TaskCase) -> dict:
+        """Initialize a detailed per-case evolve report."""
+        return {
+            "case_id": case.case_id,
+            "problem_id": case.problem_id,
+            "prompt": case.prompt,
+            "gold_answer": case.gold_answer,
+            "image_path": case.image_path,
+            "metadata": dict(case.metadata),
+            "attempts": [],
+        }
+
+    @staticmethod
+    def _finalize_case_report(case_report: dict, solved: bool, final_result: AgentResult, attempts_used: int) -> None:
+        """Store the final outcome for the current case report."""
+        case_report["solved"] = solved
+        case_report["attempts_used"] = attempts_used
+        case_report["final_result"] = EvolutionLoop._result_summary(final_result)
+
+    @staticmethod
+    def _result_summary(result: AgentResult) -> dict:
+        """Compact result summary that is easy to inspect later."""
+        return {
+            "final_answer": result.final_answer,
+            "success": result.success,
+            "turns": result.total_turns,
+            "artifacts": list(result.all_artifacts),
+            "image_artifacts": result.get_image_artifacts(),
+            "steps": [
+                {
+                    "turn": step.turn,
+                    "action": None if step.action is None else {
+                        "name": step.action.name,
+                        "arguments": step.action.arguments,
+                    },
+                    "observation": step.observation,
+                    "artifacts": list(step.artifacts),
+                    "is_final": step.is_final,
+                    "is_format_error": step.is_format_error,
+                }
+                for step in result.steps
+            ],
+        }
+
+    @staticmethod
+    def _analysis_summary(analysis) -> dict:
+        """Structured analyzer summary for saved reports."""
+        return {
+            "root_cause": analysis.root_cause,
+            "next_action": analysis.next_action,
+            "confidence": analysis.confidence,
+            "missing_step": analysis.missing_step,
+            "tool_goal": analysis.tool_goal,
+            "skill_update_note": analysis.skill_update_note,
+            "rationale": analysis.rationale,
+        }
+
+    @staticmethod
+    def _tool_summary(proposal) -> dict:
+        """Structured tool summary for saved reports."""
+        return {
+            "name": proposal.name,
+            "description": proposal.description,
+            "applicability_conditions": proposal.applicability_conditions,
+            "usage_example": proposal.usage_example,
+            "expected_inputs": list(proposal.expected_inputs),
+            "expected_outputs": list(proposal.expected_outputs),
+            "code": proposal.code,
+        }
+
+    @staticmethod
+    def _skill_summary(proposal) -> dict:
+        """Structured skill summary for saved reports."""
+        return {
+            "name": proposal.name,
+            "description": proposal.description,
+            "applicability_conditions": proposal.applicability_conditions,
+            "content": proposal.content,
+            "level": proposal.level,
+            "depends_on": list(proposal.depends_on),
+        }
+
+    @staticmethod
+    def _validation_summary(validation) -> dict:
+        """Structured validation summary for saved reports."""
+        return {
+            "passed": validation.passed,
+            "static_ok": validation.static_ok,
+            "origin_ok": validation.origin_ok,
+            "regression_ok": validation.regression_ok,
+            "reason": validation.reason,
+            "leakage_detected": validation.leakage_detected,
+            "failed_cases": list(validation.failed_cases),
+            "artifacts": list(validation.artifacts),
+            "input_image": validation.input_image,
+            "chain_trace": list(validation.chain_trace),
+            "replaced_existing_tool": validation.replaced_existing_tool,
+        }
