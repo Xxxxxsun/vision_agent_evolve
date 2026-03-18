@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import inspect
 import json
 import re
 from dataclasses import asdict, dataclass, field
@@ -30,8 +31,9 @@ class StructuredExperimentConfig:
     k: int = 200
     max_attempts: int = 10
     readability_judge_enabled: bool = False
-    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"])
+    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "frozen_inference"])
     save_first_n_evolves: int = 10
+    forced_skill_name: str | None = None
 
 
 @dataclass
@@ -62,6 +64,18 @@ class StructuredCaseRecord:
     initial_correct: bool | None = None
     evolve_triggered: bool | None = None
     evolve_success: bool | None = None
+    full_agent_answer: str | None = None
+    full_agent_correct: bool | None = None
+    post_evolve_answer: str | None = None
+    post_evolve_correct: bool | None = None
+    forced_skill_name: str | None = None
+    forced_skill_enforced: bool | None = None
+    scratch_code_triggered: bool | None = None
+    scratch_code_success: bool | None = None
+    scratch_script_summary: str | None = None
+    scratch_artifact_paths: list[str] = field(default_factory=list)
+    code_writing_skill_used: bool | None = None
+    edited_artifact_judged_useful: bool | None = None
 
 
 class ReadabilityJudge:
@@ -165,7 +179,7 @@ class StructuredBenchmarkRunner:
         )
 
     def run_experiment(self) -> dict[str, Any]:
-        """Run direct, pure-react, online-evolve, and frozen-transfer settings."""
+        """Run direct baseline, adaptive train, and frozen inference settings."""
         evolve_cases = load_normalized_cases(
             self.config.normalized_data_root,
             self.config.dataset,
@@ -179,7 +193,7 @@ class StructuredBenchmarkRunner:
         )
 
         self.records_path.write_text("", encoding="utf-8")
-        if "online_evolve" in self.config.settings:
+        if {"agent_train_adaptive", "scratch_skill_train_adaptive"} & set(self.config.settings):
             self._reset_evolve_reports_file()
         records: list[StructuredCaseRecord] = []
         snapshot_name = ""
@@ -192,25 +206,69 @@ class StructuredBenchmarkRunner:
             print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{self.config.k}] ===")
             records.extend(self._run_pure_react(evolve_cases))
 
-        if "online_evolve" in self.config.settings:
-            print(f"\n=== Online evolve on {self.config.evolve_split}[:{self.config.k}] ===")
-            online_records, snapshot_name = self._run_online_evolve(evolve_cases)
-            records.extend(online_records)
+        if "agent_train_adaptive" in self.config.settings:
+            print(f"\n=== Agent adaptive train on {self.config.evolve_split}[:{self.config.k}] ===")
+            train_records, snapshot_name = self._run_agent_train_adaptive(evolve_cases)
+            records.extend(train_records)
 
-        if "frozen_transfer" in self.config.settings:
-            print(f"\n=== Frozen transfer on {self.config.held_out_split} ===")
+        if "scratch_skill_train_adaptive" in self.config.settings:
+            print(f"\n=== Scratch-skill adaptive train on {self.config.evolve_split}[:{self.config.k}] ===")
+            scratch_records, snapshot_name = self._run_scratch_skill_train_adaptive(evolve_cases)
+            records.extend(scratch_records)
+
+        if "frozen_inference" in self.config.settings:
+            print(f"\n=== Frozen inference on {self.config.held_out_split} ===")
             if not snapshot_name:
                 snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
-            records.extend(self.run_frozen_transfer(snapshot_name=snapshot_name, cases=held_out_cases))
+            records.extend(self.run_frozen_inference(snapshot_name=snapshot_name, cases=held_out_cases))
+
+        if "frozen_inference_forced_skill" in self.config.settings:
+            print(f"\n=== Frozen inference with forced skill on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    force_skill=True,
+                )
+            )
+
+        if "scratch_skill_frozen_inference" in self.config.settings:
+            print(f"\n=== Scratch-skill frozen inference on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    capability_mode="scratch_code_skill",
+                )
+            )
+
+        if "scratch_skill_frozen_forced" in self.config.settings:
+            print(f"\n=== Scratch-skill frozen forced inference on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    force_skill=True,
+                    capability_mode="scratch_code_skill",
+                )
+            )
 
         summary = self._write_summary(records, snapshot_name=snapshot_name)
         return summary
 
-    def run_frozen_transfer(
+    def run_frozen_inference(
         self,
         snapshot_name: str | None = None,
         subset_id: str | None = None,
         cases: list[TaskCase] | None = None,
+        force_skill: bool = False,
+        capability_mode: str = "persistent_tools",
     ) -> list[StructuredCaseRecord]:
         """Evaluate a frozen subset or snapshot without further mutations."""
         held_out_cases = cases or load_normalized_cases(
@@ -218,23 +276,30 @@ class StructuredBenchmarkRunner:
             self.config.dataset,
             self.config.held_out_split,
         )
-        loop = self._make_frozen_loop(snapshot_name=snapshot_name, subset_id=subset_id)
+        loop = self._make_frozen_loop(snapshot_name=snapshot_name, subset_id=subset_id, capability_mode=capability_mode)
 
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(held_out_cases, start=1):
             result, chain_trace = self._run_with_learned_capabilities(
                 loop,
                 case,
-                phase=f"frozen_transfer_{index}",
+                phase=f"{'forced_skill_' if force_skill else ''}frozen_inference_{index}",
+                force_skill=force_skill,
+                capability_mode=capability_mode,
             )
             record = self._record_from_agent_result(
-                setting="frozen_transfer",
+                setting=self._frozen_setting_name(capability_mode, force_skill),
                 split=self.config.held_out_split,
                 case=case,
                 result=result,
                 correct=check_chartqa_case_answer(result.final_answer, case),
                 chain_trace=chain_trace,
             )
+            record.full_agent_answer = result.final_answer
+            record.full_agent_correct = record.correct
+            record.forced_skill_name = self._forced_skill_name(case) if force_skill else None
+            record.forced_skill_enforced = force_skill and bool(record.forced_skill_name)
+            self._annotate_scratch_record(record, result, capability_mode)
             self._append_record(record)
             records.append(record)
             print(
@@ -242,6 +307,15 @@ class StructuredBenchmarkRunner:
                 f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
             )
         return records
+
+    def run_frozen_transfer(
+        self,
+        snapshot_name: str | None = None,
+        subset_id: str | None = None,
+        cases: list[TaskCase] | None = None,
+    ) -> list[StructuredCaseRecord]:
+        """Backward-compatible alias for frozen inference."""
+        return self.run_frozen_inference(snapshot_name=snapshot_name, subset_id=subset_id, cases=cases)
 
     def _run_direct_vlm(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
         records: list[StructuredCaseRecord] = []
@@ -292,25 +366,26 @@ class StructuredBenchmarkRunner:
             )
         return records
 
-    def _run_online_evolve(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
+    def _run_agent_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
         loop = self._make_online_loop()
         records: list[StructuredCaseRecord] = []
         saved_evolve_reports = 0
         collected_reports: list[dict[str, Any]] = []
 
         for index, case in enumerate(cases, start=1):
-            initial_result, initial_chain = self._run_with_learned_capabilities(
+            full_agent_result, full_agent_chain = self._run_with_learned_capabilities(
                 loop,
                 case,
-                phase=f"online_precheck_{index}",
+                phase=f"train_adaptive_{index}",
             )
-            initial_correct = check_chartqa_case_answer(initial_result.final_answer, case)
+            full_agent_correct = check_chartqa_case_answer(full_agent_result.final_answer, case)
 
-            if initial_correct:
-                final_result = initial_result
-                final_chain = initial_chain
+            if full_agent_correct:
+                final_result = full_agent_result
+                final_chain = full_agent_chain
                 evolve_triggered = False
                 evolve_success = True
+                post_evolve_result = None
             else:
                 evolve_triggered = True
                 evolve_success = loop.run_single_case(case)
@@ -320,29 +395,38 @@ class StructuredBenchmarkRunner:
                     collected_reports.append(report)
                     self._save_evolve_reports(collected_reports)
                     saved_evolve_reports += 1
-                final_result, final_chain = self._run_with_learned_capabilities(
+                post_evolve_result, final_chain = self._run_with_learned_capabilities(
                     loop,
                     case,
-                    phase=f"online_post_{index}",
+                    phase=f"train_adaptive_post_{index}",
                 )
+                final_result = post_evolve_result
 
             record = self._record_from_agent_result(
-                setting="online_evolve",
+                setting="agent_train_adaptive",
                 split=self.config.evolve_split,
                 case=case,
                 result=final_result,
                 correct=check_chartqa_case_answer(final_result.final_answer, case),
                 chain_trace=final_chain,
             )
-            record.initial_answer = initial_result.final_answer
-            record.initial_correct = initial_correct
+            record.initial_answer = full_agent_result.final_answer
+            record.initial_correct = full_agent_correct
+            record.full_agent_answer = full_agent_result.final_answer
+            record.full_agent_correct = full_agent_correct
+            record.post_evolve_answer = None if post_evolve_result is None else post_evolve_result.final_answer
+            record.post_evolve_correct = (
+                None
+                if post_evolve_result is None
+                else check_chartqa_case_answer(post_evolve_result.final_answer, case)
+            )
             record.evolve_triggered = evolve_triggered
             record.evolve_success = evolve_success
             self._append_record(record)
             records.append(record)
 
             status = "OK" if record.correct else "FAIL"
-            extra = " skipped-evolve" if not evolve_triggered else " evolved"
+            extra = " no-evolve" if not evolve_triggered else " evolved"
             print(
                 f"[{index:03d}/{len(cases):03d}] {status}{extra} "
                 f"case={case.case_id} answer={record.answer!r}"
@@ -351,6 +435,83 @@ class StructuredBenchmarkRunner:
         snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
         loop.store.snapshot_current_capabilities(snapshot_name)
         return records, snapshot_name
+
+    def _run_scratch_skill_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
+        loop = self._make_online_loop(capability_mode="scratch_code_skill")
+        records: list[StructuredCaseRecord] = []
+        saved_evolve_reports = 0
+        collected_reports: list[dict[str, Any]] = []
+
+        for index, case in enumerate(cases, start=1):
+            full_agent_result, full_agent_chain = self._run_with_learned_capabilities(
+                loop,
+                case,
+                phase=f"scratch_skill_train_{index}",
+                capability_mode="scratch_code_skill",
+            )
+            full_agent_correct = check_chartqa_case_answer(full_agent_result.final_answer, case)
+
+            if full_agent_correct:
+                final_result = full_agent_result
+                final_chain = full_agent_chain
+                evolve_triggered = False
+                evolve_success = True
+                post_evolve_result = None
+            else:
+                evolve_triggered = True
+                evolve_success = loop.run_single_case(case)
+                if saved_evolve_reports < self.config.save_first_n_evolves:
+                    report = dict(loop.last_case_report or {})
+                    report["ordinal"] = saved_evolve_reports + 1
+                    collected_reports.append(report)
+                    self._save_evolve_reports(collected_reports)
+                    saved_evolve_reports += 1
+                post_evolve_result, final_chain = self._run_with_learned_capabilities(
+                    loop,
+                    case,
+                    phase=f"scratch_skill_train_post_{index}",
+                    capability_mode="scratch_code_skill",
+                )
+                final_result = post_evolve_result
+
+            record = self._record_from_agent_result(
+                setting="scratch_skill_train_adaptive",
+                split=self.config.evolve_split,
+                case=case,
+                result=final_result,
+                correct=check_chartqa_case_answer(final_result.final_answer, case),
+                chain_trace=final_chain,
+            )
+            record.initial_answer = full_agent_result.final_answer
+            record.initial_correct = full_agent_correct
+            record.full_agent_answer = full_agent_result.final_answer
+            record.full_agent_correct = full_agent_correct
+            record.post_evolve_answer = None if post_evolve_result is None else post_evolve_result.final_answer
+            record.post_evolve_correct = (
+                None
+                if post_evolve_result is None
+                else check_chartqa_case_answer(post_evolve_result.final_answer, case)
+            )
+            record.evolve_triggered = evolve_triggered
+            record.evolve_success = evolve_success
+            self._annotate_scratch_record(record, final_result, "scratch_code_skill")
+            self._append_record(record)
+            records.append(record)
+
+            status = "OK" if record.correct else "FAIL"
+            extra = " no-evolve" if not evolve_triggered else " evolved"
+            print(
+                f"[{index:03d}/{len(cases):03d}] {status}{extra} "
+                f"case={case.case_id} answer={record.answer!r}"
+            )
+
+        snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+        loop.store.snapshot_current_capabilities(snapshot_name)
+        return records, snapshot_name
+
+    def _run_online_evolve(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
+        """Backward-compatible alias for the renamed adaptive train setting."""
+        return self._run_agent_train_adaptive(cases)
 
     def _record_from_agent_result(
         self,
@@ -419,9 +580,20 @@ class StructuredBenchmarkRunner:
         loop: EvolutionLoop,
         case: TaskCase,
         phase: str,
+        force_skill: bool = False,
+        capability_mode: str = "persistent_tools",
     ) -> tuple[AgentResult, list[str]]:
-        agent = loop._create_agent(case, attempt=1, phase=phase)
         skill = loop.store.get_skill(case.problem_id)
+        required_skill_name = self._forced_skill_name(case) if force_skill and skill is not None else None
+        create_agent_kwargs = {"attempt": 1, "phase": phase}
+        create_agent_signature = inspect.signature(loop._create_agent)
+        if "required_skill_name" in create_agent_signature.parameters:
+            create_agent_kwargs["required_skill_name"] = required_skill_name
+        if "require_bash_action_before_complete" in create_agent_signature.parameters:
+            create_agent_kwargs["require_bash_action_before_complete"] = bool(required_skill_name)
+        if "required_image_artifact_before_complete" in create_agent_signature.parameters:
+            create_agent_kwargs["required_image_artifact_before_complete"] = bool(required_skill_name and capability_mode == "scratch_code_skill")
+        agent = loop._create_agent(case, **create_agent_kwargs)
         if hasattr(loop, "_tool_availability_snapshot") and hasattr(loop, "_usable_skill_content"):
             capability_snapshot = loop._tool_availability_snapshot()
             skill_content = loop._usable_skill_content(skill, capability_snapshot)
@@ -439,21 +611,23 @@ class StructuredBenchmarkRunner:
         )
         return result, list(chain_context.tool_sequence)
 
-    def _make_online_loop(self) -> EvolutionLoop:
+    def _make_online_loop(self, capability_mode: str = "persistent_tools") -> EvolutionLoop:
         return EvolutionLoop(
-            work_dir=self.output_dir / "online_evolve",
+            work_dir=self.output_dir / ("scratch_skill_train_adaptive" if capability_mode == "scratch_code_skill" else "agent_train_adaptive"),
             learned_dir=self.learned_root,
             skills_dir=self.skills_dir,
             vlm_client=self.vlm_client,
             max_attempts=self.config.max_attempts,
             subset_id=self.config.subset_id,
             answer_checker=check_chartqa_case_answer,
+            capability_mode=capability_mode,
         )
 
     def _make_frozen_loop(
         self,
         snapshot_name: str | None = None,
         subset_id: str | None = None,
+        capability_mode: str = "persistent_tools",
     ) -> EvolutionLoop:
         if snapshot_name:
             snapshot_root = self.learned_root / "snapshots"
@@ -461,30 +635,53 @@ class StructuredBenchmarkRunner:
             if not snapshot_dir.exists():
                 raise FileNotFoundError(f"Frozen snapshot not found: {snapshot_dir}")
             return EvolutionLoop(
-                work_dir=self.output_dir / "frozen_transfer",
+                work_dir=self.output_dir / ("scratch_skill_frozen_inference" if capability_mode == "scratch_code_skill" else "frozen_inference"),
                 learned_dir=snapshot_root,
                 skills_dir=self.skills_dir,
                 vlm_client=self.vlm_client,
                 max_attempts=1,
                 subset_id=snapshot_name,
                 answer_checker=check_chartqa_case_answer,
+                capability_mode=capability_mode,
             )
 
         return EvolutionLoop(
-            work_dir=self.output_dir / "frozen_transfer",
+            work_dir=self.output_dir / ("scratch_skill_frozen_inference" if capability_mode == "scratch_code_skill" else "frozen_inference"),
             learned_dir=self.learned_root,
             skills_dir=self.skills_dir,
             vlm_client=self.vlm_client,
             max_attempts=1,
             subset_id=subset_id or self.config.subset_id,
             answer_checker=check_chartqa_case_answer,
+            capability_mode=capability_mode,
         )
+
+    def _forced_skill_name(self, case: TaskCase) -> str | None:
+        configured = (self.config.forced_skill_name or "").strip()
+        return configured or case.problem_id
+
+    @staticmethod
+    def _frozen_setting_name(capability_mode: str, force_skill: bool) -> str:
+        if capability_mode == "scratch_code_skill":
+            return "scratch_skill_frozen_forced" if force_skill else "scratch_skill_frozen_inference"
+        return "frozen_inference_forced_skill" if force_skill else "frozen_inference"
+
+    def _annotate_scratch_record(self, record: StructuredCaseRecord, result: AgentResult, capability_mode: str) -> None:
+        if capability_mode != "scratch_code_skill":
+            return
+        record.scratch_code_triggered = any(step.action is not None and step.action.name == "bash" for step in result.steps)
+        record.scratch_artifact_paths = result.get_image_artifacts()
+        record.scratch_code_success = bool(record.scratch_artifact_paths)
+        record.code_writing_skill_used = True
+        record.edited_artifact_judged_useful = bool(record.correct and record.scratch_artifact_paths)
+        record.scratch_script_summary = _extract_scratch_script_summary(result)
 
     def _append_record(self, record: StructuredCaseRecord) -> None:
         with self.records_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
     def _write_summary(self, records: list[StructuredCaseRecord], snapshot_name: str) -> dict[str, Any]:
+        settings_summary = _aggregate_records(records)
         summary = {
             "config": {
                 "dataset": self.config.dataset,
@@ -496,10 +693,19 @@ class StructuredBenchmarkRunner:
                 "k": self.config.k,
                 "max_attempts": self.config.max_attempts,
                 "readability_judge_enabled": self.config.readability_judge_enabled,
+                "forced_skill_name": self.config.forced_skill_name,
             },
             "snapshot_name": snapshot_name,
             "records_path": str(self.records_path),
-            "settings": _aggregate_records(records),
+            "settings": settings_summary,
+            "full_agent_accuracy": settings_summary.get("agent_train_adaptive", {}).get("full_agent_accuracy", 0.0),
+            "post_evolve_recovery_accuracy": settings_summary.get("agent_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
+            "frozen_inference_accuracy": settings_summary.get("frozen_inference", {}).get("accuracy", 0.0),
+            "forced_skill_frozen_accuracy": settings_summary.get("frozen_inference_forced_skill", {}).get("accuracy", 0.0),
+            "scratch_skill_full_agent_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("full_agent_accuracy", 0.0),
+            "scratch_skill_post_evolve_recovery_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
+            "scratch_skill_frozen_accuracy": settings_summary.get("scratch_skill_frozen_inference", {}).get("accuracy", 0.0),
+            "scratch_skill_forced_accuracy": settings_summary.get("scratch_skill_frozen_forced", {}).get("accuracy", 0.0),
         }
         self.summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
         return summary
@@ -532,6 +738,21 @@ def _extract_tool_names(result: AgentResult) -> list[str]:
     return tool_names
 
 
+def _extract_scratch_script_summary(result: AgentResult) -> str | None:
+    commands: list[str] = []
+    for step in result.steps:
+        if step.action is None or step.action.name != "bash":
+            continue
+        command = str(step.action.arguments.get("command", "")).strip()
+        if not command or "python -m tools" in command:
+            continue
+        compact = " ".join(command.split())
+        commands.append(compact[:240])
+    if not commands:
+        return None
+    return " | ".join(commands[:2])
+
+
 def _aggregate_records(records: list[StructuredCaseRecord]) -> dict[str, Any]:
     grouped: dict[str, list[StructuredCaseRecord]] = {}
     for record in records:
@@ -543,11 +764,30 @@ def _aggregate_records(records: list[StructuredCaseRecord]) -> dict[str, Any]:
         tool_used = sum(1 for row in rows if row.used_tool)
         artifact_rows = [row for row in rows if row.artifact_paths]
         judged = [row for row in rows if row.overall_usefulness is not None]
+        full_agent_rows = [row for row in rows if row.full_agent_correct is not None]
+        post_evolve_rows = [row for row in rows if row.post_evolve_correct is not None]
+        scratch_rows = [row for row in rows if row.scratch_code_triggered is not None]
         summary[setting] = {
             "split": rows[0].split if rows else "",
             "total": len(rows),
             "correct": correct,
             "accuracy": (correct / len(rows)) if rows else 0.0,
+            "full_agent_accuracy": (
+                sum(1 for row in full_agent_rows if row.full_agent_correct) / len(full_agent_rows)
+                if full_agent_rows else 0.0
+            ),
+            "post_evolve_recovery_accuracy": (
+                sum(1 for row in post_evolve_rows if row.post_evolve_correct) / len(post_evolve_rows)
+                if post_evolve_rows else 0.0
+            ),
+            "scratch_code_rate": (
+                sum(1 for row in scratch_rows if row.scratch_code_triggered) / len(scratch_rows)
+                if scratch_rows else 0.0
+            ),
+            "scratch_code_success_rate": (
+                sum(1 for row in scratch_rows if row.scratch_code_success) / len(scratch_rows)
+                if scratch_rows else 0.0
+            ),
             "tool_usage_rate": (tool_used / len(rows)) if rows else 0.0,
             "avg_tool_calls_per_case": (
                 sum(row.tool_count for row in rows) / len(rows)

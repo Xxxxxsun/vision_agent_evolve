@@ -29,6 +29,7 @@ class EvolutionLoop:
         max_attempts: int = 10,
         subset_id: str | None = None,
         answer_checker: Callable[[str, TaskCase], bool] | None = None,
+        capability_mode: str = "persistent_tools",
     ):
         self.work_dir = work_dir
         self.skills_dir = skills_dir
@@ -36,6 +37,7 @@ class EvolutionLoop:
         self.max_attempts = max_attempts
         self.subset_id = subset_id
         self.answer_checker = answer_checker
+        self.capability_mode = capability_mode
 
         # Subset-specific learned directory
         if subset_id:
@@ -65,6 +67,7 @@ class EvolutionLoop:
             print(f"Subset: {self.subset_id}")
             print(f"Learned Dir: {self.learned_dir}")
         print(f"Task: {case.prompt}")
+        print(f"Capability Mode: {self.capability_mode}")
         print(f"{'='*60}\n")
 
         # Reset token counters
@@ -150,8 +153,11 @@ class EvolutionLoop:
             }
             if "failed_directions" in inspect.signature(self.analyzer_decider.analyze_and_decide).parameters:
                 analyze_kwargs["failed_directions"] = recent_failed_directions
+            if "capability_mode" in inspect.signature(self.analyzer_decider.analyze_and_decide).parameters:
+                analyze_kwargs["capability_mode"] = self.capability_mode
             analysis = self.analyzer_decider.analyze_and_decide(**analyze_kwargs)
             self._log_phase(case.case_id, attempt, "analyzer", "end")
+            analysis = self._normalize_analysis_for_mode(analysis)
 
             matched_failed_directions = self.store.find_similar_failed_directions(
                 case.problem_id,
@@ -205,7 +211,7 @@ class EvolutionLoop:
 
             # Step 1: generate and validate tool first
             staged_tool = None
-            if analysis.next_action in ["generate_tool", "generate_both"]:
+            if self.capability_mode != "scratch_code_skill" and analysis.next_action in ["generate_tool", "generate_both"]:
                 print(f"Generating tool...")
                 self._log_phase(case.case_id, attempt, "tool_generation", "start")
                 step.tool_proposal = self.generator.generate_tool(case, analysis, chain_context=chain_context)
@@ -236,20 +242,29 @@ class EvolutionLoop:
             # Pass the staged tool (may be None) so skill references only usable tools
             skill_validation = None
             skill_for_retry = None
-            if analysis.next_action in ["generate_skill", "generate_both"] or staged_tool:
+            if analysis.next_action in ["generate_skill", "generate_both", "generate_code_skill"] or staged_tool:
                 print(f"Generating skill...")
                 self._log_phase(case.case_id, attempt, "skill_generation", "start")
-                step.skill_proposal = self.generator.generate_skill(
-                    case,
-                    analysis,
-                    staged_tool,
-                    existing_skill_content=existing_skill.content if existing_skill else None,
-                    chain_context=chain_context,
-                )
+                if analysis.next_action == "generate_code_skill" and hasattr(self.generator, "generate_code_writing_skill"):
+                    step.skill_proposal = self.generator.generate_code_writing_skill(
+                        case,
+                        analysis,
+                        existing_skill_content=existing_skill.content if existing_skill else None,
+                        chain_context=chain_context,
+                    )
+                else:
+                    step.skill_proposal = self.generator.generate_skill(
+                        case,
+                        analysis,
+                        staged_tool,
+                        existing_skill_content=existing_skill.content if existing_skill else None,
+                        chain_context=chain_context,
+                    )
                 print(f"Generated: {step.skill_proposal.name}")
                 self._print_skill_content("Generated skill draft", step.skill_proposal.content)
                 attempt_report["skill_proposal"] = self._skill_summary(step.skill_proposal)
-                if hasattr(self.generator, "review_skill"):
+                should_review_skill = hasattr(self.generator, "review_skill") and analysis.next_action != "generate_code_skill"
+                if should_review_skill:
                     print("Reviewing generated skill with full context...")
                     step.skill_proposal = self.generator.review_skill(
                         case,
@@ -287,6 +302,9 @@ class EvolutionLoop:
                     case,
                     task_skill_override=skill_for_retry,
                     required_tool_name=staged_tool.name if staged_tool else None,
+                    required_skill_name=case.problem_id if self.capability_mode == "scratch_code_skill" and skill_for_retry else None,
+                    require_bash_action_before_complete=bool(self.capability_mode == "scratch_code_skill" and skill_for_retry),
+                    required_image_artifact_before_complete=bool(self.capability_mode == "scratch_code_skill" and skill_for_retry),
                     attempt=attempt,
                     phase="retry",
                 )
@@ -299,7 +317,7 @@ class EvolutionLoop:
                 self._log_phase(case.case_id, attempt, "retry", "end")
                 if self._check_success(retry_result, case):
                     print(f"✓ SOLVED after learning. Answer: {retry_result.final_answer}")
-                    if staged_tool and step.validation:
+                    if staged_tool and step.validation and self.capability_mode != "scratch_code_skill":
                         self.store.promote_tool(staged_tool, step.validation)
                         self.validator.clear_preserved_tool(staged_tool.name)
                     if skill_for_retry and skill_validation and skill_validation.passed:
@@ -316,7 +334,7 @@ class EvolutionLoop:
                     return True
 
                 print(f"✗ Retry with learned capability still failed: {retry_result.final_answer}")
-                if staged_tool:
+                if staged_tool and self.capability_mode != "scratch_code_skill":
                     if step.validation and step.validation.replaced_existing_tool:
                         self.validator.restore_preserved_tool(staged_tool.name)
                     else:
@@ -418,6 +436,9 @@ class EvolutionLoop:
         case: TaskCase,
         task_skill_override: Skill | None = None,
         required_tool_name: str | None = None,
+        required_skill_name: str | None = None,
+        require_bash_action_before_complete: bool = False,
+        required_image_artifact_before_complete: bool = False,
         attempt: int | None = None,
         phase: str = "solve",
     ) -> ReActAgent:
@@ -462,6 +483,9 @@ class EvolutionLoop:
             max_turns=20,
             work_dir=self._agent_work_dir(case, attempt, phase),
             required_tool_name=required_tool_name,
+            required_skill_name=required_skill_name,
+            require_bash_action_before_complete=require_bash_action_before_complete,
+            required_image_artifact_before_complete=required_image_artifact_before_complete,
             learned_dir=self.learned_dir,
         )
         agent = ReActAgent(
@@ -701,6 +725,23 @@ Reply with only one word: CORRECT or INCORRECT"""
             if not text:
                 continue
             print(f"  {label}: {text}")
+
+    def _normalize_analysis_for_mode(self, analysis):
+        """Coerce analyzer actions into ones supported by the current capability mode."""
+        if self.capability_mode != "scratch_code_skill":
+            return analysis
+
+        if analysis.next_action in {"generate_tool", "generate_both"}:
+            analysis.next_action = "generate_code_skill"
+            if not analysis.skill_update_note:
+                analysis.skill_update_note = (
+                    analysis.tool_goal
+                    or analysis.missing_step
+                    or "Write temporary Python code to create an edited image before answering."
+                )
+            if not analysis.differentiation_note:
+                analysis.differentiation_note = "Scratch-code mode converts persistent tool requests into code-writing skill updates."
+        return analysis
 
     @staticmethod
     def _print_failed_direction_matches(matches: list[dict]) -> None:

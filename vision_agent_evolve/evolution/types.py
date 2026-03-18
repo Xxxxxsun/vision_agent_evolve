@@ -9,7 +9,7 @@ from typing import Literal
 class FailureAnalysis:
     """Analysis of why a task failed."""
     root_cause: str
-    next_action: Literal["generate_tool", "generate_skill", "generate_both", "give_up"]
+    next_action: Literal["generate_tool", "generate_skill", "generate_both", "generate_code_skill", "give_up"]
     confidence: float
     missing_step: str = ""
     tool_goal: str = ""
@@ -29,7 +29,7 @@ class FailedDirection:
     created_at: str
     root_cause: str
     missing_step: str
-    next_action: Literal["generate_tool", "generate_skill", "generate_both", "give_up"]
+    next_action: Literal["generate_tool", "generate_skill", "generate_both", "generate_code_skill", "give_up"]
     tool_goal: str = ""
     skill_update_note: str = ""
     chain_trace: list[str] = field(default_factory=list)

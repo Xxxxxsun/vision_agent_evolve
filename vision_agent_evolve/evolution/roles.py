@@ -34,6 +34,7 @@ class AnalyzerDecider:
         capability_snapshot: str = "",
         known_failure_lessons: list[Skill] | None = None,
         failed_directions: list[FailedDirection] | None = None,
+        capability_mode: str = "persistent_tools",
     ) -> FailureAnalysis:
         """Analyze failure and decide next action in one LLM call."""
 
@@ -61,6 +62,8 @@ Dense Caption: {case.dense_caption() or "N/A"}
 
 Current Capabilities:
 {chr(10).join(current_capabilities)}
+
+Capability Mode: {capability_mode}
 
 """
         if capability_snapshot:
@@ -118,14 +121,14 @@ Focus on the MINIMAL missing step needed to solve this task family.
 1. What did the agent already try?
 2. What visual transformation or computation is still missing?
 3. If there are already tools or a task-specific skill, why were they insufficient for this image?
-4. What is the next smallest useful addition: a new tool, a skill update, both, or give up?
+4. What is the next smallest useful addition: a new tool, a skill update, a code-writing skill update, both, or give up?
 
 Provide response as JSON:
 {
     "image_observation": "short description of the original image and the tool-generated image(s)",
     "root_cause": "short explanation of why the current solve failed",
     "missing_step": "the next missing transformation or computation",
-    "next_action": "generate_tool|generate_skill|generate_both|give_up",
+    "next_action": "generate_tool|generate_skill|generate_both|generate_code_skill|give_up",
     "tool_goal": "what the next tool should do, if any",
     "skill_update_note": "what the task-specific skill should tell the solver to do next time",
     "differentiation_note": "how this direction differs from the closest failed directions, or why retrying is still justified",
@@ -143,12 +146,21 @@ Guidelines:
 - generate_tool: use when a new transformation/computation is missing.
 - generate_skill: use when the existing tools are already sufficient but the solver needs a better ordered rule.
 - generate_both: use when a new tool is needed and the solver should be told when to use it.
+- generate_code_skill: use when the solver should learn how to write and run temporary Python editing code for this task family, instead of promoting a new permanent tool.
 - If previous attempts only updated the skill and the case still failed, strongly prefer generate_both unless the current tools are already clearly sufficient.
 - Do not merely rephrase a previously failed direction.
 - If your proposal is close to a prior failed direction, the differentiation_note must explain the concrete new angle or why retrying is still justified.
 - If no materially different direction exists, prefer give_up or switch action type instead of repeating the same idea.
 - give_up: if task seems unsolvable or we've tried too many times
 - Stay concrete and task-family-specific. Do not write a broad essay about VLM weaknesses.
+"""
+        if capability_mode == "scratch_code_skill":
+            text_analysis += """
+Scratch-code mode rules:
+- Do not propose a new permanent tool unless it is absolutely unavoidable.
+- Prefer generate_code_skill when temporary Python editing code should be written at solve time.
+- The code-writing skill should teach the solver how to edit the image for the question, save an edited artifact, observe it, and only then answer.
+- In this mode, generate_tool and generate_both will be treated as weaker fallbacks than generate_code_skill.
 """
 
         # Build message with images if available
@@ -598,6 +610,86 @@ Provide response as JSON:
 
         return self._normalize_skill_proposal(case, analysis, proposal_dict, tool_proposal, existing_skill_content)
 
+    def generate_code_writing_skill(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        existing_skill_content: str | None = None,
+        chain_context: ToolChainContext | None = None,
+    ) -> SkillProposal:
+        """Generate a skill that teaches the solver to write temporary Python editing code."""
+
+        existing_sop_context = ""
+        if existing_skill_content:
+            existing_sop_context = f"""
+Existing task-family SOP:
+{existing_skill_content}
+
+This SOP already works for some examples, but it is not sufficient for the current example.
+Revise it so it preserves the previously useful behavior while adding or adjusting the temporary-code editing workflow.
+"""
+
+        prompt = f"""You are generating a SHORT SOP-style task prompt for the solver.
+
+Task family: {case.problem_id}
+Current question: {case.prompt}
+Current image path: {case.image_path or "<image_path>"}
+Dense caption: {case.dense_caption() or "N/A"}
+Current failure: {analysis.root_cause}
+Missing step: {analysis.missing_step}
+Skill update note: {analysis.skill_update_note or analysis.rationale}
+Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+
+{existing_sop_context}
+
+IMPORTANT CONTEXT:
+- This skill is for future solves of THIS task family only.
+- The skill must teach the solver how to write temporary Python image-editing code at solve time.
+- The temporary code should remove or weaken irrelevant visual content, preserve only the evidence needed for the question, and save an edited image under `artifacts/`.
+- The solver must observe the edited image before answering.
+- Do not invent a permanent tool name or a learned tool registration step.
+- Keep it short and operational.
+- Write it as an SOP, not as background explanation.
+- Make it reusable across future examples in the same task family.
+- The content must be Markdown only. Do NOT include frontmatter.
+- Use this exact structure:
+  ## SOP
+  1. ...
+  2. ...
+  3. ...
+  4. ...
+- The SOP must explicitly tell the solver to:
+  1. extract the target from the question,
+  2. decide what to keep vs hide/highlight,
+  3. write and run temporary Python editing code via bash,
+  4. save an edited image to `artifacts/`,
+  5. wait for the Observation and answer from the edited image.
+- Use the placeholders `<image_path>` and `<artifact_path>`.
+- You may include a short bash/heredoc code pattern, but it must stay generic and reusable.
+- Do not mention concrete dataset paths, exact numbers, or the final answer from the current example.
+
+Provide response as JSON:
+{{
+    "name": "{case.problem_id}",
+    "description": "one sentence describing the code-writing SOP",
+    "applicability_conditions": "when this temporary-code editing SOP applies within the task family",
+    "content": "short markdown SOP only",
+    "level": "mid",
+    "depends_on": []
+}}
+"""
+
+        messages = [
+            {"role": "system", "content": "You are an expert in creating reusable SOPs for temporary Python image-editing workflows."},
+            {"role": "user", "content": prompt},
+        ]
+
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.4, max_tokens=8000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/CodeSkill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal_dict = self._extract_json(response)
+        return self._normalize_code_skill_proposal(case, analysis, proposal_dict, existing_skill_content)
+
     def review_skill(
         self,
         case: TaskCase,
@@ -872,6 +964,36 @@ if __name__ == "__main__":
             depends_on=depends_on,
         )
 
+    def _normalize_code_skill_proposal(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        proposal_dict: dict[str, Any],
+        existing_skill_content: str | None,
+    ) -> SkillProposal:
+        """Normalize a code-writing skill into a reusable temporary-edit SOP."""
+        description = self._sanitize_description(
+            str(proposal_dict.get("description", "")).strip(),
+            False,
+        )
+        raw_content = str(proposal_dict.get("content", "")).strip()
+        applicability_conditions = self._sanitize_applicability(
+            str(proposal_dict.get("applicability_conditions", "")).strip()
+            or self._derive_skill_applicability(raw_content, analysis, existing_skill_content, None)
+        )
+        level = str(proposal_dict.get("level", "mid"))
+        depends_on = list(proposal_dict.get("depends_on", []))
+        content = self._build_code_writing_skill_content(raw_content, analysis)
+
+        return SkillProposal(
+            name=case.problem_id,
+            description=description or "Use temporary Python image-editing code before answering when the raw chart contains distracting information.",
+            applicability_conditions=applicability_conditions,
+            content=content,
+            level=level if level in {"foundation", "high", "mid", "low"} else "mid",
+            depends_on=depends_on,
+        )
+
     def _build_plain_skill_content(self, analysis: FailureAnalysis) -> str:
         when_text = self._sanitize_context_text(analysis.missing_step or "When this exact task pattern appears.")
         then_text = "Then answer the original question using the corrected interpretation for this task family."
@@ -882,6 +1004,35 @@ if __name__ == "__main__":
             "2. Follow the task-specific steps before giving any final answer.",
             f"3. {then_text}",
             f"4. If still failing, {still_text}",
+        ])
+
+    def _build_code_writing_skill_content(self, raw_content: str, analysis: FailureAnalysis) -> str:
+        """Build a reusable SOP for temporary Python image-editing code."""
+        sections = self._extract_markdown_sections(raw_content)
+        when_text = self._sanitize_context_text(
+            sections.get("When this applies")
+            or sections.get("When to Use")
+            or analysis.missing_step
+            or "When the question only needs a subset of the visual evidence."
+        )
+        code_hint = self._sanitize_context_text(
+            sections.get("Editing plan")
+            or analysis.skill_update_note
+            or analysis.tool_goal
+            or "Write temporary Python code that hides irrelevant regions and highlights or preserves only the evidence needed for the question."
+        )
+        still_text = self._sanitize_context_text(
+            sections.get("If still failing")
+            or analysis.rationale
+            or "tighten the edit so only the needed evidence remains."
+        )
+        return "\n".join([
+            "## SOP",
+            f"1. Confirm this applies: {self._strip_bullet(when_text)}",
+            "2. Extract the target evidence from the question, decide what visual content must be kept, and decide what should be hidden, weakened, cropped, or highlighted.",
+            "3. Use bash to write and run temporary Python editing code on `<image_path>` or `<artifact_path>`, save a new edited image under `artifacts/`, and do not output the final answer from the code itself.",
+            "4. Wait for the Observation, inspect the edited image, and answer the original question from that edited artifact. "
+            f"If still failing, {self._strip_bullet(still_text)}. Keep this editing intent in mind: {self._strip_bullet(code_hint)}",
         ])
 
     def _build_tool_skill_content(

@@ -26,11 +26,12 @@ def main() -> None:
     parser.add_argument("--max-attempts", type=int, default=10)
     parser.add_argument("--enable-readability-judge", action="store_true")
     parser.add_argument("--save-first-n-evolves", type=int, default=10)
+    parser.add_argument("--forced-skill-name", default=None)
     parser.add_argument(
         "--settings",
         nargs="+",
-        default=["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"],
-        help="Subset of settings to run. Choices: direct_vlm pure_react online_evolve frozen_transfer self_evolve all",
+        default=["direct_vlm", "pure_react", "agent_train_adaptive", "frozen_inference"],
+        help="Subset of settings to run. Choices: direct_vlm pure_react agent_train_adaptive frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
     args = parser.parse_args()
 
@@ -48,6 +49,7 @@ def main() -> None:
         readability_judge_enabled=args.enable_readability_judge,
         settings=settings,
         save_first_n_evolves=args.save_first_n_evolves,
+        forced_skill_name=args.forced_skill_name,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
@@ -59,11 +61,24 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
     for setting in raw_settings:
         normalized = setting.strip().lower()
         if normalized == "all":
-            expanded.extend(["direct_vlm", "pure_react", "online_evolve", "frozen_transfer"])
+            expanded.extend(["direct_vlm", "pure_react", "agent_train_adaptive", "frozen_inference"])
             continue
-        if normalized == "self_evolve":
-            normalized = "online_evolve"
-        if normalized not in {"direct_vlm", "pure_react", "online_evolve", "frozen_transfer"}:
+        aliases = {
+            "self_evolve": "agent_train_adaptive",
+            "online_evolve": "agent_train_adaptive",
+            "frozen_transfer": "frozen_inference",
+        }
+        normalized = aliases.get(normalized, normalized)
+        if normalized not in {
+            "direct_vlm",
+            "pure_react",
+            "agent_train_adaptive",
+            "frozen_inference",
+            "frozen_inference_forced_skill",
+            "scratch_skill_train_adaptive",
+            "scratch_skill_frozen_inference",
+            "scratch_skill_frozen_forced",
+        }:
             raise SystemExit(f"Unknown setting: {setting}")
         if normalized not in expanded:
             expanded.append(normalized)

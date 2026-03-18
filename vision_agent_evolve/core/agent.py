@@ -51,6 +51,9 @@ class AgentConfig:
     verbose: bool = False
     work_dir: Path | None = None
     required_tool_name: str | None = None
+    required_skill_name: str | None = None
+    require_bash_action_before_complete: bool = False
+    required_image_artifact_before_complete: bool = False
     learned_dir: Path | None = None
 
 
@@ -97,6 +100,10 @@ class ReActAgent:
 
         steps: list[AgentStep] = []
         required_tool_used = self.config.required_tool_name is None
+        required_skill_used = not (
+            self.config.required_skill_name or self.config.require_bash_action_before_complete
+        )
+        required_image_artifact_seen = not self.config.required_image_artifact_before_complete
 
         for turn in range(1, self.config.max_turns + 1):
             # Get LLM response
@@ -112,6 +119,22 @@ class ReActAgent:
                         "Current task rule not completed yet. "
                         f"Before giving a final answer, call the validated tool using: {required_command}"
                     )
+                    step.is_format_error = True
+                    step.observation = warning
+                    steps.append(step)
+                    messages.append({"role": "assistant", "content": response})
+                    messages.append({"role": "user", "content": self.parser.format_observation(warning)})
+                    continue
+                if not required_skill_used:
+                    warning = self._required_skill_warning()
+                    step.is_format_error = True
+                    step.observation = warning
+                    steps.append(step)
+                    messages.append({"role": "assistant", "content": response})
+                    messages.append({"role": "user", "content": self.parser.format_observation(warning)})
+                    continue
+                if not required_image_artifact_seen:
+                    warning = self._required_artifact_warning()
                     step.is_format_error = True
                     step.observation = warning
                     steps.append(step)
@@ -162,12 +185,16 @@ class ReActAgent:
                 command = str(action.arguments.get("command", ""))
                 if self._uses_required_tool(command):
                     required_tool_used = True
+                if self._uses_required_skill(command):
+                    required_skill_used = True
                 observation = self._run_bash(command)
 
             step.observation = observation
 
             # Extract artifacts from observation (look for ARTIFACTS: line)
             step.artifacts = self._normalize_artifacts(self._extract_artifacts(observation))
+            if any(Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"} for path in step.artifacts):
+                required_image_artifact_seen = True
             steps.append(step)
 
             messages.append({"role": "assistant", "content": response})
@@ -222,6 +249,32 @@ class ReActAgent:
             return False
         pattern = rf"\bpython3?\s+-m\s+tools\s+{re.escape(self.config.required_tool_name)}(?:\s|$)"
         return re.search(pattern, command) is not None
+
+    def _uses_required_skill(self, command: str) -> bool:
+        """Check whether a command satisfies the required skill gate."""
+        if self.config.required_tool_name and self._uses_required_tool(command):
+            return True
+        if self.config.required_skill_name or self.config.require_bash_action_before_complete:
+            return bool(command.strip())
+        return False
+
+    def _required_skill_warning(self) -> str:
+        """Return a user-facing warning when a required skill step was skipped."""
+        skill_name = self.config.required_skill_name or "the required task skill"
+        return (
+            "Current task rule not completed yet. "
+            f"Before giving a final answer, execute at least one bash step required by skill '{skill_name}', "
+            "observe the result, and then answer."
+        )
+
+    def _required_artifact_warning(self) -> str:
+        """Return a warning when a required edited artifact was not produced."""
+        skill_name = self.config.required_skill_name or "the required task skill"
+        return (
+            "Current task rule not completed yet. "
+            f"Skill '{skill_name}' must produce a new image artifact before you answer. "
+            "Run a bash/Python editing step that writes an edited image under artifacts/, wait for the Observation, and then answer."
+        )
 
     def _rewrite_tool_command(self, command: str) -> str:
         """Route learned tool commands through the current Python interpreter."""

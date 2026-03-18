@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -120,6 +121,12 @@ def _all_mira_examples(mira_root: Path) -> list[Path]:
 
 
 def _find_mira_root(project_root: Path) -> Path:
+    env_root = Path(os.getenv("MIRA_ROOT", "").strip()).expanduser() if os.getenv("MIRA_ROOT", "").strip() else None
+    if env_root is not None:
+        if env_root.exists():
+            return env_root
+        raise FileNotFoundError(f"MIRA_ROOT is set but does not exist: {env_root}")
+
     candidates = [
         project_root / "MIRA",
         project_root.parent / "MIRA",

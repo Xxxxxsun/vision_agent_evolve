@@ -87,6 +87,11 @@ class FakeReActAgent(ReActAgent):
         return "ANSWER: restored\nSTATUS: ok\nARTIFACTS: artifacts/forced_tool.png"
 
 
+class FakeNoArtifactReActAgent(ReActAgent):
+    def _run_bash(self, command: str) -> str:
+        return "STATUS: ok\nANSWER: edited"
+
+
 class StubAnalyzer:
     def __init__(self):
         self.total_usage = type("Usage", (), {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0})()
@@ -205,7 +210,7 @@ class MinimalLoop(EvolutionLoop):
     def _check_success(self, result, case):
         return case.gold_answer in result.final_answer
 
-    def _create_agent(self, case, task_skill_override=None, required_tool_name=None, attempt=None, phase="solve"):
+    def _create_agent(self, case, task_skill_override=None, required_tool_name=None, required_skill_name=None, require_bash_action_before_complete=False, required_image_artifact_before_complete=False, attempt=None, phase="solve"):
         skill = task_skill_override or self.store.get_skill(case.problem_id)
         self.created_agent_skills.append(skill.content if skill else None)
         if task_skill_override is None and not self.store.has_skill(case.problem_id):
@@ -1252,6 +1257,98 @@ class MinimalEvolveLoopTests(unittest.TestCase):
         self.assertGreaterEqual(len(result.steps), 3)
         self.assertTrue(any(step.action for step in result.steps))
         self.assertIn("Completion is missing a final answer", result.steps[0].observation or "")
+
+    def test_required_skill_blocks_premature_task_complete_until_bash_step_runs(self):
+        client = ScriptedClient([
+            "Final Answer: shortcut\nACTION: TASK_COMPLETE",
+            textwrap.dedent(
+                """
+                Action:
+                {
+                  "name": "bash",
+                  "arguments": {"command": "python scratch_edit.py"}
+                }
+                """
+            ).strip(),
+            "Final Answer: solved\nACTION: TASK_COMPLETE",
+        ])
+        agent = FakeReActAgent(
+            client=client,
+            config=AgentConfig(
+                max_turns=3,
+                required_skill_name="chartqa_visual_edit",
+                require_bash_action_before_complete=True,
+            ),
+            tool_definitions="Use: python -m tools <tool_name> [args]",
+            extra_instructions="## Current Task SOP\n1. Run a visual editing bash step before answering.",
+        )
+
+        result = agent.run("What value?", "")
+
+        self.assertEqual(result.final_answer, "solved")
+        self.assertGreaterEqual(len(result.steps), 3)
+        self.assertIn("execute at least one bash step required by skill", result.steps[0].observation or "")
+
+    def test_required_skill_can_also_require_image_artifact_before_complete(self):
+        client = ScriptedClient([
+            textwrap.dedent(
+                """
+                Action:
+                {
+                  "name": "bash",
+                  "arguments": {"command": "python scratch_edit.py"}
+                }
+                """
+            ).strip(),
+            "Final Answer: shortcut\nACTION: TASK_COMPLETE",
+        ])
+        agent = FakeReActAgent(
+            client=client,
+            config=AgentConfig(
+                max_turns=2,
+                required_skill_name="chartqa_visual_edit",
+                require_bash_action_before_complete=True,
+                required_image_artifact_before_complete=True,
+            ),
+            tool_definitions="Use: python -m tools <tool_name> [args]",
+            extra_instructions="## Current Task SOP\n1. Run a visual editing bash step before answering.",
+        )
+
+        result = agent.run("What value?", "")
+
+        self.assertEqual(result.final_answer, "shortcut")
+        self.assertTrue(any(step.artifacts for step in result.steps))
+
+    def test_missing_image_artifact_blocks_completion_in_forced_scratch_mode(self):
+        client = ScriptedClient([
+            textwrap.dedent(
+                """
+                Action:
+                {
+                  "name": "bash",
+                  "arguments": {"command": "python scratch_edit.py"}
+                }
+                """
+            ).strip(),
+            "Final Answer: shortcut\nACTION: TASK_COMPLETE",
+            "Final Answer: still shortcut\nACTION: TASK_COMPLETE",
+        ])
+        agent = FakeNoArtifactReActAgent(
+            client=client,
+            config=AgentConfig(
+                max_turns=3,
+                required_skill_name="chartqa_visual_edit",
+                require_bash_action_before_complete=True,
+                required_image_artifact_before_complete=True,
+            ),
+            tool_definitions="Use: python -m tools <tool_name> [args]",
+            extra_instructions="## Current Task SOP\n1. Produce an edited artifact before answering.",
+        )
+
+        result = agent.run("What value?", "")
+
+        self.assertFalse(result.success)
+        self.assertIn("must produce a new image artifact", result.steps[-1].observation or "")
 
     def test_parser_prefers_action_over_task_complete_when_both_present(self):
         parser = ReActParser()
