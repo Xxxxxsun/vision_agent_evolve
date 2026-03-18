@@ -22,6 +22,17 @@ def main() -> None:
     parser.add_argument("--subset-id", default="chartqa_refocus_v1")
     parser.add_argument("--held-out-split", default="val")
     parser.add_argument("--snapshot-name", default="")
+    parser.add_argument(
+        "--capability-mode",
+        choices=["persistent_tools", "scratch_code_skill"],
+        default="persistent_tools",
+        help="Which frozen capability mode to evaluate.",
+    )
+    parser.add_argument(
+        "--force-skill",
+        action="store_true",
+        help="Require the task skill to be executed before completion. In scratch mode, this also requires a new image artifact.",
+    )
     parser.add_argument("--enable-readability-judge", action="store_true")
     args = parser.parse_args()
 
@@ -34,15 +45,19 @@ def main() -> None:
         readability_judge_enabled=args.enable_readability_judge,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
-    records = runner.run_frozen_transfer(
+    records = runner.run_frozen_inference(
         snapshot_name=args.snapshot_name or None,
         subset_id=None if args.snapshot_name else args.subset_id,
+        force_skill=args.force_skill,
+        capability_mode=args.capability_mode,
     )
     payload = {
         "dataset": args.dataset,
         "subset_id": args.subset_id,
         "snapshot_name": args.snapshot_name or None,
         "held_out_split": args.held_out_split,
+        "capability_mode": args.capability_mode,
+        "force_skill": args.force_skill,
         "total": len(records),
         "correct": sum(1 for row in records if row.correct),
         "records": [row.__dict__ for row in records],
