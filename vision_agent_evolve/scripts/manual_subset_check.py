@@ -46,7 +46,7 @@ def main() -> None:
         if args.problem_id:
             case.problem_id = args.problem_id
         all_skills = list(foundation)
-        learned_skill = store.get_skill(case.problem_id)
+        learned_skill = store.get_skill(case.capability_family())
         if learned_skill is not None:
             all_skills.append(learned_skill)
 

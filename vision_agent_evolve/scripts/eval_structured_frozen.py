@@ -11,12 +11,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from evolution.benchmark_adapters import available_benchmark_datasets
 from evolution.structured_runner import StructuredBenchmarkRunner, StructuredExperimentConfig
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate frozen structured benchmark capabilities.")
-    parser.add_argument("--dataset", choices=["chartqa"], required=True)
+    parser.add_argument("--dataset", choices=available_benchmark_datasets(), required=True)
+    parser.add_argument("--datasets", nargs="+", default=None, help="Optional multi-dataset evaluation list.")
     parser.add_argument("--raw-data-root", required=True)
     parser.add_argument("--normalized-data-root", required=True)
     parser.add_argument("--subset-id", default="chartqa_refocus_v1")
@@ -41,6 +43,7 @@ def main() -> None:
         raw_data_root=Path(args.raw_data_root),
         normalized_data_root=Path(args.normalized_data_root),
         subset_id=args.subset_id,
+        datasets=args.datasets,
         held_out_split=args.held_out_split,
         readability_judge_enabled=args.enable_readability_judge,
     )

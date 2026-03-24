@@ -109,6 +109,10 @@ def load_normalized_cases(
     cases: list[TaskCase] = []
     for index, item in enumerate(load_json_objects(split_file), start=1):
         metadata = dict(item.get("metadata") or {})
+        metadata.setdefault("dataset_name", dataset)
+        metadata.setdefault("split", split)
+        metadata.setdefault("source_id", str(item.get("id", f"{dataset}_{split}_{index}")))
+        metadata.setdefault("capability_family", str(item.get("problem_id", dataset)))
         case = TaskCase(
             case_id=str(item.get("id", f"{dataset}_{split}_{index}")),
             problem_id=str(item.get("problem_id", dataset)),
@@ -228,6 +232,7 @@ def _normalize_chartqa_record(
             "dataset_name": "chartqa",
             "split": split,
             "source_id": source_id,
+            "capability_family": "chartqa",
             "question_type": question_type,
             "answer_type": answer_type,
             "image_width": width,

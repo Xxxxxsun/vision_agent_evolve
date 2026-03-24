@@ -127,7 +127,7 @@ def main() -> None:
                 chain_trace = []
                 initial_observations = []
             else:
-                skill = loop.store.get_skill(case.problem_id)
+                skill = loop.store.get_skill(case.capability_family())
                 chain_context = loop.validator.build_chain_context(
                     case,
                     skill.content if skill else None,

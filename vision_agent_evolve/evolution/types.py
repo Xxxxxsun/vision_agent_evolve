@@ -152,3 +152,93 @@ class EvolutionStep:
     validation: ValidationResult | None = None
     decision: Literal["keep", "discard", "give_up"] = "discard"
     solve_success: bool = False
+
+
+@dataclass
+class TrainSetEvalRecord:
+    """One evaluation row from a frozen pass over a training subset."""
+
+    case_id: str
+    dataset_name: str
+    capability_family: str
+    prompt: str
+    expected: str
+    answer: str
+    correct: bool
+    turns: int = 0
+    tool_names: list[str] = field(default_factory=list)
+    artifact_paths: list[str] = field(default_factory=list)
+    chain_trace: list[str] = field(default_factory=list)
+    metadata: dict[str, str | int | float | bool] = field(default_factory=dict)
+
+
+@dataclass
+class TrainSetEvalSummary:
+    """Aggregate score summary for one full training-subset evaluation."""
+
+    total_cases: int
+    correct_cases: int
+    primary_score: float
+    per_dataset_scores: dict[str, float] = field(default_factory=dict)
+    per_family_scores: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class FailureCluster:
+    """A compact failure cluster used by the subset planner."""
+
+    cluster_id: str
+    dataset_name: str
+    capability_family: str
+    cluster_key: str
+    total_cases: int
+    representative_case_ids: list[str] = field(default_factory=list)
+    summary_lines: list[str] = field(default_factory=list)
+
+
+@dataclass
+class TrainingSetDigest:
+    """Planner-facing summary of baseline performance and recent history."""
+
+    baseline_summary: TrainSetEvalSummary
+    failure_clusters: list[FailureCluster] = field(default_factory=list)
+    representative_cases: list[dict[str, str]] = field(default_factory=list)
+    recent_rejected_plans: list[dict] = field(default_factory=list)
+    candidate_summary: TrainSetEvalSummary | None = None
+    per_dataset_delta: dict[str, float] = field(default_factory=dict)
+    per_family_delta: dict[str, float] = field(default_factory=dict)
+    top_regressions: list[dict[str, str | float]] = field(default_factory=list)
+    top_improvements: list[dict[str, str | float]] = field(default_factory=list)
+
+
+@dataclass
+class CapabilityBundleProposal:
+    """A planner proposal that may contain multiple tool and skill edits."""
+
+    run_id: str
+    target_family: str
+    target_cluster_ids: list[str] = field(default_factory=list)
+    representative_case_ids: list[str] = field(default_factory=list)
+    rationale: str = ""
+    expected_gain: str = ""
+    tools: list[ToolProposal] = field(default_factory=list)
+    skills: list[SkillProposal] = field(default_factory=list)
+
+
+@dataclass
+class CandidateEvalResult:
+    """Outcome of one candidate bundle round."""
+
+    run_id: str
+    accepted: bool
+    reason: str
+    baseline_score: float
+    candidate_score: float
+    score_delta: float
+    smoke_passed: bool
+    target_family: str = ""
+    target_cluster_ids: list[str] = field(default_factory=list)
+    representative_case_ids: list[str] = field(default_factory=list)
+    activated_snapshot: str = ""
+    baseline_summary: TrainSetEvalSummary | None = None
+    candidate_summary: TrainSetEvalSummary | None = None

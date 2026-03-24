@@ -27,6 +27,21 @@ class TaskCase:
         """Return the optional dense caption for this case."""
         return str(self.metadata.get("dense_caption", "")).strip()
 
+    def dataset_name(self) -> str:
+        """Return the normalized dataset name for this case."""
+        value = str(self.metadata.get("dataset_name", "")).strip()
+        return value or self.problem_id
+
+    def source_id(self) -> str:
+        """Return the stable source identifier used by benchmark adapters."""
+        value = str(self.metadata.get("source_id", "")).strip()
+        return value or self.case_id
+
+    def capability_family(self) -> str:
+        """Return the capability family key used for learned skills and histories."""
+        value = str(self.metadata.get("capability_family", "")).strip()
+        return value or self.problem_id
+
 
 @dataclass
 class Message:

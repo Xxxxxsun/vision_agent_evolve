@@ -13,16 +13,28 @@ from core.structured_data import (
     normalize_chartqa_dataset,
 )
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
+from evolution.benchmark_adapters import ChartQAAdapter, HRBenchAdapter, VStarAdapter
 from evolution.loop import EvolutionLoop
 from evolution.roles import AnalyzerDecider
 from evolution.store import CapabilityStore
+from evolution.subset_loop import SubsetEvolutionLoop, SubsetEvolutionRunReport, SubsetPlanner
 from evolution.structured_runner import (
     StructuredBenchmarkRunner,
     StructuredCaseRecord,
     StructuredExperimentConfig,
     _aggregate_records,
 )
-from evolution.types import FailedDirection, FailureAnalysis, SkillProposal, ToolChainContext, ValidationResult
+from evolution.types import (
+    CapabilityBundleProposal,
+    CandidateEvalResult,
+    FailedDirection,
+    FailureAnalysis,
+    SkillProposal,
+    ToolChainContext,
+    TrainSetEvalRecord,
+    TrainSetEvalSummary,
+    ValidationResult,
+)
 from scripts.run_structured_experiment import _normalize_settings
 
 
@@ -210,6 +222,16 @@ class ScratchFakeLoop(FakeLoop):
         return True
 
 
+class FakeSubsetLoop:
+    def __init__(self, report: SubsetEvolutionRunReport):
+        self.report = report
+        self.run_calls: list[list[str]] = []
+
+    def run(self, cases: list[TaskCase]) -> SubsetEvolutionRunReport:
+        self.run_calls.append([case.case_id for case in cases])
+        return self.report
+
+
 class RecordingClient:
     def __init__(self, response: str):
         self.response = response
@@ -287,10 +309,11 @@ class SequenceAgent:
 
 
 class TestStructuredRunner(StructuredBenchmarkRunner):
-    def __init__(self, config, project_root, online_loop: FakeLoop, frozen_loop: FakeLoop):
+    def __init__(self, config, project_root, online_loop: FakeLoop, frozen_loop: FakeLoop, subset_loop: FakeSubsetLoop | None = None):
         super().__init__(config=config, project_root=project_root, vlm_client=DummyClient())
         self._online_loop = online_loop
         self._frozen_loop = frozen_loop
+        self._subset_loop = subset_loop
 
     def _direct_answer(self, case: TaskCase) -> str:
         return "direct"
@@ -300,6 +323,11 @@ class TestStructuredRunner(StructuredBenchmarkRunner):
 
     def _make_online_loop(self, capability_mode="persistent_tools"):
         return self._online_loop
+
+    def _make_subset_loop(self):
+        if self._subset_loop is None:
+            return super()._make_subset_loop()
+        return self._subset_loop
 
     def _make_frozen_loop(self, snapshot_name: str | None = None, subset_id: str | None = None, capability_mode="persistent_tools"):
         return self._frozen_loop
@@ -317,6 +345,80 @@ class StructuredBenchmarkTests(unittest.TestCase):
         with split_file.open("w", encoding="utf-8") as handle:
             for row in rows:
                 handle.write(json.dumps(row) + "\n")
+
+    def _make_subset_report(self, rows: list[dict], baseline_correct_case_ids: set[str], final_correct_case_ids: set[str]) -> SubsetEvolutionRunReport:
+        baseline_records: list[TrainSetEvalRecord] = []
+        final_records: list[TrainSetEvalRecord] = []
+        for row in rows:
+            metadata = dict(row.get("metadata") or {})
+            baseline_records.append(
+                TrainSetEvalRecord(
+                    case_id=row["id"],
+                    dataset_name=metadata.get("dataset_name", "chartqa"),
+                    capability_family=metadata.get("capability_family", "chartqa"),
+                    prompt=row["prompt"],
+                    expected=row["answer"],
+                    answer=row["answer"] if row["id"] in baseline_correct_case_ids else "wrong",
+                    correct=row["id"] in baseline_correct_case_ids,
+                    turns=1,
+                    tool_names=["focus_chart"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                    artifact_paths=["artifacts/focus.png"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                    chain_trace=["focus_chart"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                )
+            )
+            final_records.append(
+                TrainSetEvalRecord(
+                    case_id=row["id"],
+                    dataset_name=metadata.get("dataset_name", "chartqa"),
+                    capability_family=metadata.get("capability_family", "chartqa"),
+                    prompt=row["prompt"],
+                    expected=row["answer"],
+                    answer=row["answer"] if row["id"] in final_correct_case_ids else "wrong",
+                    correct=row["id"] in final_correct_case_ids,
+                    turns=1,
+                    tool_names=["focus_chart"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                    artifact_paths=["artifacts/focus.png"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                    chain_trace=["focus_chart"] if row["id"] in final_correct_case_ids and row["id"] not in baseline_correct_case_ids else [],
+                )
+            )
+        baseline_summary = TrainSetEvalSummary(
+            total_cases=len(baseline_records),
+            correct_cases=sum(1 for row in baseline_records if row.correct),
+            primary_score=sum(1 for row in baseline_records if row.correct) / len(baseline_records),
+            per_dataset_scores={"chartqa": sum(1 for row in baseline_records if row.correct) / len(baseline_records)},
+            per_family_scores={"chartqa": sum(1 for row in baseline_records if row.correct) / len(baseline_records)},
+        )
+        final_summary = TrainSetEvalSummary(
+            total_cases=len(final_records),
+            correct_cases=sum(1 for row in final_records if row.correct),
+            primary_score=sum(1 for row in final_records if row.correct) / len(final_records),
+            per_dataset_scores={"chartqa": sum(1 for row in final_records if row.correct) / len(final_records)},
+            per_family_scores={"chartqa": sum(1 for row in final_records if row.correct) / len(final_records)},
+        )
+        return SubsetEvolutionRunReport(
+            baseline_summary=baseline_summary,
+            final_summary=final_summary,
+            baseline_records=baseline_records,
+            final_records=final_records,
+            round_results=[
+                CandidateEvalResult(
+                    run_id="round_1",
+                    accepted=True,
+                    reason="Accepted candidate with score delta 0.3333",
+                    baseline_score=baseline_summary.primary_score,
+                    candidate_score=final_summary.primary_score,
+                    score_delta=final_summary.primary_score - baseline_summary.primary_score,
+                    smoke_passed=True,
+                    target_family="chartqa",
+                    target_cluster_ids=["cluster_1"],
+                    representative_case_ids=["2"],
+                    activated_snapshot="chartqa_refocus_v1_round_1_accepted",
+                    baseline_summary=baseline_summary,
+                    candidate_summary=final_summary,
+                )
+            ],
+            snapshot_name="chartqa_refocus_v1_train_snapshot",
+        )
 
     def test_chartqa_normalization_creates_valid_cases(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -383,7 +485,7 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertEqual(cases[0].metadata["image_width"], 19)
             self.assertEqual(cases[0].metadata["image_height"], 13)
 
-    def test_online_evolve_skips_initially_correct_cases_and_reuses_shared_skill(self):
+    def test_subset_level_train_adaptive_uses_final_active_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "skills").mkdir(parents=True, exist_ok=True)
@@ -430,18 +532,20 @@ class StructuredBenchmarkTests(unittest.TestCase):
             )
             online_loop = FakeLoop(root / "learned" / config.subset_id)
             frozen_loop = FrozenLoop(root / "learned" / config.subset_id)
-            runner = TestStructuredRunner(config, root, online_loop, frozen_loop)
+            subset_loop = FakeSubsetLoop(
+                self._make_subset_report(rows, baseline_correct_case_ids={"1"}, final_correct_case_ids={"1", "2", "3"})
+            )
+            runner = TestStructuredRunner(config, root, online_loop, frozen_loop, subset_loop=subset_loop)
 
             cases = load_normalized_cases(config.normalized_data_root, "chartqa", "train", limit=3)
             records, snapshot_name = runner._run_online_evolve(cases)
 
-            self.assertEqual(snapshot_name, "chartqa_refocus_v1_train_k3_snapshot")
-            self.assertEqual(online_loop.run_single_case_calls, ["2"])
+            self.assertEqual(snapshot_name, "chartqa_refocus_v1_train_snapshot")
+            self.assertEqual(subset_loop.run_calls, [["1", "2", "3"]])
             self.assertFalse(records[0].evolve_triggered)
             self.assertTrue(records[1].evolve_triggered)
-            self.assertFalse(records[2].evolve_triggered)
+            self.assertTrue(records[2].evolve_triggered)
             self.assertTrue(records[2].correct)
-            self.assertTrue((root / "learned" / "snapshots" / snapshot_name).exists())
             saved_reports = json.loads(runner.evolve_reports_path.read_text(encoding="utf-8"))
             self.assertEqual(len(saved_reports), 1)
             self.assertEqual(saved_reports[0]["case_id"], "2")
@@ -760,6 +864,52 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("old_case", prompt_text)
         self.assertEqual(analysis.differentiation_note, "Switching from strategy advice to visual grounding.")
 
+    def test_subset_planner_prompt_uses_digest_not_full_training_set(self):
+        client = RecordingClient(
+            json.dumps(
+                {
+                    "target_family": "chartqa",
+                    "target_cluster_ids": ["cluster_1"],
+                    "representative_case_ids": ["case_2"],
+                    "next_action": "generate_skill",
+                    "tool_goal": "",
+                    "skill_update_note": "Tighten the chart SOP.",
+                    "rationale": "Largest remaining cluster.",
+                    "expected_gain": "Improve train accuracy.",
+                }
+            )
+        )
+        planner = SubsetPlanner(client, LoopGeneratorStub(), Path("/tmp/skills"))
+        digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+            baseline_summary=TrainSetEvalSummary(
+                total_cases=3,
+                correct_cases=1,
+                primary_score=1 / 3,
+                per_dataset_scores={"chartqa": 1 / 3},
+                per_family_scores={"chartqa": 1 / 3},
+            ),
+            failure_clusters=[
+                __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                    cluster_id="cluster_1",
+                    dataset_name="chartqa",
+                    capability_family="chartqa",
+                    cluster_key="chartqa::generic",
+                    total_cases=2,
+                    representative_case_ids=["case_2"],
+                    summary_lines=["case_id=case_2; prompt=Read the right bar; expected=5; answer=wrong"],
+                )
+            ],
+            representative_cases=[{"case_id": "case_2", "dataset_name": "chartqa", "capability_family": "chartqa", "prompt": "Read the right bar"}],
+            recent_rejected_plans=[{"run_id": "old", "reason": "tie"}],
+        )
+
+        planner.plan_bundle(digest)
+
+        prompt_text = client.messages[1]["content"]
+        self.assertIn("Failure clusters:", prompt_text)
+        self.assertIn("case_id=case_2", prompt_text)
+        self.assertNotIn("This prompt should never appear in planner input", prompt_text)
+
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -809,6 +959,269 @@ class StructuredBenchmarkTests(unittest.TestCase):
             solved_clean = clean_loop.run_single_case(case)
             self.assertTrue(solved_clean)
             self.assertEqual(clean_loop.store.list_failed_directions("chartqa", limit=5), [])
+
+    def test_benchmark_adapters_load_and_score_generic_datasets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = root / "normalized"
+            (normalized / "vstar").mkdir(parents=True, exist_ok=True)
+            (normalized / "hrbench").mkdir(parents=True, exist_ok=True)
+            (normalized / "vstar" / "train.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "v1",
+                            "problem_id": "vstar_reasoning",
+                            "prompt": "What label is highlighted?",
+                            "answer": "A",
+                            "image_path": "a.png",
+                            "metadata": {"dataset_name": "vstar", "split": "train", "source_id": "v1", "capability_family": "vstar_reasoning"},
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (normalized / "hrbench" / "train.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "h1",
+                            "problem_id": "hrbench_layout",
+                            "prompt": "How many boxes?",
+                            "answer": "4",
+                            "image_path": "b.png",
+                            "metadata": {"dataset_name": "hrbench", "split": "train", "source_id": "h1", "capability_family": "hrbench_layout"},
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            vstar_cases = VStarAdapter().load_cases(normalized, "train")
+            hrbench_cases = HRBenchAdapter().load_cases(normalized, "train")
+
+            self.assertEqual(vstar_cases[0].capability_family(), "vstar_reasoning")
+            self.assertEqual(hrbench_cases[0].capability_family(), "hrbench_layout")
+            self.assertTrue(VStarAdapter().check_answer("A", vstar_cases[0]))
+            self.assertTrue(HRBenchAdapter().check_answer("The answer is 4.", hrbench_cases[0]))
+
+    def test_subset_loop_accepts_candidate_when_total_score_improves_even_if_seed_case_stays_wrong(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subset_loop = SubsetEvolutionLoop(
+                subset_id="chartqa_refocus_v1",
+                learned_root=root / "learned",
+                skills_dir=root / "skills",
+                work_dir=root / "artifacts",
+                vlm_client=DummyClient(),
+                adapters={"chartqa": ChartQAAdapter()},
+                max_planning_rounds=1,
+            )
+            cases = [
+                TaskCase(case_id="seed", problem_id="chartqa", prompt="Q1", gold_answer="A", metadata={"dataset_name": "chartqa", "capability_family": "chartqa"}),
+                TaskCase(case_id="other", problem_id="chartqa", prompt="Q2", gold_answer="B", metadata={"dataset_name": "chartqa", "capability_family": "chartqa"}),
+            ]
+            baseline_summary = TrainSetEvalSummary(total_cases=2, correct_cases=0, primary_score=0.0, per_dataset_scores={"chartqa": 0.0}, per_family_scores={"chartqa": 0.0})
+            candidate_summary = TrainSetEvalSummary(total_cases=2, correct_cases=1, primary_score=0.5, per_dataset_scores={"chartqa": 0.5}, per_family_scores={"chartqa": 0.5})
+            baseline_records = [
+                TrainSetEvalRecord(case_id="seed", dataset_name="chartqa", capability_family="chartqa", prompt="Q1", expected="A", answer="wrong", correct=False),
+                TrainSetEvalRecord(case_id="other", dataset_name="chartqa", capability_family="chartqa", prompt="Q2", expected="B", answer="wrong", correct=False),
+            ]
+            candidate_records = [
+                TrainSetEvalRecord(case_id="seed", dataset_name="chartqa", capability_family="chartqa", prompt="Q1", expected="A", answer="wrong", correct=False),
+                TrainSetEvalRecord(case_id="other", dataset_name="chartqa", capability_family="chartqa", prompt="Q2", expected="B", answer="B", correct=True),
+            ]
+            evaluation_queue = [
+                (baseline_summary, baseline_records),
+                (candidate_summary, candidate_records),
+                (candidate_summary, candidate_records),
+            ]
+            subset_loop.evaluator.evaluate = lambda *args, **kwargs: evaluation_queue.pop(0)
+            subset_loop.evaluator.build_digest = lambda *args, **kwargs: __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+                baseline_summary=baseline_summary,
+                failure_clusters=[
+                    __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                        cluster_id="cluster_1",
+                        dataset_name="chartqa",
+                        capability_family="chartqa",
+                        cluster_key="chartqa::generic",
+                        total_cases=2,
+                        representative_case_ids=["seed"],
+                        summary_lines=["case_id=seed; prompt=Q1"],
+                    )
+                ],
+                representative_cases=[{"case_id": "seed", "dataset_name": "chartqa", "capability_family": "chartqa", "prompt": "Q1"}],
+                recent_rejected_plans=[],
+            )
+            subset_loop.planner.plan_bundle = lambda digest: {
+                "target_family": "chartqa",
+                "target_cluster_ids": ["cluster_1"],
+                "representative_case_ids": ["seed"],
+                "next_action": "generate_skill",
+                "skill_update_note": "Improve the chartqa SOP.",
+                "rationale": "Try a better family-level SOP.",
+                "expected_gain": "Improve total training accuracy.",
+            }
+            subset_loop.planner.materialize_bundle = lambda *args, **kwargs: CapabilityBundleProposal(
+                run_id="round_accept",
+                target_family="chartqa",
+                target_cluster_ids=["cluster_1"],
+                representative_case_ids=["seed"],
+                skills=[
+                    SkillProposal(
+                        name="chartqa",
+                        description="Improved chart skill",
+                        applicability_conditions="Use on chartqa",
+                        content="## SOP\n1. Read carefully.",
+                        level="mid",
+                        depends_on=[],
+                    )
+                ],
+            )
+            subset_loop._smoke_validate = lambda *args, **kwargs: (True, "smoke passed")
+
+            report = subset_loop.run(cases)
+
+            self.assertEqual(len(report.round_results), 1)
+            self.assertTrue(report.round_results[0].accepted)
+            self.assertTrue((root / "learned" / "chartqa_refocus_v1" / "active" / "skills" / "chartqa" / "SKILL.md").exists())
+
+    def test_subset_loop_rejects_tied_candidate_and_keeps_active_capabilities(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subset_loop = SubsetEvolutionLoop(
+                subset_id="chartqa_refocus_v2",
+                learned_root=root / "learned",
+                skills_dir=root / "skills",
+                work_dir=root / "artifacts",
+                vlm_client=DummyClient(),
+                adapters={"chartqa": ChartQAAdapter()},
+                max_planning_rounds=1,
+            )
+            subset_loop.active_store.promote_skill(
+                "chartqa",
+                SkillProposal(
+                    name="chartqa",
+                    description="Baseline skill",
+                    applicability_conditions="Use on chartqa",
+                    content="## SOP\n1. Baseline.",
+                    level="mid",
+                    depends_on=[],
+                ),
+            )
+            baseline_summary = TrainSetEvalSummary(total_cases=1, correct_cases=1, primary_score=1.0, per_dataset_scores={"chartqa": 1.0}, per_family_scores={"chartqa": 1.0})
+            baseline_records = [TrainSetEvalRecord(case_id="1", dataset_name="chartqa", capability_family="chartqa", prompt="Q", expected="A", answer="A", correct=True)]
+            evaluation_queue = [
+                (baseline_summary, baseline_records),
+                (baseline_summary, baseline_records),
+                (baseline_summary, baseline_records),
+            ]
+            subset_loop.evaluator.evaluate = lambda *args, **kwargs: evaluation_queue.pop(0)
+            subset_loop.evaluator.build_digest = lambda *args, **kwargs: __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+                baseline_summary=baseline_summary,
+                failure_clusters=[
+                    __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                        cluster_id="cluster_1",
+                        dataset_name="chartqa",
+                        capability_family="chartqa",
+                        cluster_key="chartqa::generic",
+                        total_cases=1,
+                        representative_case_ids=["1"],
+                        summary_lines=["case_id=1; prompt=Q"],
+                    )
+                ],
+                representative_cases=[{"case_id": "1", "dataset_name": "chartqa", "capability_family": "chartqa", "prompt": "Q"}],
+                recent_rejected_plans=[],
+            )
+            subset_loop.planner.plan_bundle = lambda digest: {
+                "target_family": "chartqa",
+                "target_cluster_ids": ["cluster_1"],
+                "representative_case_ids": ["1"],
+                "next_action": "generate_skill",
+                "skill_update_note": "Try a new SOP.",
+                "rationale": "Test tie rejection.",
+                "expected_gain": "Tie score.",
+            }
+            subset_loop.planner.materialize_bundle = lambda *args, **kwargs: CapabilityBundleProposal(
+                run_id="round_reject",
+                target_family="chartqa",
+                target_cluster_ids=["cluster_1"],
+                representative_case_ids=["1"],
+                skills=[
+                    SkillProposal(
+                        name="chartqa",
+                        description="Rejected skill",
+                        applicability_conditions="Use on chartqa",
+                        content="## SOP\n1. Rejected.",
+                        level="mid",
+                        depends_on=[],
+                    )
+                ],
+            )
+            subset_loop._smoke_validate = lambda *args, **kwargs: (True, "smoke passed")
+
+            report = subset_loop.run([TaskCase(case_id="1", problem_id="chartqa", prompt="Q", gold_answer="A", metadata={"dataset_name": "chartqa", "capability_family": "chartqa"})])
+
+            self.assertFalse(report.round_results[0].accepted)
+            active_skill = subset_loop.active_store.get_skill("chartqa")
+            self.assertIn("Baseline.", active_skill.content)
+            self.assertEqual(len(subset_loop.active_store.list_recent_rejected_plans()), 1)
+
+    def test_make_frozen_loop_prefers_active_workspace_over_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_v3",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            active_dir = root / "learned" / "chartqa_refocus_v3" / "active"
+            candidate_dir = root / "learned" / "chartqa_refocus_v3" / "candidate" / "round_1"
+            active_dir.mkdir(parents=True, exist_ok=True)
+            candidate_dir.mkdir(parents=True, exist_ok=True)
+
+            loop = runner._make_frozen_loop(subset_id="chartqa_refocus_v3")
+
+            self.assertEqual(loop.learned_dir, active_dir)
+
+    def test_subset_summary_tracks_multiple_dataset_scores(self):
+        rows = [
+            StructuredCaseRecord(
+                setting="agent_train_adaptive",
+                split="train",
+                case_id="c1",
+                problem_id="chartqa",
+                expected="A",
+                answer="A",
+                correct=True,
+                turns=1,
+                tool_count=0,
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            ),
+            StructuredCaseRecord(
+                setting="agent_train_adaptive",
+                split="train",
+                case_id="h1",
+                problem_id="hrbench",
+                expected="B",
+                answer="wrong",
+                correct=False,
+                turns=1,
+                tool_count=0,
+                metadata={"dataset_name": "hrbench", "capability_family": "hrbench_layout"},
+            ),
+        ]
+
+        summary = _aggregate_records(rows)["agent_train_adaptive"]
+
+        self.assertEqual(summary["total"], 2)
+        self.assertAlmostEqual(summary["accuracy"], 0.5)
+        self.assertAlmostEqual(summary["per_dataset_accuracy"]["chartqa"], 1.0)
+        self.assertAlmostEqual(summary["per_dataset_accuracy"]["hrbench"], 0.0)
+        self.assertAlmostEqual(summary["per_family_accuracy"]["chartqa"], 1.0)
+        self.assertAlmostEqual(summary["per_family_accuracy"]["hrbench_layout"], 0.0)
 
     def test_run_settings_normalize_self_evolve_alias(self):
         self.assertEqual(_normalize_settings(["self_evolve"]), ["agent_train_adaptive"])

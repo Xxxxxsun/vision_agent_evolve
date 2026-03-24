@@ -82,7 +82,7 @@ class EvolutionLoop:
 
         for attempt in range(1, self.max_attempts + 1):
             print(f"\n--- Attempt {attempt}/{self.max_attempts} ---")
-            existing_skill = self.store.get_skill(case.problem_id)
+            existing_skill = self.store.get_skill(case.capability_family())
             capability_snapshot = self._tool_availability_snapshot()
             chain_context = self.validator.build_chain_context(
                 case,
@@ -136,7 +136,7 @@ class EvolutionLoop:
             image_artifacts = result.get_image_artifacts()
             if image_artifacts:
                 print(f"  → Processing {len(image_artifacts)} artifact images for analysis")
-            recent_failed_directions = self.store.list_failed_directions(case.problem_id, limit=8)
+            recent_failed_directions = self.store.list_failed_directions(case.capability_family(), limit=8)
             if recent_failed_directions:
                 print(f"  → Loaded {len(recent_failed_directions)} recent failed directions")
             self._log_phase(case.case_id, attempt, "analyzer", "start")
@@ -149,7 +149,7 @@ class EvolutionLoop:
                 "extra_artifacts": self._merge_analysis_artifacts(chain_context.artifacts, carried_artifacts),
                 "chain_context": chain_context,
                 "capability_snapshot": capability_snapshot.summary(),
-                "known_failure_lessons": self.store.list_failure_skills(case.problem_id, limit=3),
+                "known_failure_lessons": self.store.list_failure_skills(case.capability_family(), limit=3),
             }
             if "failed_directions" in inspect.signature(self.analyzer_decider.analyze_and_decide).parameters:
                 analyze_kwargs["failed_directions"] = recent_failed_directions
@@ -160,7 +160,7 @@ class EvolutionLoop:
             analysis = self._normalize_analysis_for_mode(analysis)
 
             matched_failed_directions = self.store.find_similar_failed_directions(
-                case.problem_id,
+                case.capability_family(),
                 analysis,
                 limit=3,
             )
@@ -274,19 +274,19 @@ class EvolutionLoop:
                         existing_skill.content if existing_skill else None,
                         chain_context,
                         family_examples,
-                        self.store.list_failure_skills(case.problem_id, limit=3),
+                        self.store.list_failure_skills(case.capability_family(), limit=3),
                     )
                     self._print_skill_content("Reviewed skill draft", step.skill_proposal.content)
                     attempt_report["reviewed_skill_proposal"] = self._skill_summary(step.skill_proposal)
                 self._log_phase(case.case_id, attempt, "skill_generation", "end")
 
                 print(f"Validating skill...")
-                skill_validation = self.validator.validate_skill(step.skill_proposal, case.problem_id)
+                skill_validation = self.validator.validate_skill(step.skill_proposal, case.capability_family())
 
                 if skill_validation.passed:
                     print(f"✓ Skill valid. Retrying current case with the new rule...")
                     skill_for_retry = Skill(
-                        name=case.problem_id,
+                        name=case.capability_family(),
                         description=step.skill_proposal.description,
                         content=step.skill_proposal.content,
                         level=step.skill_proposal.level,
@@ -302,7 +302,7 @@ class EvolutionLoop:
                     case,
                     task_skill_override=skill_for_retry,
                     required_tool_name=staged_tool.name if staged_tool else None,
-                    required_skill_name=case.problem_id if self.capability_mode == "scratch_code_skill" and skill_for_retry else None,
+                    required_skill_name=case.capability_family() if self.capability_mode == "scratch_code_skill" and skill_for_retry else None,
                     require_bash_action_before_complete=bool(self.capability_mode == "scratch_code_skill" and skill_for_retry),
                     required_image_artifact_before_complete=bool(self.capability_mode == "scratch_code_skill" and skill_for_retry),
                     attempt=attempt,
@@ -321,7 +321,7 @@ class EvolutionLoop:
                         self.store.promote_tool(staged_tool, step.validation)
                         self.validator.clear_preserved_tool(staged_tool.name)
                     if skill_for_retry and skill_validation and skill_validation.passed:
-                        self.store.promote_skill(case.problem_id, step.skill_proposal)
+                        self.store.promote_skill(case.capability_family(), step.skill_proposal)
                     step.decision = "keep"
                     self._log_step(step)
                     self._print_token_summary(attempt)
@@ -420,14 +420,14 @@ class EvolutionLoop:
 
     def _family_examples_for_review(self, case: TaskCase) -> list[TaskCase]:
         """Return prior solved family examples plus the current case for SOP review."""
-        examples = list(self.family_examples.get(case.problem_id, []))
+        examples = list(self.family_examples.get(case.capability_family(), []))
         if all(existing.case_id != case.case_id for existing in examples):
             examples.append(case)
         return examples
 
     def _remember_family_example(self, case: TaskCase) -> None:
         """Remember solved family examples so later skill reviews can generalize across them."""
-        examples = self.family_examples.setdefault(case.problem_id, [])
+        examples = self.family_examples.setdefault(case.capability_family(), [])
         if all(existing.case_id != case.case_id for existing in examples):
             examples.append(case)
 
@@ -448,10 +448,10 @@ class EvolutionLoop:
         if task_skill_override is not None:
             all_skills.append(task_skill_override)
         else:
-            task_skill = self.store.get_skill(case.problem_id)
+            task_skill = self.store.get_skill(case.capability_family())
             if task_skill is not None and self._skill_uses_only_available_tools(task_skill.content, capability_snapshot):
                 all_skills.append(task_skill)
-        all_skills.extend(self.store.list_failure_skills(case.problem_id, limit=3))
+        all_skills.extend(self.store.list_failure_skills(case.capability_family(), limit=3))
 
         # Render skills
         skill_text = render_skills(all_skills)
@@ -630,7 +630,7 @@ Reply with only one word: CORRECT or INCORRECT"""
         """Persist a non-promoted failure lesson for later inspection."""
         if not hasattr(self.generator, "generate_failure_skill"):
             return
-        existing_skill = self.store.get_skill(case.problem_id)
+        existing_skill = self.store.get_skill(case.capability_family())
         proposal = self.generator.generate_failure_skill(
             case,
             analysis,
@@ -639,7 +639,7 @@ Reply with only one word: CORRECT or INCORRECT"""
             chain_context=chain_context,
             family_examples=self._family_examples_for_review(case),
         )
-        self.store.save_failure_skill(case.problem_id, case.case_id, proposal)
+        self.store.save_failure_skill(case.capability_family(), case.case_id, proposal)
 
     def _log_phase(self, case_id: str, attempt: int, phase: str, status: str) -> None:
         """Emit lightweight per-phase markers for hang diagnosis."""
@@ -764,6 +764,7 @@ Reply with only one word: CORRECT or INCORRECT"""
         return {
             "case_id": case.case_id,
             "problem_id": case.problem_id,
+            "capability_family": case.capability_family(),
             "prompt": case.prompt,
             "gold_answer": case.gold_answer,
             "image_path": case.image_path,
@@ -887,7 +888,7 @@ Reply with only one word: CORRECT or INCORRECT"""
             failure_reason=failure_reason,
             source=source,
         )
-        saved = self.store.save_failed_direction(case.problem_id, direction)
+        saved = self.store.save_failed_direction(case.capability_family(), direction)
         summary = dict(saved.get("stored_direction", {}))
         summary["deduped"] = bool(saved.get("deduped"))
         summary["similarity"] = round(float(saved.get("similarity", 0.0)), 3)

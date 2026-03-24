@@ -10,7 +10,7 @@ from datetime import datetime
 from difflib import SequenceMatcher
 
 from skills import load_skill
-from .types import FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, ValidationResult
+from .types import CapabilityBundleProposal, FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, ValidationResult
 
 
 class CapabilityStore:
@@ -21,18 +21,25 @@ class CapabilityStore:
         self.tools_dir = learned_dir / "tools"
         self.skills_dir = learned_dir / "skills"
         self.snapshots_dir = learned_dir.parent / "snapshots"
+        self.candidates_dir = learned_dir.parent / "candidate"
+        self.rejected_plans_file = learned_dir.parent / "rejected_plans.json"
         self.log_file = learned_dir / "evolution_log.jsonl"
 
         # Create directories
         self.tools_dir.mkdir(parents=True, exist_ok=True)
         self.skills_dir.mkdir(parents=True, exist_ok=True)
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
+        self.candidates_dir.mkdir(parents=True, exist_ok=True)
 
     FAILED_DIRECTION_DEDUPE_THRESHOLD = 0.84
     FAILED_DIRECTION_MATCH_THRESHOLD = 0.62
 
     def promote_tool(self, proposal: ToolProposal, validation: ValidationResult):
         """Promote tool to learned capabilities."""
+        self._write_tool(proposal, validation, log_decision=True)
+
+    def _write_tool(self, proposal: ToolProposal, validation: ValidationResult, log_decision: bool) -> None:
+        """Write a tool into this capability root."""
         tool_file = self.tools_dir / f"{proposal.name}.py"
         manifest_file = self.tools_dir / f"{proposal.name}.json"
         tool_tmp = self.tools_dir / f".{proposal.name}.py.tmp"
@@ -60,7 +67,8 @@ class CapabilityStore:
         tool_tmp.replace(tool_file)
         manifest_tmp.replace(manifest_file)
 
-        self._log_promotion("tool", proposal.name, "keep")
+        if log_decision:
+            self._log_promotion("tool", proposal.name, "keep")
 
     def remove_tool(self, tool_name: str):
         """Remove a staged tool and its metadata."""
@@ -69,6 +77,10 @@ class CapabilityStore:
 
     def promote_skill(self, problem_id: str, proposal: SkillProposal):
         """Promote the current task-family skill by overwriting its short rule set."""
+        self._write_skill(problem_id, proposal, log_decision=True)
+
+    def _write_skill(self, problem_id: str, proposal: SkillProposal, log_decision: bool) -> None:
+        """Write a skill into this capability root."""
         skill_dir = self.skills_dir / problem_id
         skill_dir.mkdir(exist_ok=True)
 
@@ -79,13 +91,14 @@ description: "{proposal.description}"
 level: {proposal.level}
 depends_on: {json.dumps(proposal.depends_on)}
 applicability_conditions: "{proposal.applicability_conditions}"
----
+        ---
 
 {proposal.content}
 """
-        skill_file.write_text(rendered)
+        skill_file.write_text(rendered, encoding="utf-8")
 
-        self._log_promotion("skill", problem_id, "keep")
+        if log_decision:
+            self._log_promotion("skill", problem_id, "keep")
 
     def save_failure_skill(self, problem_id: str, case_id: str, proposal: SkillProposal):
         """Persist a failure-derived lesson without promoting it as the main solver skill."""
@@ -114,6 +127,93 @@ kind: failure_lesson
             shutil.rmtree(target)
         shutil.copytree(self.learned_dir, target)
         return target
+
+    def stage_bundle(self, bundle: CapabilityBundleProposal) -> Path:
+        """Create a candidate capability root for one planner proposal."""
+        candidate_dir = self.candidates_dir / bundle.run_id
+        if candidate_dir.exists():
+            shutil.rmtree(candidate_dir)
+        if self.learned_dir.exists():
+            shutil.copytree(self.learned_dir, candidate_dir)
+        else:
+            candidate_dir.mkdir(parents=True, exist_ok=True)
+
+        candidate_store = CapabilityStore(candidate_dir)
+        validation = ValidationResult(passed=True, static_ok=True, origin_ok=True, regression_ok=True)
+        for tool in bundle.tools:
+            candidate_store._write_tool(tool, validation, log_decision=False)
+        for skill in bundle.skills:
+            candidate_store._write_skill(skill.name, skill, log_decision=False)
+        candidate_store.log_step(
+            {
+                "type": "candidate_stage",
+                "run_id": bundle.run_id,
+                "target_family": bundle.target_family,
+                "tool_count": len(bundle.tools),
+                "skill_count": len(bundle.skills),
+            }
+        )
+        return candidate_dir
+
+    def evaluate_bundle_snapshot(self, run_id: str) -> Path:
+        """Return the staged candidate directory for evaluation."""
+        candidate_dir = self.candidates_dir / run_id
+        if not candidate_dir.exists():
+            raise FileNotFoundError(f"Candidate bundle not found: {candidate_dir}")
+        return candidate_dir
+
+    def activate_bundle(self, run_id: str, snapshot_name: str = "") -> Path:
+        """Atomically replace the active capability root with an accepted candidate."""
+        candidate_dir = self.evaluate_bundle_snapshot(run_id)
+        replacement_dir = self.learned_dir.parent / f".active_replace_{run_id}"
+        if replacement_dir.exists():
+            shutil.rmtree(replacement_dir)
+        shutil.copytree(candidate_dir, replacement_dir)
+        if self.learned_dir.exists():
+            shutil.rmtree(self.learned_dir)
+        replacement_dir.replace(self.learned_dir)
+        if snapshot_name:
+            self.snapshot_current_capabilities(snapshot_name)
+        self.discard_bundle(run_id)
+        self.log_step({"type": "candidate_activate", "run_id": run_id, "snapshot_name": snapshot_name})
+        return self.learned_dir
+
+    def discard_bundle(self, run_id: str) -> None:
+        """Remove a rejected or superseded candidate bundle."""
+        candidate_dir = self.candidates_dir / run_id
+        if candidate_dir.exists():
+            shutil.rmtree(candidate_dir)
+
+    def load_active_snapshot(self, snapshot_name: str) -> Path:
+        """Restore a snapshot back into the active capability root."""
+        snapshot_dir = self.snapshots_dir / snapshot_name
+        if not snapshot_dir.exists():
+            raise FileNotFoundError(f"Snapshot not found: {snapshot_dir}")
+        if self.learned_dir.exists():
+            shutil.rmtree(self.learned_dir)
+        shutil.copytree(snapshot_dir, self.learned_dir)
+        return self.learned_dir
+
+    def record_rejected_plan(self, entry: dict, limit: int = 12) -> None:
+        """Append one rejected candidate summary for future planner context."""
+        rows = self.list_recent_rejected_plans(limit=limit)
+        rows.insert(0, entry)
+        self.rejected_plans_file.write_text(
+            json.dumps(rows[:limit], ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def list_recent_rejected_plans(self, limit: int = 10) -> list[dict]:
+        """Load recent rejected-plan summaries."""
+        if not self.rejected_plans_file.exists():
+            return []
+        try:
+            rows = json.loads(self.rejected_plans_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(rows, list):
+            return []
+        return rows[:limit]
 
     def has_skill(self, problem_id: str) -> bool:
         """Return whether a task-family skill exists."""

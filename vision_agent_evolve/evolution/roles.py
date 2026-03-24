@@ -546,7 +546,7 @@ Revise it so it still preserves the previously useful behavior while adding or a
 
         prompt = f"""You are generating a SHORT SOP-style task prompt for the solver.
 
-Task family: {case.problem_id}
+Task family: {case.capability_family()}
 Current question: {case.prompt}
 Current image path: {case.image_path or "<image_path>"}
 Dense caption: {case.dense_caption() or "N/A"}
@@ -585,7 +585,7 @@ IMPORTANT CONTEXT:
 
 Provide response as JSON:
 {{
-    "name": "{case.problem_id}",
+    "name": "{case.capability_family()}",
     "description": "one sentence describing the task-specific SOP",
     "applicability_conditions": "when this SOP or this added step applies within the task family",
     "content": "short markdown SOP only",
@@ -631,7 +631,7 @@ Revise it so it preserves the previously useful behavior while adding or adjusti
 
         prompt = f"""You are generating a SHORT SOP-style task prompt for the solver.
 
-Task family: {case.problem_id}
+Task family: {case.capability_family()}
 Current question: {case.prompt}
 Current image path: {case.image_path or "<image_path>"}
 Dense caption: {case.dense_caption() or "N/A"}
@@ -670,7 +670,7 @@ IMPORTANT CONTEXT:
 
 Provide response as JSON:
 {{
-    "name": "{case.problem_id}",
+    "name": "{case.capability_family()}",
     "description": "one sentence describing the code-writing SOP",
     "applicability_conditions": "when this temporary-code editing SOP applies within the task family",
     "content": "short markdown SOP only",
@@ -706,7 +706,7 @@ Provide response as JSON:
         lesson_text = self._format_known_failure_lessons(known_failure_lessons or []) if known_failure_lessons else "N/A"
         prompt = f"""You are reviewing a task-family SOP draft before it is used again.
 
-Task family: {case.problem_id}
+Task family: {case.capability_family()}
 Current question: {case.prompt}
 Current image path: {case.image_path or "<image_path>"}
 Dense caption: {case.dense_caption() or "N/A"}
@@ -748,7 +748,7 @@ Review goal:
 
 Return JSON:
 {{
-  "name": "{case.problem_id}",
+  "name": "{case.capability_family()}",
   "description": "reviewed one-sentence SOP description",
   "applicability_conditions": "reviewed applicability conditions",
   "content": "reviewed markdown SOP only",
@@ -799,7 +799,7 @@ Return JSON:
         family_context = self._format_family_examples(family_examples or [case])
         prompt = f"""You are writing a short failure lesson for a task family.
 
-Task family: {case.problem_id}
+Task family: {case.capability_family()}
 Current question: {case.prompt}
 Dense caption: {case.dense_caption() or "N/A"}
 Expected answer: {case.gold_answer}
@@ -832,7 +832,7 @@ IMPORTANT:
 
 Return JSON:
 {{
-  "name": "{case.problem_id}",
+  "name": "{case.capability_family()}",
   "description": "short description of the failure lesson",
   "applicability_conditions": "when this lesson is relevant",
   "content": "markdown lesson only",
@@ -956,7 +956,7 @@ if __name__ == "__main__":
             content = self._build_tool_skill_content(case, raw_content, analysis, tool_proposal, existing_skill_content)
 
         return SkillProposal(
-            name=case.problem_id,
+            name=case.capability_family(),
             description=description,
             applicability_conditions=applicability_conditions,
             content=content,
@@ -986,7 +986,7 @@ if __name__ == "__main__":
         content = self._build_code_writing_skill_content(raw_content, analysis)
 
         return SkillProposal(
-            name=case.problem_id,
+            name=case.capability_family(),
             description=description or "Use temporary Python image-editing code before answering when the raw chart contains distracting information.",
             applicability_conditions=applicability_conditions,
             content=content,
