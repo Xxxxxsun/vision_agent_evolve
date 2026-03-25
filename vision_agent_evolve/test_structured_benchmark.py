@@ -3,17 +3,25 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 
 from PIL import Image
 
 from core.structured_data import (
     check_chartqa_answer,
+    check_mathvista_answer,
+    check_multiple_choice_answer,
     load_normalized_cases,
     normalize_chartqa_dataset,
+    normalize_hrbench_dataset,
+    normalize_mathvista_dataset,
+    normalize_textvqa_dataset,
+    normalize_vstar_dataset,
+    score_textvqa_answer,
 )
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
-from evolution.benchmark_adapters import ChartQAAdapter, HRBenchAdapter, VStarAdapter
+from evolution.benchmark_adapters import ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
 from evolution.loop import EvolutionLoop
 from evolution.roles import AnalyzerDecider
 from evolution.store import CapabilityStore
@@ -346,6 +354,15 @@ class StructuredBenchmarkTests(unittest.TestCase):
             for row in rows:
                 handle.write(json.dumps(row) + "\n")
 
+    def _write_json_rows(self, path: Path, rows: list[dict]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(rows), encoding="utf-8")
+
+    def _image_base64(self, size=(12, 8)) -> str:
+        buffer = BytesIO()
+        Image.new("RGB", size, color=(255, 255, 255)).save(buffer, format="PNG")
+        return __import__("base64").b64encode(buffer.getvalue()).decode("utf-8")
+
     def _make_subset_report(self, rows: list[dict], baseline_correct_case_ids: set[str], final_correct_case_ids: set[str]) -> SubsetEvolutionRunReport:
         baseline_records: list[TrainSetEvalRecord] = []
         final_records: list[TrainSetEvalRecord] = []
@@ -484,6 +501,180 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertTrue(cases[0].image_path.endswith("two_col_103562.png"))
             self.assertEqual(cases[0].metadata["image_width"], 19)
             self.assertEqual(cases[0].metadata["image_height"], 13)
+
+    def test_multibench_normalizers_create_expected_records(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized_root = root / "normalized"
+
+            image_root = root / "images"
+            self._write_image(image_root / "v1.png")
+            self._write_image(image_root / "mv1.png")
+            self._write_image(image_root / "tv1.png")
+            self._write_image(image_root / "tv2.png")
+
+            self._write_json_rows(
+                root / "vstar" / "test.json",
+                [
+                    {
+                        "id": "v1",
+                        "question": "Which option is correct?",
+                        "answer": "B",
+                        "choices": ["one", "two", "three", "four"],
+                        "category": "logic",
+                        "image_path": str(image_root / "v1.png"),
+                    },
+                    {
+                        "id": "v2",
+                        "question": "Which option is correct?",
+                        "answer": "A",
+                        "choices": ["alpha", "beta", "gamma", "delta"],
+                        "category": "logic",
+                        "image_path": str(image_root / "v1.png"),
+                    },
+                ],
+            )
+
+            self._write_json_rows(
+                root / "hrbench" / "hrbench_4k.json",
+                [
+                    {
+                        "id": "h1",
+                        "question": "Pick the best answer.",
+                        "answer": "B",
+                        "options": {"A": "red", "B": "blue", "C": "green", "D": "yellow"},
+                        "category": "doc",
+                        "cycle_category": "chart",
+                        "image": self._image_base64(),
+                    },
+                    {
+                        "id": "h2",
+                        "question": "Pick the best answer.",
+                        "answer": "A",
+                        "options": {"A": "north", "B": "south", "C": "east", "D": "west"},
+                        "category": "doc",
+                        "cycle_category": "chart",
+                        "image": self._image_base64(),
+                    },
+                ],
+            )
+
+            self._write_json_rows(
+                root / "mathvista" / "testmini.json",
+                [
+                    {
+                        "id": "m1",
+                        "question": "Which option matches the figure?",
+                        "answer": "C",
+                        "choices": ["1", "2", "3", "4"],
+                        "source": "geometry",
+                        "question_type": "multi_choice",
+                        "answer_type": "multi_choice",
+                        "precision": 0,
+                        "unit": "",
+                        "image_path": str(image_root / "mv1.png"),
+                    },
+                    {
+                        "id": "m2",
+                        "question": "What is the value?",
+                        "answer": "3.14",
+                        "source": "algebra",
+                        "question_type": "free_form",
+                        "answer_type": "float",
+                        "precision": 2,
+                        "unit": "",
+                        "image_path": str(image_root / "mv1.png"),
+                    },
+                ],
+            )
+
+            self._write_json_rows(
+                root / "textvqa" / "train.json",
+                [
+                    {
+                        "id": "t1",
+                        "question": "What word is shown?",
+                        "answers": ["openai", "openai", "open ai"],
+                        "ocr_tokens": ["OPENAI"],
+                        "image_path": str(image_root / "tv1.png"),
+                    }
+                ],
+            )
+            self._write_json_rows(
+                root / "textvqa" / "validation.json",
+                [
+                    {
+                        "id": "t2",
+                        "question": "What number is shown?",
+                        "answers": ["42", "42", "42", "forty two"],
+                        "ocr_tokens": ["42"],
+                        "image_path": str(image_root / "tv2.png"),
+                    }
+                ],
+            )
+
+            normalize_vstar_dataset(root / "vstar", normalized_root, train_size=1, val_size=1)
+            normalize_hrbench_dataset(root / "hrbench", normalized_root, train_size=1, val_size=1)
+            normalize_mathvista_dataset(root / "mathvista", normalized_root, train_size=1, val_size=1)
+            normalize_textvqa_dataset(root / "textvqa", normalized_root)
+
+            vstar_cases = load_normalized_cases(normalized_root, "vstar", "train")
+            hrbench_cases = load_normalized_cases(normalized_root, "hrbench", "train")
+            mathvista_cases = load_normalized_cases(normalized_root, "mathvista", "train")
+            textvqa_cases = load_normalized_cases(normalized_root, "textvqa", "train")
+
+            self.assertEqual(vstar_cases[0].metadata["capability_family"], "vstar_logic")
+            self.assertEqual(hrbench_cases[0].metadata["capability_family"], "hrbench_doc")
+            self.assertTrue(Path(hrbench_cases[0].image_path).exists())
+            self.assertIn("choices", mathvista_cases[0].metadata)
+            self.assertIn("answers", textvqa_cases[0].metadata)
+            self.assertEqual(textvqa_cases[0].metadata["capability_family"], "textvqa_ocr")
+
+    def test_new_benchmark_answer_checkers_cover_multiple_choice_mathvista_and_textvqa(self):
+        hr_case = TaskCase(
+            case_id="h1",
+            problem_id="hrbench",
+            prompt="Pick the best answer.",
+            gold_answer="B",
+            metadata={"choices": {"A": "red", "B": "blue", "C": "green", "D": "yellow"}},
+        )
+        self.assertTrue(HRBenchAdapter().check_answer("blue", hr_case))
+        self.assertTrue(check_multiple_choice_answer("option B", "B", hr_case.metadata["choices"]))
+
+        mv_choice_case = TaskCase(
+            case_id="m1",
+            problem_id="mathvista",
+            prompt="Which option is correct?",
+            gold_answer="C",
+            metadata={"choices": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer_type": "multi_choice", "precision": 0, "unit": ""},
+        )
+        self.assertTrue(MathVistaAdapter().check_answer("3", mv_choice_case))
+
+        mv_numeric_case = TaskCase(
+            case_id="m2",
+            problem_id="mathvista",
+            prompt="What is the value?",
+            gold_answer="3.14",
+            metadata={"answer_type": "float", "precision": 2, "unit": ""},
+        )
+        self.assertTrue(check_mathvista_answer("The answer is 3.141", "3.14", prompt="What is the value?", precision=2))
+        self.assertTrue(MathVistaAdapter().check_answer("3.141", mv_numeric_case))
+
+        text_case = TaskCase(
+            case_id="t1",
+            problem_id="textvqa",
+            prompt="What word is shown?",
+            gold_answer="openai",
+            metadata={"answers": ["openai", "openai", "open ai", "openai"]},
+        )
+        self.assertAlmostEqual(score_textvqa_answer("openai", text_case.metadata["answers"]), 1.0)
+        self.assertGreaterEqual(TextVQAAdapter().score_answer("open ai", text_case), 1 / 3)
+
+    def test_available_benchmark_datasets_includes_new_datasets(self):
+        datasets = available_benchmark_datasets()
+        self.assertIn("mathvista", datasets)
+        self.assertIn("textvqa", datasets)
+        self.assertIn("vstar", datasets)
 
     def test_subset_level_train_adaptive_uses_final_active_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1319,6 +1510,41 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertAlmostEqual(summary["per_dataset_accuracy"]["hrbench"], 0.0)
         self.assertAlmostEqual(summary["per_family_accuracy"]["chartqa"], 1.0)
         self.assertAlmostEqual(summary["per_family_accuracy"]["hrbench_layout"], 0.0)
+
+    def test_aggregate_records_uses_partial_scores_when_available(self):
+        rows = [
+            StructuredCaseRecord(
+                setting="frozen_inference",
+                split="val",
+                case_id="t1",
+                problem_id="textvqa",
+                expected="openai",
+                answer="open ai",
+                correct=False,
+                score=2 / 3,
+                turns=1,
+                tool_count=0,
+                metadata={"dataset_name": "textvqa", "capability_family": "textvqa_ocr"},
+            ),
+            StructuredCaseRecord(
+                setting="frozen_inference",
+                split="val",
+                case_id="t2",
+                problem_id="textvqa",
+                expected="42",
+                answer="42",
+                correct=True,
+                score=1.0,
+                turns=1,
+                tool_count=0,
+                metadata={"dataset_name": "textvqa", "capability_family": "textvqa_ocr"},
+            ),
+        ]
+
+        summary = _aggregate_records(rows)["frozen_inference"]
+
+        self.assertAlmostEqual(summary["accuracy"], 5 / 6)
+        self.assertAlmostEqual(summary["per_dataset_accuracy"]["textvqa"], 5 / 6)
 
     def test_run_settings_normalize_self_evolve_alias(self):
         self.assertEqual(_normalize_settings(["self_evolve"]), ["agent_train_adaptive"])

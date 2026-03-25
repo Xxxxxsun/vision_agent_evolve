@@ -65,6 +65,7 @@ class SubsetEvaluator:
         for index, case in enumerate(cases, start=1):
             result, chain_trace = self._run_case(capability_dir, work_dir, case, f"{phase_prefix}_{index}")
             adapter = self.adapters[case.dataset_name()]
+            score = adapter.score_answer(result.final_answer, case)
             correct = adapter.check_answer(result.final_answer, case)
             tool_names = _extract_tool_names(result)
             record = TrainSetEvalRecord(
@@ -75,6 +76,7 @@ class SubsetEvaluator:
                 expected=case.gold_answer,
                 answer=result.final_answer,
                 correct=correct,
+                score=score,
                 turns=result.total_turns,
                 tool_names=tool_names,
                 artifact_paths=result.get_image_artifacts(),
@@ -208,6 +210,7 @@ class SubsetEvaluator:
     def _summarize(self, records: list[TrainSetEvalRecord]) -> TrainSetEvalSummary:
         total = len(records)
         correct = sum(1 for row in records if row.correct)
+        total_score = sum(_record_score(row) for row in records)
         per_dataset_scores: dict[str, float] = {}
         per_family_scores: dict[str, float] = {}
         dataset_groups: dict[str, list[TrainSetEvalRecord]] = {}
@@ -216,14 +219,14 @@ class SubsetEvaluator:
             dataset_groups.setdefault(row.dataset_name, []).append(row)
             family_groups.setdefault(row.capability_family, []).append(row)
         for key, rows in dataset_groups.items():
-            per_dataset_scores[key] = sum(1 for row in rows if row.correct) / len(rows)
+            per_dataset_scores[key] = sum(_record_score(row) for row in rows) / len(rows)
         for key, rows in family_groups.items():
-            per_family_scores[key] = sum(1 for row in rows if row.correct) / len(rows)
+            per_family_scores[key] = sum(_record_score(row) for row in rows) / len(rows)
 
         return TrainSetEvalSummary(
             total_cases=total,
             correct_cases=correct,
-            primary_score=(correct / total) if total else 0.0,
+            primary_score=(total_score / total) if total else 0.0,
             per_dataset_scores=per_dataset_scores,
             per_family_scores=per_family_scores,
         )
@@ -695,11 +698,20 @@ def _compare_case_outcomes(
         candidate = candidate_map.get(case_id)
         if candidate is None:
             continue
-        if not baseline.correct and candidate.correct:
-            improvements.append({"case_id": case_id, "dataset_name": candidate.dataset_name, "delta": 1.0})
-        elif baseline.correct and not candidate.correct:
-            regressions.append({"case_id": case_id, "dataset_name": candidate.dataset_name, "delta": -1.0})
+        delta = _record_score(candidate) - _record_score(baseline)
+        if delta > 0:
+            improvements.append({"case_id": case_id, "dataset_name": candidate.dataset_name, "delta": delta})
+        elif delta < 0:
+            regressions.append({"case_id": case_id, "dataset_name": candidate.dataset_name, "delta": delta})
+    improvements.sort(key=lambda row: (-float(row["delta"]), str(row["case_id"])))
+    regressions.sort(key=lambda row: (float(row["delta"]), str(row["case_id"])))
     return improvements[:10], regressions[:10]
+
+
+def _record_score(record: TrainSetEvalRecord) -> float:
+    if record.score is not None:
+        return float(record.score)
+    return 1.0 if record.correct else 0.0
 
 
 def _fallback_representatives(digest: TrainingSetDigest) -> list[str]:

@@ -58,6 +58,7 @@ class StructuredCaseRecord:
     correct: bool
     turns: int
     tool_count: int
+    score: float | None = None
     tool_names: list[str] = field(default_factory=list)
     used_tool: bool = False
     artifact_paths: list[str] = field(default_factory=list)
@@ -369,6 +370,7 @@ class StructuredBenchmarkRunner:
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(cases, start=1):
             answer = self._direct_answer(case)
+            score = self._score_answer(answer, case)
             record = StructuredCaseRecord(
                 setting="direct_vlm",
                 split=self.config.evolve_split,
@@ -377,6 +379,7 @@ class StructuredBenchmarkRunner:
                 expected=case.gold_answer,
                 answer=answer,
                 correct=self._check_answer(answer, case),
+                score=score,
                 turns=1,
                 tool_count=0,
                 tool_names=[],
@@ -455,6 +458,7 @@ class StructuredBenchmarkRunner:
                 expected=case.gold_answer,
                 answer=final.answer,
                 correct=final.correct,
+                score=final.score,
                 turns=final.turns,
                 tool_count=len(final.tool_names),
                 tool_names=list(final.tool_names),
@@ -589,6 +593,7 @@ class StructuredBenchmarkRunner:
         readability = None
         if self.readability_judge is not None and artifacts:
             readability = self.readability_judge.judge(case, artifacts[-1])
+        score = self._score_answer(result.final_answer, case)
 
         return StructuredCaseRecord(
             setting=setting,
@@ -598,6 +603,7 @@ class StructuredBenchmarkRunner:
             expected=case.gold_answer,
             answer=result.final_answer,
             correct=correct,
+            score=score,
             turns=result.total_turns,
             tool_count=len(tool_names),
             tool_names=tool_names,
@@ -734,6 +740,10 @@ class StructuredBenchmarkRunner:
         adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name())
         return adapter.check_answer(answer, case)
 
+    def _score_answer(self, answer: str, case: TaskCase) -> float:
+        adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name())
+        return adapter.score_answer(answer, case)
+
     @staticmethod
     def _frozen_setting_name(capability_mode: str, force_skill: bool) -> str:
         if capability_mode == "scratch_code_skill":
@@ -843,6 +853,7 @@ def _aggregate_records(records: list[StructuredCaseRecord]) -> dict[str, Any]:
     summary: dict[str, Any] = {}
     for setting, rows in grouped.items():
         correct = sum(1 for row in rows if row.correct)
+        total_score = sum(_record_score(row) for row in rows)
         tool_used = sum(1 for row in rows if row.used_tool)
         artifact_rows = [row for row in rows if row.artifact_paths]
         judged = [row for row in rows if row.overall_usefulness is not None]
@@ -855,7 +866,7 @@ def _aggregate_records(records: list[StructuredCaseRecord]) -> dict[str, Any]:
             "split": rows[0].split if rows else "",
             "total": len(rows),
             "correct": correct,
-            "accuracy": (correct / len(rows)) if rows else 0.0,
+            "accuracy": (total_score / len(rows)) if rows else 0.0,
             "per_dataset_accuracy": per_dataset_accuracy,
             "per_family_accuracy": per_family_accuracy,
             "full_agent_accuracy": (
@@ -917,10 +928,16 @@ def _group_accuracy(rows: list[StructuredCaseRecord], key_name: str) -> dict[str
             value = row.problem_id
         grouped.setdefault(value, []).append(row)
     return {
-        key: (sum(1 for row in group if row.correct) / len(group))
+        key: (sum(_record_score(row) for row in group) / len(group))
         for key, group in grouped.items()
         if key
     }
+
+
+def _record_score(row: StructuredCaseRecord) -> float:
+    if row.score is not None:
+        return float(row.score)
+    return 1.0 if row.correct else 0.0
 
 
 def _spotcheck_case_ids(rows: list[StructuredCaseRecord], limit: int = 10) -> list[str]:

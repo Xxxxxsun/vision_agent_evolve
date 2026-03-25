@@ -8,7 +8,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from core.structured_data import check_chartqa_case_answer, load_json_objects, load_normalized_cases
+from core.structured_data import (
+    check_chartqa_case_answer,
+    check_mathvista_answer,
+    check_textvqa_case_answer,
+    check_multiple_choice_answer,
+    load_json_objects,
+    load_normalized_cases,
+    score_mathvista_answer,
+    score_multiple_choice_answer,
+    score_textvqa_answer,
+)
 from core.types import AgentResult, TaskCase
 
 
@@ -27,6 +37,9 @@ class BenchmarkAdapter(Protocol):
 
     def check_answer(self, answer: str, case: TaskCase) -> bool:
         """Return whether the answer is correct for the given case."""
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        """Return the benchmark score for one answer/case pair."""
 
     def score_records(self, records: list[dict]) -> float:
         """Compute the primary score for a full evaluation pass."""
@@ -85,25 +98,33 @@ class GenericJsonlAdapter:
         return cases
 
     def check_answer(self, answer: str, case: TaskCase) -> bool:
+        return self.score_answer(answer, case) >= 1.0
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
         actual = _normalize_text(answer)
         expected = _normalize_text(case.gold_answer)
         if not actual or not expected:
-            return False
+            return 0.0
         if actual == expected:
-            return True
+            return 1.0
 
         actual_number = _parse_number(actual)
         expected_number = _parse_number(expected)
         if actual_number is not None and expected_number is not None:
-            return abs(actual_number - expected_number) <= 1e-6
+            return 1.0 if abs(actual_number - expected_number) <= 1e-6 else 0.0
 
-        return bool(re.search(rf"(?<![a-z0-9]){re.escape(expected)}(?![a-z0-9])", actual))
+        return 1.0 if re.search(rf"(?<![a-z0-9]){re.escape(expected)}(?![a-z0-9])", actual) else 0.0
 
     def score_records(self, records: list[dict]) -> float:
         if not records:
             return 0.0
-        correct = sum(1 for row in records if row.get("correct"))
-        return correct / len(records)
+        total = 0.0
+        for row in records:
+            if row.get("score") is not None:
+                total += float(row["score"])
+            else:
+                total += 1.0 if row.get("correct") else 0.0
+        return total / len(records)
 
     def summarize_case(self, case: TaskCase, result: AgentResult, correct: bool) -> dict[str, str]:
         return {
@@ -145,6 +166,9 @@ class ChartQAAdapter(GenericJsonlAdapter):
     def check_answer(self, answer: str, case: TaskCase) -> bool:
         return check_chartqa_case_answer(answer, case)
 
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        return 1.0 if self.check_answer(answer, case) else 0.0
+
     def cluster_key(self, case: TaskCase, result: AgentResult, correct: bool) -> str:
         if correct:
             return "correct"
@@ -161,12 +185,83 @@ class VStarAdapter(GenericJsonlAdapter):
     def __init__(self) -> None:
         super().__init__(dataset_name="vstar")
 
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        if not choices:
+            return super().score_answer(answer, case)
+        return score_multiple_choice_answer(answer, case.gold_answer, choices)
+
+    def check_answer(self, answer: str, case: TaskCase) -> bool:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        if not choices:
+            return super().check_answer(answer, case)
+        return check_multiple_choice_answer(answer, case.gold_answer, choices)
+
 
 class HRBenchAdapter(GenericJsonlAdapter):
     """Registration point for HRBench."""
 
     def __init__(self) -> None:
         super().__init__(dataset_name="hrbench")
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        if not choices:
+            return super().score_answer(answer, case)
+        return score_multiple_choice_answer(answer, case.gold_answer, choices)
+
+    def check_answer(self, answer: str, case: TaskCase) -> bool:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        if not choices:
+            return super().check_answer(answer, case)
+        return check_multiple_choice_answer(answer, case.gold_answer, choices)
+
+
+class MathVistaAdapter(GenericJsonlAdapter):
+    """MathVista-specific answer checking."""
+
+    def __init__(self) -> None:
+        super().__init__(dataset_name="mathvista")
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        precision_value = _coerce_optional_int(case.metadata.get("precision"))
+        return score_mathvista_answer(
+            answer,
+            case.gold_answer,
+            prompt=case.prompt,
+            choices=choices,
+            answer_type=str(case.metadata.get("answer_type", "")),
+            precision=precision_value,
+            unit=str(case.metadata.get("unit", "")),
+        )
+
+    def check_answer(self, answer: str, case: TaskCase) -> bool:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        precision_value = _coerce_optional_int(case.metadata.get("precision"))
+        return check_mathvista_answer(
+            answer,
+            case.gold_answer,
+            prompt=case.prompt,
+            choices=choices,
+            answer_type=str(case.metadata.get("answer_type", "")),
+            precision=precision_value,
+            unit=str(case.metadata.get("unit", "")),
+        )
+
+
+class TextVQAAdapter(GenericJsonlAdapter):
+    """TextVQA-specific partial-credit scoring."""
+
+    def __init__(self) -> None:
+        super().__init__(dataset_name="textvqa")
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        answers = [str(value) for value in case.metadata.get("answers", [])]
+        return score_textvqa_answer(answer, answers)
+
+    def check_answer(self, answer: str, case: TaskCase) -> bool:
+        return check_textvqa_case_answer(answer, case)
 
 
 def get_benchmark_adapter(dataset_name: str) -> BenchmarkAdapter:
@@ -177,6 +272,8 @@ def get_benchmark_adapter(dataset_name: str) -> BenchmarkAdapter:
         "vstar": VStarAdapter(),
         "v*": VStarAdapter(),
         "hrbench": HRBenchAdapter(),
+        "mathvista": MathVistaAdapter(),
+        "textvqa": TextVQAAdapter(),
     }
     if normalized in registry:
         return registry[normalized]
@@ -185,7 +282,7 @@ def get_benchmark_adapter(dataset_name: str) -> BenchmarkAdapter:
 
 def available_benchmark_datasets() -> list[str]:
     """Return the known dataset names for CLI choices/help."""
-    return ["chartqa", "hrbench", "vstar"]
+    return ["chartqa", "hrbench", "mathvista", "textvqa", "vstar"]
 
 
 def _normalize_text(value: str) -> str:
@@ -201,5 +298,17 @@ def _parse_number(value: str) -> float | None:
         return None
     try:
         return float(match.group(0))
+    except ValueError:
+        return None
+
+
+def _coerce_optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(float(text))
     except ValueError:
         return None
