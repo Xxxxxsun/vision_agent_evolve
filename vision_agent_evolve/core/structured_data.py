@@ -135,6 +135,7 @@ def normalize_vstar_dataset(
     normalized_data_root: Path,
     train_size: int = 40,
     val_size: int = 151,
+    limit: int = 0,
 ) -> dict[str, Any]:
     """Normalize V* benchmark data into pseudo train/val JSONL files."""
     dataset_root = normalized_data_root / "vstar"
@@ -145,6 +146,8 @@ def normalize_vstar_dataset(
         raise FileNotFoundError(f"Could not find VStar data files under {raw_data_root}")
 
     rows = _load_rows_from_files(source_files)
+    if limit:
+        rows = rows[:limit]
     records = [
         _normalize_vstar_record(item, raw_data_root, assets_root, index)
         for index, item in enumerate(rows, start=1)
@@ -166,6 +169,7 @@ def normalize_hrbench_dataset(
     normalized_data_root: Path,
     train_size: int = 100,
     val_size: int = 700,
+    limit: int = 0,
 ) -> dict[str, Any]:
     """Normalize HRBench 4K data into pseudo train/val JSONL files."""
     dataset_root = normalized_data_root / "hrbench"
@@ -176,6 +180,8 @@ def normalize_hrbench_dataset(
         raise FileNotFoundError(f"Could not find HRBench data files under {raw_data_root}")
 
     rows = _load_rows_from_files(source_files)
+    if limit:
+        rows = rows[:limit]
     records = [
         _normalize_hrbench_record(item, raw_data_root, assets_root, index)
         for index, item in enumerate(rows, start=1)
@@ -197,6 +203,7 @@ def normalize_mathvista_dataset(
     normalized_data_root: Path,
     train_size: int = 100,
     val_size: int = 900,
+    limit: int = 0,
 ) -> dict[str, Any]:
     """Normalize MathVista testmini data into pseudo train/val JSONL files."""
     dataset_root = normalized_data_root / "mathvista"
@@ -207,6 +214,8 @@ def normalize_mathvista_dataset(
         raise FileNotFoundError(f"Could not find MathVista testmini files under {raw_data_root}")
 
     rows = _load_rows_from_files(source_files)
+    if limit:
+        rows = rows[:limit]
     records = [
         _normalize_mathvista_record(item, raw_data_root, assets_root, index)
         for index, item in enumerate(rows, start=1)
@@ -226,6 +235,7 @@ def normalize_mathvista_dataset(
 def normalize_textvqa_dataset(
     raw_data_root: Path,
     normalized_data_root: Path,
+    limit: int = 0,
 ) -> dict[str, Any]:
     """Normalize TextVQA train/validation data into shared JSONL files."""
     dataset_root = normalized_data_root / "textvqa"
@@ -249,6 +259,8 @@ def normalize_textvqa_dataset(
     }
     for split, files in split_to_files.items():
         rows = _load_rows_from_files(files)
+        if limit:
+            rows = rows[:limit]
         records = [
             _normalize_textvqa_record(item, raw_data_root, assets_root, split, index)
             for index, item in enumerate(rows, start=1)
@@ -482,7 +494,7 @@ def _resolve_chartqa_image_path(
         or ""
     ).strip()
     if not raw_image:
-        raise KeyError(f"ChartQA record is missing an image reference: {item}")
+        raise KeyError(f"ChartQA record is missing an image reference: {_summarize_record(item)}")
 
     candidate = Path(raw_image)
     possibilities: list[Path] = []
@@ -909,7 +921,7 @@ def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Pa
         or item.get("image_file")
     )
     if image_value is None:
-        raise KeyError(f"Record is missing image data: {item}")
+        raise KeyError(f"Record is missing image data: {_summarize_record(item)}")
 
     if isinstance(image_value, dict):
         raw_path = image_value.get("path")
@@ -932,7 +944,10 @@ def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Pa
         if _looks_like_base64_image(text_value):
             return _save_image_bytes(text_value, assets_dir, source_id)
 
-    raise FileNotFoundError(f"Could not materialize image for record {source_id}")
+    raise FileNotFoundError(
+        f"Could not materialize image for record {source_id}. "
+        f"image_field={_safe_repr(image_value)}"
+    )
 
 
 def _resolve_image_path(raw_value: str, raw_data_root: Path) -> Path | None:
@@ -981,6 +996,33 @@ def _looks_like_base64_image(value: str) -> bool:
 def _slugify(value: str) -> str:
     cleaned = re.sub(r"[^a-z0-9]+", "_", str(value).strip().lower())
     return cleaned.strip("_") or "generic"
+
+
+def _summarize_record(item: dict[str, Any]) -> str:
+    summary_keys = ["id", "question_id", "sample_id", "uid", "question", "prompt", "image_path", "imgname", "img_name"]
+    summary: dict[str, str] = {}
+    for key in summary_keys:
+        if key not in item:
+            continue
+        summary[key] = _safe_repr(item.get(key))
+    if not summary:
+        summary["keys"] = ",".join(sorted(item.keys())[:20])
+    return json.dumps(summary, ensure_ascii=False)
+
+
+def _safe_repr(value: Any, max_len: int = 120) -> str:
+    if value is None:
+        return "None"
+    if isinstance(value, (bytes, bytearray)):
+        return f"<bytes len={len(value)}>"
+    if isinstance(value, dict):
+        return f"<dict keys={sorted(value.keys())[:10]}>"
+    if isinstance(value, list):
+        return f"<list len={len(value)}>"
+    text = str(value).strip().replace("\n", " ")
+    if len(text) > max_len:
+        return f"{text[:max_len]}...<len={len(text)}>"
+    return text
 
 
 def _infer_question_type(question: str) -> str:

@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--normalized-data-root", required=True, help="Output root for normalized structured benchmark files.")
     parser.add_argument("--train-size", type=int, default=100)
     parser.add_argument("--val-size", type=int, default=900)
+    parser.add_argument("--limit", type=int, default=0, help="Optional limit for quick debugging.")
     args = parser.parse_args()
 
     manifest = normalize_mathvista_dataset(
@@ -27,6 +28,7 @@ def main() -> None:
         normalized_data_root=Path(args.normalized_data_root),
         train_size=args.train_size,
         val_size=args.val_size,
+        limit=args.limit,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 

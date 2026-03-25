@@ -18,11 +18,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Normalize TextVQA data into JSONL TaskCase files.")
     parser.add_argument("--raw-data-root", required=True, help="Local root containing raw TextVQA files.")
     parser.add_argument("--normalized-data-root", required=True, help="Output root for normalized structured benchmark files.")
+    parser.add_argument("--limit", type=int, default=0, help="Optional limit for quick debugging.")
     args = parser.parse_args()
 
     manifest = normalize_textvqa_dataset(
         raw_data_root=Path(args.raw_data_root),
         normalized_data_root=Path(args.normalized_data_root),
+        limit=args.limit,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
