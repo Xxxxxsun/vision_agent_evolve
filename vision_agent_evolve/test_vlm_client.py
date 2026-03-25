@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from urllib import error
 import unittest
 from unittest import mock
 
@@ -116,6 +117,32 @@ class VLMClientAlibabaTests(unittest.TestCase):
             request_obj = urlopen_mock.call_args.args[0]
             payload = json.loads(request_obj.data.decode("utf-8"))
             self.assertEqual(payload["prompt"], messages)
+
+    def test_alibaba_chat_retries_remote_disconnect_once(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "VLM_API_STYLE": "alibaba_chat",
+                "VLM_API_KEY": "token-123",
+                "VLM_MODEL": "gpt-5.4-0305-global",
+                "VLM_USER_ID": "user-a",
+                "VLM_ACCESS_KEY": "ak-1",
+                "VLM_QUOTA_ID": "quota-9",
+            },
+            clear=False,
+        ):
+            client = VLMClient(base_url="https://llm-chat-api.alibaba-inc.com/v1/api/chat")
+            with mock.patch("core.vlm_client.request.urlopen") as urlopen_mock:
+                urlopen_mock.side_effect = [
+                    error.URLError("Remote end closed connection without response"),
+                    FakeHTTPResponse({"data": {"message": "retry ok"}}),
+                ]
+                with mock.patch("core.vlm_client.time.sleep") as sleep_mock:
+                    reply, _ = client.chat([{"role": "user", "content": "hi"}])
+
+            self.assertEqual(reply, "retry ok")
+            self.assertEqual(urlopen_mock.call_count, 2)
+            sleep_mock.assert_called_once()
 
 
 if __name__ == "__main__":

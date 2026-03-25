@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--normalized-data-root", required=True)
     parser.add_argument("--subset-id", default="chartqa_refocus_v1")
     parser.add_argument("--held-out-split", default="val")
+    parser.add_argument("--held-out-limit", type=int, default=0)
     parser.add_argument("--snapshot-name", default="")
     parser.add_argument(
         "--capability-mode",
@@ -45,6 +46,7 @@ def main() -> None:
         subset_id=args.subset_id,
         datasets=args.datasets,
         held_out_split=args.held_out_split,
+        held_out_limit=args.held_out_limit,
         readability_judge_enabled=args.enable_readability_judge,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)

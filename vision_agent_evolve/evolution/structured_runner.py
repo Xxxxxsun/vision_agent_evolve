@@ -33,6 +33,7 @@ class StructuredExperimentConfig:
     held_out_split: str = "val"
     k: int = 200
     train_subset_size: int = 0
+    held_out_limit: int = 0
     max_attempts: int = 10
     max_planning_rounds: int = 5
     families_per_round_limit: int = 3
@@ -238,7 +239,7 @@ class StructuredBenchmarkRunner:
             split=self.config.evolve_split,
             limit=self.config.train_subset_size or self.config.k,
         )
-        held_out_cases = self._load_cases(split=self.config.held_out_split, limit=0)
+        held_out_cases = self._load_cases(split=self.config.held_out_split, limit=self.config.held_out_limit)
         self._write_train_subset_manifest(evolve_cases)
 
         self.records_path.write_text("", encoding="utf-8")
@@ -321,7 +322,7 @@ class StructuredBenchmarkRunner:
         capability_mode: str = "persistent_tools",
     ) -> list[StructuredCaseRecord]:
         """Evaluate a frozen subset or snapshot without further mutations."""
-        held_out_cases = cases or self._load_cases(split=self.config.held_out_split, limit=0)
+        held_out_cases = cases or self._load_cases(split=self.config.held_out_split, limit=self.config.held_out_limit)
         loop = self._make_frozen_loop(snapshot_name=snapshot_name, subset_id=subset_id, capability_mode=capability_mode)
 
         records: list[StructuredCaseRecord] = []
@@ -764,6 +765,7 @@ class StructuredBenchmarkRunner:
                 "held_out_split": self.config.held_out_split,
                 "k": self.config.k,
                 "train_subset_size": self.config.train_subset_size,
+                "held_out_limit": self.config.held_out_limit,
                 "max_attempts": self.config.max_attempts,
                 "max_planning_rounds": self.config.max_planning_rounds,
                 "families_per_round_limit": self.config.families_per_round_limit,

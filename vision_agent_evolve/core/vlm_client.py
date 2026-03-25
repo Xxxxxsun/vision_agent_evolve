@@ -3,7 +3,10 @@
 from __future__ import annotations
 import os
 import base64
+import http.client
 import json
+import socket
+import time
 from urllib import request, error
 from pathlib import Path
 from typing import Any
@@ -21,6 +24,8 @@ class ModelSettings:
     temperature: float = 0.2
     max_tokens: int = 1400
     timeout: int = 120
+    max_retries: int = 3
+    retry_backoff_seconds: float = 2.0
 
 
 @dataclass
@@ -77,26 +82,42 @@ class VLMClient:
     ) -> tuple[str, UsageStats]:
         """Send chat request and return response text with usage stats."""
         settings = settings or ModelSettings()
-        if self.api_style == "alibaba_chat":
-            return self._chat_alibaba(messages, settings)
+        attempts = max(1, settings.max_retries)
+        last_error: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                if self.api_style == "alibaba_chat":
+                    return self._chat_alibaba(messages, settings)
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            temperature=settings.temperature,
-            max_tokens=settings.max_tokens,
-            timeout=settings.timeout,
-        )
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=settings.temperature,
+                    max_tokens=settings.max_tokens,
+                    timeout=settings.timeout,
+                )
 
-        # Extract usage stats
-        usage = UsageStats()
-        if hasattr(response, 'usage') and response.usage:
-            usage.prompt_tokens = getattr(response.usage, 'prompt_tokens', 0)
-            usage.completion_tokens = getattr(response.usage, 'completion_tokens', 0)
-            usage.total_tokens = getattr(response.usage, 'total_tokens', 0)
+                usage = UsageStats()
+                if hasattr(response, "usage") and response.usage:
+                    usage.prompt_tokens = getattr(response.usage, "prompt_tokens", 0)
+                    usage.completion_tokens = getattr(response.usage, "completion_tokens", 0)
+                    usage.total_tokens = getattr(response.usage, "total_tokens", 0)
 
-        content = response.choices[0].message.content or ""
-        return content, usage
+                content = response.choices[0].message.content or ""
+                return content, usage
+            except Exception as exc:  # pragma: no cover - retry path depends on backend behavior
+                last_error = exc
+                if attempt >= attempts or not self._is_retryable_exception(exc):
+                    raise
+                delay = settings.retry_backoff_seconds * attempt
+                print(
+                    f"[VLMClient] transient error on attempt {attempt}/{attempts}: {exc}. "
+                    f"Retrying in {delay:.1f}s..."
+                )
+                time.sleep(delay)
+
+        assert last_error is not None
+        raise last_error
 
     def _chat_alibaba(
         self,
@@ -168,6 +189,28 @@ class VLMClient:
             raise ValueError(
                 "Alibaba chat API requires the following env vars: " + ", ".join(missing)
             )
+
+    @staticmethod
+    def _is_retryable_exception(exc: Exception) -> bool:
+        """Best-effort filter for transient transport failures."""
+        if isinstance(exc, (TimeoutError, socket.timeout, ConnectionResetError, http.client.RemoteDisconnected)):
+            return True
+        if isinstance(exc, error.URLError):
+            return True
+
+        text = str(exc).lower()
+        transient_markers = [
+            "remote end closed connection without response",
+            "timed out",
+            "timeout",
+            "connection reset",
+            "temporarily unavailable",
+            "server disconnected",
+            "connection aborted",
+            "connection refused",
+            "transport",
+        ]
+        return any(marker in text for marker in transient_markers)
 
     @staticmethod
     def _infer_api_style(base_url: str) -> str:

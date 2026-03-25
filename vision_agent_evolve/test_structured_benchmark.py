@@ -1186,6 +1186,49 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertEqual(loop.learned_dir, active_dir)
 
+    def test_run_frozen_inference_respects_held_out_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills").mkdir(parents=True, exist_ok=True)
+            (root / "learned").mkdir(parents=True, exist_ok=True)
+            chart_dir = root / "charts"
+            self._write_image(chart_dir / "1.png")
+            self._write_image(chart_dir / "2.png")
+            rows = [
+                {
+                    "id": "1",
+                    "problem_id": "chartqa",
+                    "prompt": "Q1",
+                    "answer": "A",
+                    "image_path": str(chart_dir / "1.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "1", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+                {
+                    "id": "2",
+                    "problem_id": "chartqa",
+                    "prompt": "Q2",
+                    "answer": "B",
+                    "image_path": str(chart_dir / "2.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "2", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+            ]
+            self._write_normalized_chartqa(root / "normalized", "val", rows)
+
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_v4",
+                held_out_limit=1,
+            )
+            online_loop = FakeLoop(root / "learned" / config.subset_id)
+            frozen_loop = FrozenLoop(root / "learned" / config.subset_id)
+            runner = TestStructuredRunner(config, root, online_loop, frozen_loop)
+
+            records = runner.run_frozen_inference(subset_id=config.subset_id)
+
+            self.assertEqual(len(records), 1)
+
     def test_subset_summary_tracks_multiple_dataset_scores(self):
         rows = [
             StructuredCaseRecord(

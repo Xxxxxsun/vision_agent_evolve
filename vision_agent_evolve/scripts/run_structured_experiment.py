@@ -26,6 +26,7 @@ def main() -> None:
     parser.add_argument("--held-out-split", default="val")
     parser.add_argument("--k", type=int, default=200)
     parser.add_argument("--train-subset-size", type=int, default=0)
+    parser.add_argument("--held-out-limit", type=int, default=0)
     parser.add_argument("--max-attempts", type=int, default=10)
     parser.add_argument("--max-planning-rounds", type=int, default=5)
     parser.add_argument("--families-per-round-limit", type=int, default=3)
@@ -53,6 +54,7 @@ def main() -> None:
         held_out_split=args.held_out_split,
         k=args.k,
         train_subset_size=args.train_subset_size,
+        held_out_limit=args.held_out_limit,
         max_attempts=args.max_attempts,
         max_planning_rounds=args.max_planning_rounds,
         families_per_round_limit=args.families_per_round_limit,
