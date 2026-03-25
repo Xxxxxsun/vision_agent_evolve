@@ -232,10 +232,17 @@ class SubsetEvaluator:
 class SubsetPlanner:
     """Planner that proposes one candidate capability bundle from a digest."""
 
-    def __init__(self, client: VLMClient, generator: Generator, skills_dir: Path):
+    def __init__(
+        self,
+        client: VLMClient,
+        generator: Generator,
+        skills_dir: Path,
+        tool_preference: str = "balanced",
+    ):
         self.client = client
         self.generator = generator
         self.skills_dir = skills_dir
+        self.tool_preference = tool_preference
 
     def plan_bundle(self, digest: TrainingSetDigest) -> dict[str, Any]:
         if not digest.failure_clusters:
@@ -249,10 +256,10 @@ class SubsetPlanner:
         response, _ = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=2400))
         proposal = _extract_json(response)
         if proposal:
-            return proposal
+            return self._apply_tool_preference(proposal)
 
         cluster = digest.failure_clusters[0]
-        return {
+        return self._apply_tool_preference({
             "target_family": cluster.capability_family,
             "target_cluster_ids": [cluster.cluster_id],
             "representative_case_ids": list(cluster.representative_case_ids[:1]),
@@ -261,7 +268,7 @@ class SubsetPlanner:
             "skill_update_note": f"Improve the solver SOP for {cluster.capability_family} on this failure cluster.",
             "rationale": "Fallback heuristic selected the largest remaining failure cluster.",
             "expected_gain": "Raise full training-subset accuracy on the selected failure cluster.",
-        }
+        })
 
     def materialize_bundle(
         self,
@@ -347,6 +354,22 @@ class SubsetPlanner:
                 f"summary={' || '.join(cluster.summary_lines[:2])}"
             )
 
+        preference_rules = {
+            "balanced": (
+                "- Choose tools only when they add clear reusable visual or computational leverage.\n"
+                "- Pure SOP-only skills are acceptable when a tool would be unnecessary."
+            ),
+            "prefer_tools": (
+                "- Bias toward generating a reusable tool whenever a tool could plausibly help.\n"
+                "- If uncertain between a pure skill and a tool-backed bundle, prefer `generate_both` or `generate_tool`."
+            ),
+            "require_tools": (
+                "- Do not choose a pure skill-only update unless it is impossible to define any useful tool.\n"
+                "- Strongly prefer `generate_tool`, and use `generate_both` when a SOP update should accompany the tool."
+            ),
+        }
+        tool_preference_text = preference_rules.get(self.tool_preference, preference_rules["balanced"])
+
         return f"""You are planning one subset-level capability bundle.
 
 Baseline:
@@ -366,6 +389,8 @@ Rules:
 - Choose exactly one target cluster.
 - Use only representative_case_ids that already appear above.
 - Prefer the smallest candidate that could raise overall train accuracy.
+- Tool generation preference: {self.tool_preference}
+{tool_preference_text}
 - Do not mention full datasets or all case prompts.
 - Return JSON only.
 
@@ -382,6 +407,17 @@ JSON schema:
 }}
 """
 
+    def _apply_tool_preference(self, proposal: dict[str, Any]) -> dict[str, Any]:
+        adjusted = dict(proposal)
+        next_action = str(adjusted.get("next_action", "")).strip() or "generate_skill"
+
+        if self.tool_preference == "prefer_tools" and next_action == "generate_skill":
+            adjusted["next_action"] = "generate_both"
+        elif self.tool_preference == "require_tools" and next_action in {"generate_skill", "generate_code_skill"}:
+            adjusted["next_action"] = "generate_tool"
+
+        return adjusted
+
 
 class SubsetEvolutionLoop:
     """Training-subset evolution loop with active/candidate gating."""
@@ -397,6 +433,7 @@ class SubsetEvolutionLoop:
         max_planning_rounds: int = 5,
         representatives_per_cluster: int = 3,
         families_per_round_limit: int = 3,
+        tool_preference: str = "balanced",
         capability_mode: str = "persistent_tools",
     ):
         self.subset_id = subset_id
@@ -407,6 +444,7 @@ class SubsetEvolutionLoop:
         self.max_planning_rounds = max_planning_rounds
         self.representatives_per_cluster = representatives_per_cluster
         self.families_per_round_limit = families_per_round_limit
+        self.tool_preference = tool_preference
         self.capability_mode = capability_mode
 
         self.subset_root = learned_root / subset_id
@@ -414,7 +452,12 @@ class SubsetEvolutionLoop:
         self.active_store = CapabilityStore(self.active_dir)
         self.generator = Generator(vlm_client)
         self.evaluator = SubsetEvaluator(adapters, skills_dir, vlm_client, capability_mode=capability_mode)
-        self.planner = SubsetPlanner(vlm_client, self.generator, skills_dir)
+        self.planner = SubsetPlanner(
+            vlm_client,
+            self.generator,
+            skills_dir,
+            tool_preference=tool_preference,
+        )
 
     def run(self, cases: list[TaskCase]) -> SubsetEvolutionRunReport:
         cases_by_id = {case.case_id: case for case in cases}

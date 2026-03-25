@@ -31,6 +31,12 @@ def main() -> None:
     parser.add_argument("--max-planning-rounds", type=int, default=5)
     parser.add_argument("--families-per-round-limit", type=int, default=3)
     parser.add_argument("--representatives-per-cluster", type=int, default=3)
+    parser.add_argument(
+        "--tool-preference",
+        choices=["balanced", "prefer_tools", "require_tools"],
+        default="balanced",
+        help="Bias the subset planner toward tool generation.",
+    )
     parser.add_argument("--enable-readability-judge", action="store_true")
     parser.add_argument("--save-first-n-evolves", type=int, default=10)
     parser.add_argument("--forced-skill-name", default=None)
@@ -59,6 +65,7 @@ def main() -> None:
         max_planning_rounds=args.max_planning_rounds,
         families_per_round_limit=args.families_per_round_limit,
         representatives_per_cluster=args.representatives_per_cluster,
+        tool_preference=args.tool_preference,
         readability_judge_enabled=args.enable_readability_judge,
         settings=settings,
         save_first_n_evolves=args.save_first_n_evolves,

@@ -910,6 +910,60 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("case_id=case_2", prompt_text)
         self.assertNotIn("This prompt should never appear in planner input", prompt_text)
 
+    def test_subset_planner_prompt_includes_tool_preference_guidance(self):
+        client = RecordingClient(
+            json.dumps(
+                {
+                    "target_family": "chartqa",
+                    "target_cluster_ids": ["cluster_1"],
+                    "representative_case_ids": ["case_2"],
+                    "next_action": "generate_tool",
+                    "tool_goal": "Crop around the relevant bar.",
+                    "skill_update_note": "",
+                    "rationale": "A reusable visual tool should help multiple failures.",
+                    "expected_gain": "Improve train accuracy.",
+                }
+            )
+        )
+        planner = SubsetPlanner(client, LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="prefer_tools")
+        digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+            baseline_summary=TrainSetEvalSummary(
+                total_cases=3,
+                correct_cases=1,
+                primary_score=1 / 3,
+                per_dataset_scores={"chartqa": 1 / 3},
+                per_family_scores={"chartqa": 1 / 3},
+            ),
+            failure_clusters=[
+                __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                    cluster_id="cluster_1",
+                    dataset_name="chartqa",
+                    capability_family="chartqa",
+                    cluster_key="chartqa::generic",
+                    total_cases=2,
+                    representative_case_ids=["case_2"],
+                    summary_lines=["case_id=case_2; prompt=Read the right bar; expected=5; answer=wrong"],
+                )
+            ],
+            representative_cases=[{"case_id": "case_2", "dataset_name": "chartqa", "capability_family": "chartqa", "prompt": "Read the right bar"}],
+            recent_rejected_plans=[],
+        )
+
+        planner.plan_bundle(digest)
+
+        prompt_text = client.messages[1]["content"]
+        self.assertIn("Tool generation preference: prefer_tools", prompt_text)
+        self.assertIn("prefer `generate_both` or `generate_tool`", prompt_text)
+
+    def test_subset_planner_can_bias_next_action_toward_tools(self):
+        planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="prefer_tools")
+        proposal = planner._apply_tool_preference({"next_action": "generate_skill"})
+        self.assertEqual(proposal["next_action"], "generate_both")
+
+        require_tool_planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="require_tools")
+        proposal = require_tool_planner._apply_tool_preference({"next_action": "generate_skill"})
+        self.assertEqual(proposal["next_action"], "generate_tool")
+
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

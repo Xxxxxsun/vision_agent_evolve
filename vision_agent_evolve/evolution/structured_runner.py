@@ -38,6 +38,7 @@ class StructuredExperimentConfig:
     max_planning_rounds: int = 5
     families_per_round_limit: int = 3
     representatives_per_cluster: int = 3
+    tool_preference: str = "balanced"
     readability_judge_enabled: bool = False
     settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "frozen_inference"])
     save_first_n_evolves: int = 10
@@ -494,6 +495,7 @@ class StructuredBenchmarkRunner:
             max_planning_rounds=self.config.max_planning_rounds,
             representatives_per_cluster=self.config.representatives_per_cluster,
             families_per_round_limit=self.config.families_per_round_limit,
+            tool_preference=self.config.tool_preference,
         )
 
     def _run_scratch_skill_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
@@ -770,6 +772,7 @@ class StructuredBenchmarkRunner:
                 "max_planning_rounds": self.config.max_planning_rounds,
                 "families_per_round_limit": self.config.families_per_round_limit,
                 "representatives_per_cluster": self.config.representatives_per_cluster,
+                "tool_preference": self.config.tool_preference,
                 "readability_judge_enabled": self.config.readability_judge_enabled,
                 "forced_skill_name": self.config.forced_skill_name,
             },
