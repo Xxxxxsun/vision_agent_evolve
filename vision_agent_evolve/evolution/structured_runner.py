@@ -620,10 +620,16 @@ class StructuredBenchmarkRunner:
         )
 
     def _direct_answer(self, case: TaskCase) -> str:
+        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        choice_block = ""
+        if choices:
+            choice_lines = "\n".join(f"{label}. {text}" for label, text in sorted(choices.items()))
+            choice_block = f"\nChoices:\n{choice_lines}"
         prompt = (
-            "Answer the chart question directly from the image.\n"
-            "Return only the final short answer with no explanation.\n\n"
-            f"Question: {case.prompt}"
+            "Answer the question directly from the image.\n"
+            "Return only the final short answer with no explanation.\n"
+            "If the task is multiple choice, return the option letter when possible.\n\n"
+            f"Question: {case.prompt}{choice_block}"
         )
         messages = [
             {
