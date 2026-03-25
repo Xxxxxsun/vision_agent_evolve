@@ -938,11 +938,11 @@ def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Pa
 
     text_value = str(image_value).strip()
     if text_value:
+        if _looks_like_base64_image(text_value):
+            return _save_image_bytes(text_value, assets_dir, source_id)
         resolved = _resolve_image_path(text_value, raw_data_root)
         if resolved is not None:
             return resolved
-        if _looks_like_base64_image(text_value):
-            return _save_image_bytes(text_value, assets_dir, source_id)
 
     raise FileNotFoundError(
         f"Could not materialize image for record {source_id}. "
@@ -951,7 +951,11 @@ def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Pa
 
 
 def _resolve_image_path(raw_value: str, raw_data_root: Path) -> Path | None:
-    candidate = Path(str(raw_value))
+    raw_text = str(raw_value).strip()
+    if not raw_text or _looks_like_base64_image(raw_text) or len(raw_text) > 512:
+        return None
+
+    candidate = Path(raw_text)
     possibilities: list[Path] = []
     if candidate.is_absolute():
         possibilities.append(candidate)
@@ -966,8 +970,11 @@ def _resolve_image_path(raw_value: str, raw_data_root: Path) -> Path | None:
             ]
         )
     for path in possibilities:
-        if path.exists():
-            return path.resolve()
+        try:
+            if path.exists():
+                return path.resolve()
+        except OSError:
+            continue
     if candidate.name:
         matches = sorted(path for path in raw_data_root.rglob(candidate.name) if path.is_file())
         if matches:
