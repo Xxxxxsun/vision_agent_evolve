@@ -1,0 +1,13 @@
+{
+  "name": "chart_bar_approximation_tool",
+  "description": "A tool for enhancing numerical approximation in bar charts.",
+  "applicability_conditions": "Use this tool on images containing bar charts that require numerical extraction and approximation for better handling of queries.",
+  "usage_example": "python -m tools chart_bar_approximation_tool <image_path>",
+  "created_at": "2026-03-25T18:31:24.993594",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -10,16 +10,16 @@ source .venv/bin/activate 2>/dev/null || true
 
 export PYTHONPATH=.
 export HF_HOME=/root/.cache/huggingface
-export HF_HUB_ENABLE_HF_TRANSFER=1
+export HF_HUB_ENABLE_HF_TRANSFER=0
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 
 # Replace these with your real values or export them before running.
-export VLM_BASE_URL="${VLM_BASE_URL:-https://YOUR_VLM_BASE_URL}"
-export VLM_API_KEY="${VLM_API_KEY:-YOUR_VLM_API_KEY}"
-export VLM_MODEL="${VLM_MODEL:-YOUR_VLM_MODEL}"
+export VLM_BASE_URL="${VLM_BASE_URL:-https://llm-chat-api.alibaba-inc.com/v1/api/chat}"
+export VLM_API_KEY="${VLM_API_KEY:-dummy}"
+export VLM_MODEL="${VLM_MODEL:-gpt-4o}"
 
 # Optional: only needed if the dataset mirror requires auth.
-export HF_TOKEN="${HF_TOKEN:-}"
+export HF_TOKEN="${HF_TOKEN:-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}"
 
 mkdir -p logs
 mkdir -p /root/vqa_datasets/datasets

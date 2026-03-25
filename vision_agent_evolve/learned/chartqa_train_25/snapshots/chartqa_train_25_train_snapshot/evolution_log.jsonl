@@ -1,0 +1,2 @@
+{"type": "candidate_stage", "run_id": "round_20260325_183110_949321", "target_family": "chartqa", "tool_count": 1, "skill_count": 1}
+{"type": "candidate_activate", "run_id": "round_20260325_183110_949321", "snapshot_name": "chartqa_train_25_round_1_accepted"}
