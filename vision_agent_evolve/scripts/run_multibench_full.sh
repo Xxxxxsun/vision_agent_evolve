@@ -36,6 +36,7 @@ echo "HF_ENDPOINT=$HF_ENDPOINT"
 # 1. Install dependencies
 # ========================================
 python -m pip install -U pip
+python -m pip install -U openai pydantic
 python -m pip install -U datasets huggingface_hub pyarrow pillow
 
 if [ -n "${HF_TOKEN}" ]; then
