@@ -1,0 +1,184 @@
+{
+  "config": {
+    "dataset": "chartqa",
+    "datasets": [
+      "chartqa"
+    ],
+    "raw_data_root": "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset",
+    "normalized_data_root": "datasets/structured_chartqa",
+    "subset_id": "chartqa_train_25",
+    "evolve_split": "train",
+    "held_out_split": "val",
+    "k": 200,
+    "train_subset_size": 25,
+    "held_out_limit": 0,
+    "max_attempts": 10,
+    "max_planning_rounds": 3,
+    "families_per_round_limit": 2,
+    "representatives_per_cluster": 2,
+    "tool_preference": "prefer_tools",
+    "readability_judge_enabled": false,
+    "forced_skill_name": null
+  },
+  "snapshot_name": "chartqa_train_25_train_snapshot",
+  "records_path": "/root/vision_agent_evolve/vision_agent_evolve/artifacts/structured_benchmarks/chartqa_train_25/per_case.jsonl",
+  "subset_evolution_rounds": [
+    {
+      "run_id": "round_20260325_183110_949321",
+      "accepted": true,
+      "reason": "Accepted candidate with score delta 0.0400",
+      "baseline_score": 0.6,
+      "candidate_score": 0.64,
+      "score_delta": 0.040000000000000036,
+      "smoke_passed": true,
+      "target_family": "chartqa",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "representative_case_ids": [
+        "train_augmented_1000",
+        "train_augmented_10004"
+      ],
+      "activated_snapshot": "chartqa_train_25_round_1_accepted",
+      "baseline_summary": {
+        "total_cases": 25,
+        "correct_cases": 15,
+        "primary_score": 0.6,
+        "per_dataset_scores": {
+          "chartqa": 0.6
+        },
+        "per_family_scores": {
+          "chartqa": 0.6
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 25,
+        "correct_cases": 16,
+        "primary_score": 0.64,
+        "per_dataset_scores": {
+          "chartqa": 0.64
+        },
+        "per_family_scores": {
+          "chartqa": 0.64
+        }
+      }
+    },
+    {
+      "run_id": "round_20260325_183354_622005",
+      "accepted": false,
+      "reason": "Rejected candidate because score delta was -0.0800",
+      "baseline_score": 0.64,
+      "candidate_score": 0.56,
+      "score_delta": -0.07999999999999996,
+      "smoke_passed": true,
+      "target_family": "chartqa",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "representative_case_ids": [
+        "train_augmented_1000",
+        "train_augmented_10004"
+      ],
+      "activated_snapshot": "",
+      "baseline_summary": {
+        "total_cases": 25,
+        "correct_cases": 16,
+        "primary_score": 0.64,
+        "per_dataset_scores": {
+          "chartqa": 0.64
+        },
+        "per_family_scores": {
+          "chartqa": 0.64
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 25,
+        "correct_cases": 14,
+        "primary_score": 0.56,
+        "per_dataset_scores": {
+          "chartqa": 0.56
+        },
+        "per_family_scores": {
+          "chartqa": 0.56
+        }
+      }
+    },
+    {
+      "run_id": "round_20260325_183840_709415",
+      "accepted": false,
+      "reason": "Rejected candidate because score delta was -0.0800",
+      "baseline_score": 0.64,
+      "candidate_score": 0.56,
+      "score_delta": -0.07999999999999996,
+      "smoke_passed": true,
+      "target_family": "chartqa",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "representative_case_ids": [
+        "train_augmented_10010",
+        "train_augmented_10016"
+      ],
+      "activated_snapshot": "",
+      "baseline_summary": {
+        "total_cases": 25,
+        "correct_cases": 16,
+        "primary_score": 0.64,
+        "per_dataset_scores": {
+          "chartqa": 0.64
+        },
+        "per_family_scores": {
+          "chartqa": 0.64
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 25,
+        "correct_cases": 14,
+        "primary_score": 0.56,
+        "per_dataset_scores": {
+          "chartqa": 0.56
+        },
+        "per_family_scores": {
+          "chartqa": 0.56
+        }
+      }
+    }
+  ],
+  "settings": {
+    "agent_train_adaptive": {
+      "split": "train",
+      "total": 25,
+      "correct": 16,
+      "accuracy": 0.64,
+      "per_dataset_accuracy": {
+        "chartqa": 0.64
+      },
+      "per_family_accuracy": {
+        "chartqa": 0.64
+      },
+      "full_agent_accuracy": 0.6,
+      "post_evolve_recovery_accuracy": 0.64,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.0,
+      "avg_tool_calls_per_case": 0.0,
+      "artifact_production_rate": 0.0,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    }
+  },
+  "full_agent_accuracy": 0.6,
+  "post_evolve_recovery_accuracy": 0.64,
+  "frozen_inference_accuracy": 0.0,
+  "forced_skill_frozen_accuracy": 0.0,
+  "scratch_skill_full_agent_accuracy": 0.0,
+  "scratch_skill_post_evolve_recovery_accuracy": 0.0,
+  "scratch_skill_frozen_accuracy": 0.0,
+  "scratch_skill_forced_accuracy": 0.0
+}
