@@ -1084,6 +1084,8 @@ def _save_image_bytes(raw_value: Any, assets_dir: Path, source_id: str) -> Path:
     else:
         data = bytes(raw_value)
     image = Image.open(io.BytesIO(data))
+    if image.mode not in {"RGB", "RGBA", "L"}:
+        image = image.convert("RGB")
     assets_dir.mkdir(parents=True, exist_ok=True)
     output_path = assets_dir / f"{_slugify(source_id)}.png"
     image.save(output_path)
