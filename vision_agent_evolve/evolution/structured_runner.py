@@ -460,9 +460,9 @@ class StructuredBenchmarkRunner:
                 correct=final.correct,
                 score=final.score,
                 turns=final.turns,
-                tool_count=len(final.tool_names),
-                tool_names=list(final.tool_names),
-                used_tool=bool(final.tool_names),
+                tool_count=len(_merge_tool_names(list(final.tool_names), list(final.chain_trace))),
+                tool_names=_merge_tool_names(list(final.tool_names), list(final.chain_trace)),
+                used_tool=bool(_merge_tool_names(list(final.tool_names), list(final.chain_trace))),
                 artifact_paths=list(final.artifact_paths),
                 chain_trace=list(final.chain_trace),
                 image_path=case.image_path,
@@ -588,7 +588,7 @@ class StructuredBenchmarkRunner:
         correct: bool,
         chain_trace: list[str],
     ) -> StructuredCaseRecord:
-        tool_names = _extract_tool_names(result)
+        tool_names = _merge_tool_names(_extract_tool_names(result), chain_trace)
         artifacts = result.get_image_artifacts()
         readability = None
         if self.readability_judge is not None and artifacts:
@@ -770,6 +770,12 @@ class StructuredBenchmarkRunner:
         with self.records_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
+    def rebuild_summary(self, snapshot_name: str | None = None) -> dict[str, Any]:
+        records = self._load_existing_records()
+        if snapshot_name is None:
+            snapshot_name = self._existing_snapshot_name()
+        return self._write_summary(records, snapshot_name=snapshot_name or "")
+
     def _write_summary(self, records: list[StructuredCaseRecord], snapshot_name: str) -> dict[str, Any]:
         settings_summary = _aggregate_records(records)
         summary = {
@@ -819,6 +825,26 @@ class StructuredBenchmarkRunner:
             encoding="utf-8",
         )
 
+    def _load_existing_records(self) -> list[StructuredCaseRecord]:
+        if not self.records_path.exists():
+            return []
+        rows: list[StructuredCaseRecord] = []
+        for line in self.records_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            rows.append(StructuredCaseRecord(**payload))
+        return rows
+
+    def _existing_snapshot_name(self) -> str:
+        if not self.summary_path.exists():
+            return ""
+        try:
+            payload = json.loads(self.summary_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return ""
+        return str(payload.get("snapshot_name", "") or "")
+
 
 def _extract_tool_names(result: AgentResult) -> list[str]:
     tool_names: list[str] = []
@@ -834,6 +860,15 @@ def _extract_tool_names(result: AgentResult) -> list[str]:
         if tool_name not in tool_names:
             tool_names.append(tool_name)
     return tool_names
+
+
+def _merge_tool_names(*groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    for group in groups:
+        for name in group:
+            if name and name not in merged:
+                merged.append(name)
+    return merged
 
 
 def _extract_scratch_script_summary(result: AgentResult) -> str | None:

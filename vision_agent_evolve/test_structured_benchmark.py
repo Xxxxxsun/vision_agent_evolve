@@ -1474,6 +1474,103 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertEqual(len(records), 1)
 
+    def test_record_from_agent_result_counts_prechain_tools_as_used(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_v5",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            case = TaskCase(
+                case_id="1",
+                problem_id="chartqa",
+                prompt="Q",
+                gold_answer="A",
+                image_path="img.png",
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            )
+            result = AgentResult(task="Q", final_answer="A", steps=[], total_turns=1, success=True, all_artifacts=[])
+
+            record = runner._record_from_agent_result(
+                setting="frozen_inference",
+                split="val",
+                case=case,
+                result=result,
+                correct=True,
+                chain_trace=["chart_bar_approximation_tool"],
+            )
+
+            self.assertTrue(record.used_tool)
+            self.assertEqual(record.tool_names, ["chart_bar_approximation_tool"])
+
+    def test_rebuild_summary_includes_existing_frozen_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_v6",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            runner.records_path.parent.mkdir(parents=True, exist_ok=True)
+            runner.records_path.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "setting": "agent_train_adaptive",
+                                "split": "train",
+                                "case_id": "t1",
+                                "problem_id": "chartqa",
+                                "expected": "A",
+                                "answer": "A",
+                                "correct": True,
+                                "score": 1.0,
+                                "turns": 1,
+                                "tool_count": 1,
+                                "tool_names": ["focus_chart"],
+                                "used_tool": True,
+                                "artifact_paths": [],
+                                "chain_trace": ["focus_chart"],
+                                "image_path": "",
+                                "metadata": {"dataset_name": "chartqa", "capability_family": "chartqa"},
+                            }
+                        ),
+                        json.dumps(
+                            {
+                                "setting": "frozen_inference",
+                                "split": "val",
+                                "case_id": "v1",
+                                "problem_id": "chartqa",
+                                "expected": "A",
+                                "answer": "A",
+                                "correct": True,
+                                "score": 1.0,
+                                "turns": 1,
+                                "tool_count": 1,
+                                "tool_names": ["focus_chart"],
+                                "used_tool": True,
+                                "artifact_paths": [],
+                                "chain_trace": ["focus_chart"],
+                                "image_path": "",
+                                "metadata": {"dataset_name": "chartqa", "capability_family": "chartqa"},
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            summary = runner.rebuild_summary(snapshot_name="chartqa_refocus_v6_train_snapshot")
+
+            self.assertAlmostEqual(summary["settings"]["frozen_inference"]["accuracy"], 1.0)
+            self.assertAlmostEqual(summary["frozen_inference_accuracy"], 1.0)
+
     def test_subset_summary_tracks_multiple_dataset_scores(self):
         rows = [
             StructuredCaseRecord(

@@ -56,6 +56,7 @@ def main() -> None:
         force_skill=args.force_skill,
         capability_mode=args.capability_mode,
     )
+    summary = runner.rebuild_summary(snapshot_name=args.snapshot_name or None)
     payload = {
         "dataset": args.dataset,
         "subset_id": args.subset_id,
@@ -65,6 +66,8 @@ def main() -> None:
         "force_skill": args.force_skill,
         "total": len(records),
         "correct": sum(1 for row in records if row.correct),
+        "summary_path": str(runner.summary_path),
+        "frozen_accuracy": summary.get("settings", {}).get(runner._frozen_setting_name(args.capability_mode, args.force_skill), {}).get("accuracy", 0.0),
         "records": [row.__dict__ for row in records],
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))

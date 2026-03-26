@@ -67,7 +67,7 @@ class SubsetEvaluator:
             adapter = self.adapters[case.dataset_name()]
             score = adapter.score_answer(result.final_answer, case)
             correct = adapter.check_answer(result.final_answer, case)
-            tool_names = _extract_tool_names(result)
+            tool_names = _merge_tool_names(_extract_tool_names(result), chain_trace)
             record = TrainSetEvalRecord(
                 case_id=case.case_id,
                 dataset_name=case.dataset_name(),
@@ -668,6 +668,15 @@ def _extract_tool_names(result: AgentResult) -> list[str]:
             if name not in tool_names:
                 tool_names.append(name)
     return tool_names
+
+
+def _merge_tool_names(*groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    for group in groups:
+        for name in group:
+            if name and name not in merged:
+                merged.append(name)
+    return merged
 
 
 def _extract_json(text: str) -> dict[str, Any]:
