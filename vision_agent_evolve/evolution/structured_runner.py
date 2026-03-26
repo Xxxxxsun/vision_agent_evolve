@@ -614,7 +614,7 @@ class StructuredBenchmarkRunner:
     def _direct_answer(self, case: TaskCase) -> str:
         choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
         choice_block = ""
-        if choices:
+        if choices and "choices:" not in case.prompt.lower():
             choice_lines = "\n".join(f"{label}. {text}" for label, text in sorted(choices.items()))
             choice_block = f"\nChoices:\n{choice_lines}"
         prompt = (

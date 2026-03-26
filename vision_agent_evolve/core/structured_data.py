@@ -890,6 +890,14 @@ def _string_field(item: dict[str, Any], keys: list[str], default: str) -> str:
 
 
 def _extract_choices(item: dict[str, Any]) -> dict[str, str]:
+    letter_columns = {
+        label: str(item.get(label, "")).strip()
+        for label in ("A", "B", "C", "D")
+        if str(item.get(label, "")).strip()
+    }
+    if letter_columns:
+        return dict(sorted(letter_columns.items()))
+
     raw = item.get("choices", item.get("options", item.get("candidates", item.get("answers"))))
     if raw is None or isinstance(raw, str):
         return {}
@@ -1078,6 +1086,11 @@ def _resolve_image_path(raw_value: str, raw_data_root: Path) -> Path | None:
 
 
 def _save_image_bytes(raw_value: Any, assets_dir: Path, source_id: str) -> Path:
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    output_path = assets_dir / f"{_slugify(source_id)}.png"
+    if output_path.exists():
+        return output_path.resolve()
+
     if isinstance(raw_value, str):
         payload = raw_value.split(",", 1)[-1]
         data = base64.b64decode(payload)
@@ -1086,8 +1099,6 @@ def _save_image_bytes(raw_value: Any, assets_dir: Path, source_id: str) -> Path:
     image = Image.open(io.BytesIO(data))
     if image.mode not in {"RGB", "RGBA", "L"}:
         image = image.convert("RGB")
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    output_path = assets_dir / f"{_slugify(source_id)}.png"
     image.save(output_path)
     return output_path.resolve()
 

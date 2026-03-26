@@ -630,6 +630,75 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertIn("answers", textvqa_cases[0].metadata)
             self.assertEqual(textvqa_cases[0].metadata["capability_family"], "textvqa_ocr")
 
+    def test_hrbench_normalizer_supports_letter_columns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized_root = root / "normalized"
+            self._write_image(root / "images" / "h1.png")
+
+            self._write_json_rows(
+                root / "hrbench" / "hrbench_4k.json",
+                [
+                    {
+                        "id": "h1",
+                        "question": "Pick the best answer.",
+                        "A": "left",
+                        "B": "right",
+                        "C": "up",
+                        "D": "down",
+                        "answer": "B",
+                        "category": "doc",
+                        "cycle_category": "chart",
+                        "image_path": str(root / "images" / "h1.png"),
+                    },
+                    {
+                        "id": "h2",
+                        "question": "Pick the best answer.",
+                        "A": "red",
+                        "B": "blue",
+                        "C": "green",
+                        "D": "yellow",
+                        "answer": "A",
+                        "category": "doc",
+                        "cycle_category": "chart",
+                        "image_path": str(root / "images" / "h1.png"),
+                    },
+                ],
+            )
+
+            normalize_hrbench_dataset(root / "hrbench", normalized_root, train_size=1, val_size=1)
+            train_cases = load_normalized_cases(normalized_root, "hrbench", "train")
+
+            self.assertEqual(train_cases[0].gold_answer, "B")
+            self.assertEqual(
+                train_cases[0].metadata["choices"],
+                {"A": "left", "B": "right", "C": "up", "D": "down"},
+            )
+
+    def test_hrbench_normalizer_reuses_cached_asset_pngs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized_root = root / "normalized"
+            row = {
+                "id": "h1",
+                "question": "Pick the best answer.",
+                "options": {"A": "red", "B": "blue", "C": "green", "D": "yellow"},
+                "answer": "B",
+                "category": "doc",
+                "cycle_category": "chart",
+                "image": self._image_base64(),
+            }
+            self._write_json_rows(root / "hrbench" / "hrbench_4k.json", [row, dict(row, id="h2", answer="A")])
+
+            normalize_hrbench_dataset(root / "hrbench", normalized_root, train_size=1, val_size=1)
+            asset_path = normalized_root / "_assets" / "hrbench" / "train_val" / "h1.png"
+            first_mtime = asset_path.stat().st_mtime
+
+            normalize_hrbench_dataset(root / "hrbench", normalized_root, train_size=1, val_size=1)
+            second_mtime = asset_path.stat().st_mtime
+
+            self.assertEqual(first_mtime, second_mtime)
+
     def test_new_benchmark_answer_checkers_cover_multiple_choice_mathvista_and_textvqa(self):
         hr_case = TaskCase(
             case_id="h1",
