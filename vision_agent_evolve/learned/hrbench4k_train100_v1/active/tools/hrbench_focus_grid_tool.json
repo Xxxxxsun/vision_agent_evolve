@@ -1,0 +1,13 @@
+{
+  "name": "hrbench_focus_grid_tool",
+  "description": "Create a labeled multi-view focus grid with center crop, quadrants, and a sharpened detail panel for HRBench-style local evidence questions.",
+  "applicability_conditions": "Use for HRBench single-image questions that depend on local evidence such as text, logos, colors, directions, small objects, or attributes in one region of the image.",
+  "usage_example": "python -m tools hrbench_focus_grid_tool <image_path>",
+  "created_at": "2026-03-27T00:00:00",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": false,
+    "regression_ok": false,
+    "leakage_detected": false
+  }
+}
