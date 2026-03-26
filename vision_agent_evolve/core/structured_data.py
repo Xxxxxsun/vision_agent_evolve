@@ -216,6 +216,7 @@ def normalize_mathvista_dataset(
     rows = _load_rows_from_files(source_files)
     if limit:
         rows = rows[:limit]
+    rows = _extract_semantic_records(rows)
     records = [
         _normalize_mathvista_record(item, raw_data_root, assets_root, index)
         for index, item in enumerate(rows, start=1)
@@ -609,6 +610,49 @@ def _expand_mapping_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             expanded.append(row)
     return expanded
+
+
+def _extract_semantic_records(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    extracted: list[dict[str, Any]] = []
+    for row in rows:
+        extracted.extend(_extract_semantic_records_from_value(row))
+    return extracted
+
+
+def _extract_semantic_records_from_value(value: Any, inherited_id: str | None = None) -> list[dict[str, Any]]:
+    if isinstance(value, list):
+        results: list[dict[str, Any]] = []
+        for item in value:
+            results.extend(_extract_semantic_records_from_value(item, inherited_id=inherited_id))
+        return results
+
+    if not isinstance(value, dict):
+        return []
+
+    if _looks_like_semantic_record(value):
+        item = dict(value)
+        if inherited_id:
+            item.setdefault("id", inherited_id)
+            item.setdefault("pid", inherited_id)
+            item.setdefault("question_id", inherited_id)
+        return [item]
+
+    results: list[dict[str, Any]] = []
+    for key, nested in value.items():
+        key_text = str(key)
+        nested_id = inherited_id
+        if key_text.isdigit():
+            nested_id = key_text
+        results.extend(_extract_semantic_records_from_value(nested, inherited_id=nested_id))
+    return results
+
+
+def _looks_like_semantic_record(row: dict[str, Any]) -> bool:
+    keys = {str(key) for key in row.keys()}
+    prompt_markers = {"question", "prompt", "query", "text"}
+    image_markers = {"image", "decoded_image", "image_path", "img", "imgname", "img_name", "image_id", "image_file"}
+    answer_markers = {"answer", "label", "gold_answer", "target"}
+    return bool(keys & prompt_markers) and bool(keys & answer_markers) and bool(keys & image_markers)
 
 
 def _looks_like_record_mapping(row: dict[str, Any]) -> bool:
