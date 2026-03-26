@@ -60,8 +60,11 @@ class SubsetEvaluator:
         work_dir: Path,
         cases: list[TaskCase],
         phase_prefix: str,
+        stage_label: str = "",
     ) -> tuple[TrainSetEvalSummary, list[TrainSetEvalRecord]]:
         records: list[TrainSetEvalRecord] = []
+        if stage_label:
+            print(f"[subset-eval] {stage_label}: starting {len(cases)} cases")
         for index, case in enumerate(cases, start=1):
             result, chain_trace = self._run_case(capability_dir, work_dir, case, f"{phase_prefix}_{index}")
             adapter = self.adapters[case.dataset_name()]
@@ -87,8 +90,18 @@ class SubsetEvaluator:
                 },
             )
             records.append(record)
+            label = stage_label or phase_prefix
+            print(
+                f"[subset-eval] {label} [{index:03d}/{len(cases):03d}] "
+                f"{'OK' if correct else 'FAIL'} case={case.case_id} score={score:.3f}"
+            )
 
         summary = self._summarize(records)
+        if stage_label:
+            print(
+                f"[subset-eval] {stage_label}: done "
+                f"score={summary.primary_score:.4f} correct={summary.correct_cases}/{summary.total_cases}"
+            )
         return summary, records
 
     def build_digest(
@@ -464,17 +477,26 @@ class SubsetEvolutionLoop:
 
     def run(self, cases: list[TaskCase]) -> SubsetEvolutionRunReport:
         cases_by_id = {case.case_id: case for case in cases}
+        print(
+            f"[subset-loop] subset={self.subset_id} cases={len(cases)} "
+            f"max_rounds={self.max_planning_rounds} tool_preference={self.tool_preference}"
+        )
         baseline_summary, baseline_records = self.evaluator.evaluate(
             self.active_dir,
             self.work_dir / "baseline",
             cases,
             "baseline",
+            stage_label="baseline active",
         )
         current_summary = baseline_summary
         current_records = baseline_records
         round_results: list[CandidateEvalResult] = []
 
         for round_idx in range(1, self.max_planning_rounds + 1):
+            print(
+                f"[subset-loop] round {round_idx}/{self.max_planning_rounds}: "
+                f"baseline_score={current_summary.primary_score:.4f}"
+            )
             digest = self.evaluator.build_digest(
                 current_summary,
                 current_records,
@@ -484,11 +506,18 @@ class SubsetEvolutionLoop:
                 families_per_round_limit=self.families_per_round_limit,
             )
             if not digest.failure_clusters:
+                print(f"[subset-loop] round {round_idx}: no remaining failure clusters, stopping")
                 break
 
             plan = self.planner.plan_bundle(digest)
             if str(plan.get("next_action", "")).strip() == "give_up":
+                print(f"[subset-loop] round {round_idx}: planner returned give_up")
                 break
+
+            print(
+                f"[subset-loop] round {round_idx}: target_family={plan.get('target_family', '')} "
+                f"action={plan.get('next_action', '')} reps={plan.get('representative_case_ids', [])}"
+            )
 
             bundle = self.planner.materialize_bundle(
                 plan,
@@ -498,11 +527,13 @@ class SubsetEvolutionLoop:
                 self.work_dir / f"round_{round_idx}",
             )
             if not bundle.tools and not bundle.skills:
+                print(f"[subset-loop] round {round_idx}: planner produced no tool/skill artifacts, stopping")
                 break
 
             candidate_dir = self.active_store.stage_bundle(bundle)
             smoke_passed, smoke_reason = self._smoke_validate(bundle, cases_by_id, candidate_dir, round_idx)
             if not smoke_passed:
+                print(f"[subset-loop] round {round_idx}: smoke failed: {smoke_reason}")
                 self.active_store.record_rejected_plan(
                     {
                         "run_id": bundle.run_id,
@@ -535,6 +566,7 @@ class SubsetEvolutionLoop:
                 self.work_dir / f"round_{round_idx}" / "candidate_eval",
                 cases,
                 f"candidate_round_{round_idx}",
+                stage_label=f"round {round_idx} candidate",
             )
             round_baseline_summary = current_summary
             baseline_score = current_summary.primary_score
@@ -544,6 +576,12 @@ class SubsetEvolutionLoop:
                 f"Accepted candidate with score delta {candidate_summary.primary_score - baseline_score:.4f}"
                 if accepted
                 else f"Rejected candidate because score delta was {candidate_summary.primary_score - baseline_score:.4f}"
+            )
+            print(
+                f"[subset-loop] round {round_idx}: "
+                f"candidate_score={candidate_summary.primary_score:.4f} "
+                f"delta={candidate_summary.primary_score - baseline_score:+.4f} "
+                f"{'ACCEPT' if accepted else 'REJECT'}"
             )
             if accepted:
                 snapshot_name = f"{self.subset_id}_round_{round_idx}_accepted"
@@ -588,6 +626,12 @@ class SubsetEvolutionLoop:
             self.work_dir / "final_active_eval",
             cases,
             "final_active",
+            stage_label="final active",
+        )
+        print(
+            f"[subset-loop] finished: snapshot={snapshot_name} "
+            f"final_score={final_summary.primary_score:.4f} "
+            f"correct={final_summary.correct_cases}/{final_summary.total_cases}"
         )
         return SubsetEvolutionRunReport(
             baseline_summary=baseline_summary,
@@ -609,6 +653,11 @@ class SubsetEvolutionLoop:
         if not smoke_cases:
             return False, "No representative case available for smoke validation."
 
+        print(
+            f"[subset-loop] smoke validate: run_id={bundle.run_id} "
+            f"cases={[case.case_id for case in smoke_cases]}"
+        )
+
         validator_loop = EvolutionLoop(
             work_dir=self.work_dir / f"round_{round_idx}" / "smoke",
             learned_dir=candidate_dir,
@@ -622,6 +671,7 @@ class SubsetEvolutionLoop:
         validator = validator_loop.validator
 
         for tool in bundle.tools:
+            print(f"[subset-loop] smoke validate: tool {tool.name}")
             validation = validator.validate_tool(
                 tool,
                 origin_case=smoke_cases[0],
@@ -634,6 +684,7 @@ class SubsetEvolutionLoop:
                 return False, validation.reason or f"Tool {tool.name} failed smoke validation."
 
         for skill in bundle.skills:
+            print(f"[subset-loop] smoke validate: skill {skill.name}")
             validation = validator.validate_skill(skill, skill.name)
             if not validation.passed:
                 return False, validation.reason or f"Skill {skill.name} failed static validation."
@@ -644,6 +695,7 @@ class SubsetEvolutionLoop:
 
         for index, case in enumerate(smoke_cases, start=1):
             try:
+                print(f"[subset-loop] smoke run [{index:02d}/{len(smoke_cases):02d}] case={case.case_id}")
                 self.evaluator._run_case(
                     candidate_dir,
                     self.work_dir / f"round_{round_idx}" / "smoke_runs",
