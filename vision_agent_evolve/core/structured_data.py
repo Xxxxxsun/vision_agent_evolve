@@ -1064,6 +1064,16 @@ def _resolve_image_path(raw_value: str, raw_data_root: Path) -> Path | None:
         matches = sorted(path for path in raw_data_root.rglob(candidate.name) if path.is_file())
         if matches:
             return matches[0].resolve()
+    if str(candidate):
+        relative_parts = [part for part in candidate.parts if part not in {"", ".", ".."}]
+        if relative_parts:
+            target_suffix = "/".join(relative_parts)
+            suffix_matches = sorted(
+                path for path in raw_data_root.rglob("*")
+                if path.is_file() and str(path.relative_to(raw_data_root)).endswith(target_suffix)
+            )
+            if suffix_matches:
+                return suffix_matches[0].resolve()
     return None
 
 
