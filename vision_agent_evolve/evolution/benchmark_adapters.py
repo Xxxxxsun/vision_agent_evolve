@@ -20,6 +20,7 @@ from core.structured_data import (
     score_textvqa_answer,
 )
 from core.types import AgentResult, TaskCase
+from core.vlm_client import ModelSettings, VLMClient
 
 
 class BenchmarkAdapter(Protocol):
@@ -220,13 +221,15 @@ class HRBenchAdapter(GenericJsonlAdapter):
 class MathVistaAdapter(GenericJsonlAdapter):
     """MathVista-specific answer checking."""
 
-    def __init__(self) -> None:
+    def __init__(self, client: VLMClient | None = None) -> None:
         super().__init__(dataset_name="mathvista")
+        self.client = client
+        self._judge_cache: dict[tuple[str, str, str], bool] = {}
 
     def score_answer(self, answer: str, case: TaskCase) -> float:
         choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
         precision_value = _coerce_optional_int(case.metadata.get("precision"))
-        return score_mathvista_answer(
+        deterministic = score_mathvista_answer(
             answer,
             case.gold_answer,
             prompt=case.prompt,
@@ -235,19 +238,46 @@ class MathVistaAdapter(GenericJsonlAdapter):
             precision=precision_value,
             unit=str(case.metadata.get("unit", "")),
         )
+        if deterministic >= 1.0 or choices:
+            return deterministic
+        if self._judge_freeform_answer(answer, case):
+            return 1.0
+        return deterministic
 
     def check_answer(self, answer: str, case: TaskCase) -> bool:
-        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
-        precision_value = _coerce_optional_int(case.metadata.get("precision"))
-        return check_mathvista_answer(
-            answer,
-            case.gold_answer,
-            prompt=case.prompt,
-            choices=choices,
-            answer_type=str(case.metadata.get("answer_type", "")),
-            precision=precision_value,
-            unit=str(case.metadata.get("unit", "")),
+        return self.score_answer(answer, case) >= 1.0
+
+    def _judge_freeform_answer(self, answer: str, case: TaskCase) -> bool:
+        actual = str(answer).strip()
+        expected = str(case.gold_answer).strip()
+        if not actual or not expected or self.client is None:
+            return False
+
+        cache_key = (case.case_id, expected, actual)
+        if cache_key in self._judge_cache:
+            return self._judge_cache[cache_key]
+
+        prompt = (
+            "You are a strict MathVista answer judge.\n\n"
+            f"Question: {case.prompt}\n"
+            f"Expected answer: {expected}\n"
+            f"Model answer: {actual}\n"
+            f"Answer type: {case.metadata.get('answer_type', '')}\n"
+            f"Unit: {case.metadata.get('unit', '')}\n"
+            f"Precision: {case.metadata.get('precision', '')}\n\n"
+            "Decide whether the model answer should receive full credit.\n"
+            "Treat semantically equivalent mathematical answers as correct, including concise rewrites, "
+            "equivalent units when explicitly compatible, and answers that contain extra words but clearly commit "
+            "to the same final value or expression.\n"
+            "Be strict: if the answer changes the mathematical meaning, leaves out required specificity, or adds "
+            "unsupported content, mark it incorrect.\n\n"
+            "Reply with only one word: CORRECT or INCORRECT"
         )
+        response, _ = self.client.chat([{"role": "user", "content": prompt}], ModelSettings(temperature=0.0, max_tokens=200))
+        upper = response.upper()
+        judged_correct = "INCORRECT" not in upper and "CORRECT" in upper
+        self._judge_cache[cache_key] = judged_correct
+        return judged_correct
 
 
 class TextVQAAdapter(GenericJsonlAdapter):
@@ -264,7 +294,7 @@ class TextVQAAdapter(GenericJsonlAdapter):
         return check_textvqa_case_answer(answer, case)
 
 
-def get_benchmark_adapter(dataset_name: str) -> BenchmarkAdapter:
+def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) -> BenchmarkAdapter:
     """Return the adapter registered for the given dataset."""
     normalized = dataset_name.strip().lower()
     registry: dict[str, BenchmarkAdapter] = {
@@ -272,7 +302,7 @@ def get_benchmark_adapter(dataset_name: str) -> BenchmarkAdapter:
         "vstar": VStarAdapter(),
         "v*": VStarAdapter(),
         "hrbench": HRBenchAdapter(),
-        "mathvista": MathVistaAdapter(),
+        "mathvista": MathVistaAdapter(client=client),
         "textvqa": TextVQAAdapter(),
     }
     if normalized in registry:

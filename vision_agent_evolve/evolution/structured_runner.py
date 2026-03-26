@@ -181,7 +181,7 @@ class StructuredBenchmarkRunner:
             else None
         )
         self.adapters = {
-            dataset_name: get_benchmark_adapter(dataset_name)
+            dataset_name: get_benchmark_adapter(dataset_name, client=self.vlm_client)
             for dataset_name in self._configured_datasets()
         }
 
@@ -735,11 +735,11 @@ class StructuredBenchmarkRunner:
         return configured or case.capability_family()
 
     def _check_answer(self, answer: str, case: TaskCase) -> bool:
-        adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name())
+        adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name(), client=self.vlm_client)
         return adapter.check_answer(answer, case)
 
     def _score_answer(self, answer: str, case: TaskCase) -> float:
-        adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name())
+        adapter = self.adapters.get(case.dataset_name()) or get_benchmark_adapter(case.dataset_name(), client=self.vlm_client)
         return adapter.score_answer(answer, case)
 
     @staticmethod

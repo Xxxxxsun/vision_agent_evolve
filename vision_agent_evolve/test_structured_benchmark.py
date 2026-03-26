@@ -51,6 +51,16 @@ class DummyClient:
         raise AssertionError("Unexpected VLM call in this test")
 
 
+class JudgeClient:
+    def __init__(self, response: str):
+        self.response = response
+        self.calls = 0
+
+    def chat(self, messages, settings=None):
+        self.calls += 1
+        return self.response, DummyUsage()
+
+
 class FakeAgent:
     def __init__(self, answer: str, tool_name: str | None = None, artifact: str | None = None):
         self.answer = answer
@@ -738,6 +748,52 @@ class StructuredBenchmarkTests(unittest.TestCase):
         )
         self.assertAlmostEqual(score_textvqa_answer("openai", text_case.metadata["answers"]), 1.0)
         self.assertGreaterEqual(TextVQAAdapter().score_answer("open ai", text_case), 1 / 3)
+
+    def test_mathvista_adapter_uses_llm_judge_for_freeform_fallback(self):
+        client = JudgeClient("CORRECT")
+        adapter = MathVistaAdapter(client=client)
+        case = TaskCase(
+            case_id="m3",
+            problem_id="mathvista",
+            prompt="What fraction of the shape is shaded?",
+            gold_answer="one half",
+            metadata={
+                "dataset_name": "mathvista",
+                "capability_family": "mathvista_geometry_free_form",
+                "answer_type": "text",
+                "question_type": "free_form",
+                "choices": {},
+                "precision": None,
+                "unit": "",
+            },
+        )
+
+        self.assertEqual(adapter.score_answer("The shaded region is 1/2.", case), 1.0)
+        self.assertTrue(adapter.check_answer("The shaded region is 1/2.", case))
+        self.assertEqual(client.calls, 1)
+
+    def test_mathvista_adapter_does_not_use_llm_judge_for_multiple_choice(self):
+        client = JudgeClient("CORRECT")
+        adapter = MathVistaAdapter(client=client)
+        case = TaskCase(
+            case_id="m4",
+            problem_id="mathvista",
+            prompt="Which option is correct?",
+            gold_answer="C",
+            metadata={
+                "dataset_name": "mathvista",
+                "capability_family": "mathvista_geometry_multi_choice",
+                "answer_type": "multi_choice",
+                "question_type": "multi_choice",
+                "choices": {"A": "1", "B": "2", "C": "3", "D": "4"},
+                "precision": 0,
+                "unit": "",
+            },
+        )
+
+        self.assertEqual(adapter.score_answer("3", case), 1.0)
+        self.assertTrue(adapter.check_answer("3", case))
+        self.assertEqual(client.calls, 0)
 
     def test_available_benchmark_datasets_includes_new_datasets(self):
         datasets = available_benchmark_datasets()

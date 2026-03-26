@@ -38,7 +38,8 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    adapter = get_benchmark_adapter(args.dataset)
+    client = VLMClient()
+    adapter = get_benchmark_adapter(args.dataset, client=client)
     all_cases = load_normalized_cases(Path(args.normalized_data_root), args.dataset, args.split)
     if args.case_id:
         cases = [case for case in all_cases if case.case_id == args.case_id]
@@ -47,7 +48,6 @@ def main() -> None:
     if not cases:
         raise SystemExit("No matching cases found.")
 
-    client = VLMClient()
     records: list[dict[str, Any]] = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
