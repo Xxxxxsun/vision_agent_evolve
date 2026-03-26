@@ -1,0 +1,22 @@
+[
+  {
+    "run_id": "round_20260326_123716_507708",
+    "reason": "Rejected candidate because score delta was -0.0100",
+    "target_family": "hrbench_cross",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "baseline_score": 0.56,
+    "candidate_score": 0.55
+  },
+  {
+    "run_id": "round_20260326_120933_716055",
+    "reason": "Rejected candidate because score delta was -0.0200",
+    "target_family": "hrbench_cross",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "baseline_score": 0.56,
+    "candidate_score": 0.54
+  }
+]
