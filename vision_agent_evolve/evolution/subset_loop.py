@@ -298,7 +298,10 @@ class SubsetPlanner:
         work_dir: Path,
     ) -> CapabilityBundleProposal:
         run_id = datetime.now().strftime("round_%Y%m%d_%H%M%S_%f")
-        representative_ids = [str(value) for value in proposal.get("representative_case_ids", []) if str(value).strip()]
+        representative_ids = _normalize_representative_case_ids(
+            proposal.get("representative_case_ids", []),
+            cases_by_id,
+        )
         if not representative_ids:
             representative_ids = _fallback_representatives(digest)
         case = cases_by_id[representative_ids[0]]
@@ -806,6 +809,60 @@ def _cluster_summary(digest: TrainingSetDigest, case_id: str) -> str:
         if case_id in cluster.representative_case_ids:
             return " ".join(cluster.summary_lines[:2])
     return "Selected representative case from the current training digest."
+
+
+def _normalize_representative_case_ids(raw_values: Any, cases_by_id: dict[str, TaskCase]) -> list[str]:
+    normalized: list[str] = []
+    values = raw_values if isinstance(raw_values, list) else [raw_values]
+
+    for value in values:
+        text = str(value).strip()
+        if not text:
+            continue
+        resolved = _resolve_case_id(text, cases_by_id)
+        if resolved and resolved not in normalized:
+            normalized.append(resolved)
+
+    return normalized
+
+
+def _resolve_case_id(raw_text: str, cases_by_id: dict[str, TaskCase]) -> str:
+    text = str(raw_text).strip()
+    if not text:
+        return ""
+    if text in cases_by_id:
+        return text
+
+    candidates: list[str] = []
+    if "case_id=" in text:
+        extracted = text.split("case_id=", 1)[1]
+        for delimiter in [";", ",", " ", "|"]:
+            extracted = extracted.split(delimiter, 1)[0]
+        extracted = extracted.strip()
+        if extracted:
+            candidates.append(extracted)
+
+    stripped = text
+    for prefix in ["case_id=", "case=", "id="]:
+        if stripped.startswith(prefix):
+            stripped = stripped[len(prefix):].strip()
+    candidates.append(stripped)
+
+    compact = stripped.strip("[](){}\"'")
+    if compact:
+        candidates.append(compact)
+
+    for candidate in candidates:
+        if candidate in cases_by_id:
+            return candidate
+
+    for candidate in candidates:
+        if candidate.isdigit():
+            for existing in cases_by_id:
+                if existing == candidate or existing.endswith(f"_{candidate}"):
+                    return existing
+
+    return ""
 
 
 class _ProgressPrinter:

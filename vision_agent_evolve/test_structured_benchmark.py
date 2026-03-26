@@ -1280,6 +1280,64 @@ class StructuredBenchmarkTests(unittest.TestCase):
         proposal = require_tool_planner._apply_tool_preference({"next_action": "generate_skill"})
         self.assertEqual(proposal["next_action"], "generate_tool")
 
+    def test_subset_planner_materialize_bundle_normalizes_representative_case_ids(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), root / "skills")
+            cases_by_id = {
+                "11": TaskCase(
+                    case_id="11",
+                    problem_id="mathvista",
+                    prompt="What is the value?",
+                    gold_answer="2",
+                    image_path="",
+                    metadata={"dataset_name": "mathvista", "capability_family": "mathvista_generic_free_form"},
+                )
+            }
+            digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+                baseline_summary=TrainSetEvalSummary(
+                    total_cases=1,
+                    correct_cases=0,
+                    primary_score=0.0,
+                    per_dataset_scores={"mathvista": 0.0},
+                    per_family_scores={"mathvista_generic_free_form": 0.0},
+                ),
+                failure_clusters=[
+                    __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                        cluster_id="cluster_1",
+                        dataset_name="mathvista",
+                        capability_family="mathvista_generic_free_form",
+                        cluster_key="mathvista_generic_free_form::free_form::text",
+                        total_cases=1,
+                        representative_case_ids=["11"],
+                        summary_lines=["case_id=11; prompt=What is the value?; expected=2; answer=wrong"],
+                    )
+                ],
+                representative_cases=[],
+                recent_rejected_plans=[],
+            )
+            proposal = {
+                "target_family": "mathvista_generic_free_form",
+                "target_cluster_ids": ["cluster_1"],
+                "representative_case_ids": ["case_id=11", "case_id=126"],
+                "next_action": "generate_skill",
+                "tool_goal": "",
+                "skill_update_note": "Keep answers concise.",
+                "rationale": "Normalize id from cluster summary.",
+                "expected_gain": "Improve train accuracy.",
+            }
+
+            bundle = planner.materialize_bundle(
+                proposal,
+                digest,
+                cases_by_id,
+                root / "active",
+                root / "work",
+            )
+
+        self.assertEqual(bundle.representative_case_ids, ["11"])
+        self.assertEqual(bundle.target_family, "mathvista_generic_free_form")
+
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
