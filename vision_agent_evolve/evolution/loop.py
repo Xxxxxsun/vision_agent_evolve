@@ -453,8 +453,12 @@ class EvolutionLoop:
                 all_skills.append(task_skill)
         all_skills.extend(self.store.list_failure_skills(case.capability_family(), limit=3))
 
-        # Render skills
+        # Render skills and task-specific prompting hints.
         skill_text = render_skills(all_skills)
+        task_prompt_hints = self._task_specific_agent_instructions(case, capability_snapshot)
+        extra_instructions = "\n\n".join(
+            part.strip() for part in [skill_text, task_prompt_hints] if part and part.strip()
+        )
 
         # Build tool_definitions listing actually available learned tools
         tools_dir = self.learned_dir / "tools"
@@ -492,10 +496,39 @@ class EvolutionLoop:
             client=self.vlm_client,
             config=config,
             tool_definitions=tool_definitions,
-            extra_instructions=skill_text,
+            extra_instructions=extra_instructions,
         )
 
         return agent
+
+    def _task_specific_agent_instructions(
+        self,
+        case: TaskCase,
+        snapshot: ToolAvailabilitySnapshot,
+    ) -> str:
+        dataset_name = case.dataset_name().strip().lower()
+        family = case.capability_family().strip().lower()
+
+        if dataset_name == "textvqa" or family.startswith("textvqa"):
+            no_tools_hint = (
+                "- No learned tool is required for most OCR-style questions here; if the answer is visible, "
+                "skip bash and complete immediately."
+                if not snapshot.available_tools else
+                "- Use bash only when a tool is clearly necessary; otherwise answer directly from the image."
+            )
+            return (
+                "Task-specific instructions for OCR / short-answer VQA:\n"
+                "- Read the relevant text or attribute directly from the image before deciding to act.\n"
+                f"{no_tools_hint}\n"
+                "- On your first valid completion, use exactly this format:\n"
+                "  Final Answer: <shortest exact answer string>\n"
+                "  ACTION: TASK_COMPLETE\n"
+                "- Do not output a full sentence when a short span is sufficient.\n"
+                "- Do not add explanation, prefixes, suffixes, or quotes unless the text itself contains them.\n"
+                "- For names, brands, words, letters, or numbers, return only the target span, not a sentence about it."
+            )
+
+        return ""
 
     def _tool_availability_snapshot(self) -> ToolAvailabilitySnapshot:
         """Build the fail-closed tool inventory for the current subset."""

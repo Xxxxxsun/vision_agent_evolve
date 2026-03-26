@@ -1388,6 +1388,31 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertTrue(solved_clean)
             self.assertEqual(clean_loop.store.list_failed_directions("chartqa", limit=5), [])
 
+    def test_textvqa_agent_prompt_adds_short_answer_hint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+                subset_id=None,
+            )
+            case = TaskCase(
+                case_id="t1",
+                problem_id="textvqa",
+                prompt="what brand of phone?",
+                gold_answer="nokia",
+                metadata={"dataset_name": "textvqa", "capability_family": "textvqa_ocr"},
+            )
+
+            agent = loop._create_agent(case, attempt=1, phase="solve")
+
+        self.assertIn("Task-specific instructions for OCR / short-answer VQA", agent.system_prompt)
+        self.assertIn("Final Answer: <shortest exact answer string>", agent.system_prompt)
+        self.assertIn("skip bash and complete immediately", agent.system_prompt)
+
     def test_benchmark_adapters_load_and_score_generic_datasets(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
