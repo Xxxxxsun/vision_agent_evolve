@@ -176,16 +176,9 @@ Scratch-code mode rules:
                         "type": "text",
                         "text": "\n--- ORIGINAL INPUT IMAGE ---"
                     })
-                    # Add image
-                    import base64
-                    with open(case.image_path, "rb") as f:
-                        img_data = base64.b64encode(f.read()).decode()
-                    suffix = Path(case.image_path).suffix.lower()
-                    mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
-                    mime = mime_map.get(suffix, 'image/png')
                     content_parts.append({
                         "type": "image_url",
-                        "image_url": {"url": f"data:{mime};base64,{img_data}"}
+                        "image_url": {"url": VLMClient.image_data_url(case.image_path)}
                     })
 
             # Add artifact images
@@ -203,15 +196,9 @@ Scratch-code mode rules:
                             "type": "text",
                             "text": f"\nArtifact {i+1}: {Path(artifact_path).name}"
                         })
-                        import base64
-                        with open(artifact_path, "rb") as f:
-                            img_data = base64.b64encode(f.read()).decode()
-                        suffix = Path(artifact_path).suffix.lower()
-                        mime_map = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
-                        mime = mime_map.get(suffix, 'image/png')
                         content_parts.append({
                             "type": "image_url",
-                            "image_url": {"url": f"data:{mime};base64,{img_data}"}
+                            "image_url": {"url": VLMClient.image_data_url(artifact_path)}
                         })
 
             messages = [
@@ -1332,14 +1319,4 @@ if __name__ == "__main__":
         return " then ".join(commands)
 
     def _image_data_url(self, path: Path) -> str:
-        import base64
-
-        mime_map = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".webp": "image/webp",
-        }
-        mime = mime_map.get(path.suffix.lower(), "image/png")
-        encoded = base64.b64encode(path.read_bytes()).decode()
-        return f"data:{mime};base64,{encoded}"
+        return VLMClient.image_data_url(path)

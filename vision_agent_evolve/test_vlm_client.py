@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
+import base64
 from urllib import error
 import unittest
 from unittest import mock
+
+from PIL import Image
 
 from core.vlm_client import VLMClient
 
@@ -24,6 +28,20 @@ class FakeHTTPResponse:
 
 
 class VLMClientAlibabaTests(unittest.TestCase):
+    def test_image_data_url_compresses_large_png(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = os.path.join(tmpdir, "large.png")
+            noise = os.urandom(1800 * 1800 * 3)
+            image = Image.frombytes("RGB", (1800, 1800), noise)
+            image.save(image_path, format="PNG")
+
+            data_url = VLMClient.image_data_url(image_path, max_bytes=400_000)
+
+        self.assertTrue(data_url.startswith("data:image/jpeg;base64,"))
+        encoded = data_url.split(",", 1)[1]
+        decoded = base64.b64decode(encoded)
+        self.assertLessEqual(len(decoded), 400_000)
+
     def test_openai_env_fallback_without_vlm_vars(self):
         with mock.patch.dict(
             os.environ,

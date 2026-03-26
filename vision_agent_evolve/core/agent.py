@@ -315,22 +315,14 @@ class ReActAgent:
         if not image_paths:
             return text_content
 
-        # Build multimodal content: text observation + each image
-        import base64
         parts: list[dict[str, Any]] = [{"type": "text", "text": text_content}]
         for img_path in image_paths[:3]:  # cap at 3 to avoid token explosion
             try:
                 resolved = self._resolve_existing_path(img_path)
                 if resolved is None:
                     continue
-                suffix = resolved.suffix.lower()
-                mime_map = {".png": "image/png", ".jpg": "image/jpeg",
-                            ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
-                mime = mime_map.get(suffix, "image/png")
-                with open(resolved, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode()
                 parts.append({"type": "text", "text": f"\n[Tool output image: {resolved.name}]"})
-                parts.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+                parts.append({"type": "image_url", "image_url": {"url": VLMClient.image_data_url(resolved)}})
             except Exception:
                 # If image can't be read, skip silently - text observation is still there
                 pass

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import inspect
 import json
@@ -153,14 +152,7 @@ class ReadabilityJudge:
 
     @staticmethod
     def _image_data_url(path: Path) -> str:
-        mime = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".webp": "image/webp",
-        }.get(path.suffix.lower(), "image/png")
-        image_data = base64.b64encode(path.read_bytes()).decode("utf-8")
-        return f"data:{mime};base64,{image_data}"
+        return VLMClient.image_data_url(path)
 
 
 class StructuredBenchmarkRunner:

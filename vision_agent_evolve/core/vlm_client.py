@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from dataclasses import dataclass
 
+from PIL import Image
+
 try:
     from openai import OpenAI
 except ImportError:
@@ -233,15 +235,24 @@ class VLMClient:
     @staticmethod
     def image_message_parts(image_path: str, text: str) -> list[dict[str, Any]]:
         """Create message content with image attachment."""
+        data_url = VLMClient.image_data_url(image_path)
+
+        return [
+            {"type": "text", "text": text},
+            {
+                "type": "image_url",
+                "image_url": {"url": data_url},
+            },
+        ]
+
+    @staticmethod
+    def image_data_url(image_path: str | Path, max_bytes: int = 3_500_000) -> str:
+        """Create a data URL, downscaling/compressing oversized images when needed."""
         image_path_obj = Path(image_path)
         if not image_path_obj.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        # Read and encode image
-        with open(image_path_obj, "rb") as f:
-            image_data = base64.b64encode(f.read()).decode("utf-8")
-
-        # Detect mime type
+        raw_bytes = image_path_obj.read_bytes()
         suffix = image_path_obj.suffix.lower()
         mime_map = {
             ".png": "image/png",
@@ -251,11 +262,52 @@ class VLMClient:
             ".webp": "image/webp",
         }
         mime_type = mime_map.get(suffix, "image/png")
+        if len(raw_bytes) <= max_bytes and mime_type in {"image/png", "image/jpeg", "image/gif", "image/webp"}:
+            image_data = base64.b64encode(raw_bytes).decode("utf-8")
+            return f"data:{mime_type};base64,{image_data}"
 
-        return [
-            {"type": "text", "text": text},
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:{mime_type};base64,{image_data}"},
-            },
-        ]
+        optimized_bytes, optimized_mime = VLMClient._optimize_image_bytes(image_path_obj, max_bytes=max_bytes)
+        image_data = base64.b64encode(optimized_bytes).decode("utf-8")
+        return f"data:{optimized_mime};base64,{image_data}"
+
+    @staticmethod
+    def _optimize_image_bytes(image_path: Path, max_bytes: int = 3_500_000) -> tuple[bytes, str]:
+        with Image.open(image_path) as image:
+            working = image.convert("RGB") if image.mode not in {"RGB", "L"} else image.copy()
+
+        max_dim = max(working.size)
+        quality = 90
+        while True:
+            buffer = VLMClient._encode_jpeg(working, quality=quality)
+            if len(buffer) <= max_bytes:
+                return buffer, "image/jpeg"
+
+            if max_dim <= 768 and quality <= 45:
+                return buffer, "image/jpeg"
+
+            if quality > 45:
+                quality -= 10
+                continue
+
+            max_dim = max(768, int(max_dim * 0.8))
+            working = VLMClient._resize_longest_edge(working, max_dim)
+            quality = 85
+
+    @staticmethod
+    def _encode_jpeg(image: Image.Image, quality: int) -> bytes:
+        import io
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=quality, optimize=True)
+        return buffer.getvalue()
+
+    @staticmethod
+    def _resize_longest_edge(image: Image.Image, max_dim: int) -> Image.Image:
+        width, height = image.size
+        longest = max(width, height)
+        if longest <= max_dim:
+            return image.copy()
+        scale = max_dim / float(longest)
+        resized = image.copy()
+        resized.thumbnail((int(width * scale), int(height * scale)), Image.Resampling.LANCZOS)
+        return resized
