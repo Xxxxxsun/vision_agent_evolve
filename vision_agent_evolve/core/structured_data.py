@@ -580,7 +580,8 @@ def _load_rows_from_files(paths: list[Path]) -> list[dict[str, Any]]:
         if path.suffix.lower() == ".parquet":
             rows.extend(_load_parquet_rows(path))
         else:
-            rows.extend(load_json_objects(path))
+            loaded = load_json_objects(path)
+            rows.extend(_expand_mapping_rows(loaded))
     return [row for row in rows if isinstance(row, dict)]
 
 
@@ -591,6 +592,46 @@ def _load_parquet_rows(path: Path) -> list[dict[str, Any]]:
         raise RuntimeError("pyarrow is required to read parquet benchmark files.") from exc
     table = pq.read_table(path)
     return [dict(row) for row in table.to_pylist()]
+
+
+def _expand_mapping_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    expanded: list[dict[str, Any]] = []
+    for row in rows:
+        if _looks_like_record_mapping(row):
+            for key, value in row.items():
+                if not isinstance(value, dict):
+                    continue
+                item = dict(value)
+                item.setdefault("id", str(key))
+                item.setdefault("pid", str(key))
+                item.setdefault("question_id", str(key))
+                expanded.append(item)
+        else:
+            expanded.append(row)
+    return expanded
+
+
+def _looks_like_record_mapping(row: dict[str, Any]) -> bool:
+    if not row:
+        return False
+    values = list(row.values())
+    if not values or not all(isinstance(value, dict) for value in values):
+        return False
+    sample_keys = set()
+    for value in values[:5]:
+        sample_keys.update(str(key) for key in value.keys())
+    semantic_markers = {
+        "question",
+        "prompt",
+        "answer",
+        "image",
+        "image_path",
+        "decoded_image",
+        "choices",
+        "options",
+        "query",
+    }
+    return bool(sample_keys & semantic_markers)
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
