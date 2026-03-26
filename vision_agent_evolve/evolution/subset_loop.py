@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 import json
 from pathlib import Path
+import sys
+import time
 from typing import Any
 
 from core.types import AgentResult, TaskCase
@@ -63,8 +65,9 @@ class SubsetEvaluator:
         stage_label: str = "",
     ) -> tuple[TrainSetEvalSummary, list[TrainSetEvalRecord]]:
         records: list[TrainSetEvalRecord] = []
-        if stage_label:
-            print(f"[subset-eval] {stage_label}: starting {len(cases)} cases")
+        label = stage_label or phase_prefix
+        progress = _ProgressPrinter(label=label, total=len(cases))
+        progress.start()
         for index, case in enumerate(cases, start=1):
             result, chain_trace = self._run_case(capability_dir, work_dir, case, f"{phase_prefix}_{index}")
             adapter = self.adapters[case.dataset_name()]
@@ -90,18 +93,18 @@ class SubsetEvaluator:
                 },
             )
             records.append(record)
-            label = stage_label or phase_prefix
-            print(
-                f"[subset-eval] {label} [{index:03d}/{len(cases):03d}] "
-                f"{'OK' if correct else 'FAIL'} case={case.case_id} score={score:.3f}"
+            correct_so_far = sum(1 for row in records if row.correct)
+            average_score = sum(_record_score(row) for row in records) / len(records)
+            progress.update(
+                current=index,
+                correct=correct_so_far,
+                average_score=average_score,
+                case_id=case.case_id,
+                last_status="OK" if correct else "FAIL",
             )
 
         summary = self._summarize(records)
-        if stage_label:
-            print(
-                f"[subset-eval] {stage_label}: done "
-                f"score={summary.primary_score:.4f} correct={summary.correct_cases}/{summary.total_cases}"
-            )
+        progress.finish(correct=summary.correct_cases, average_score=summary.primary_score)
         return summary, records
 
     def build_digest(
@@ -657,6 +660,8 @@ class SubsetEvolutionLoop:
             f"[subset-loop] smoke validate: run_id={bundle.run_id} "
             f"cases={[case.case_id for case in smoke_cases]}"
         )
+        smoke_progress = _ProgressPrinter(label=f"round {round_idx} smoke", total=len(smoke_cases))
+        smoke_progress.start()
 
         validator_loop = EvolutionLoop(
             work_dir=self.work_dir / f"round_{round_idx}" / "smoke",
@@ -695,16 +700,31 @@ class SubsetEvolutionLoop:
 
         for index, case in enumerate(smoke_cases, start=1):
             try:
-                print(f"[subset-loop] smoke run [{index:02d}/{len(smoke_cases):02d}] case={case.case_id}")
                 self.evaluator._run_case(
                     candidate_dir,
                     self.work_dir / f"round_{round_idx}" / "smoke_runs",
                     case,
                     f"smoke_case_{index}",
                 )
+                smoke_progress.update(
+                    current=index,
+                    correct=index,
+                    average_score=1.0,
+                    case_id=case.case_id,
+                    last_status="OK",
+                )
             except Exception as exc:  # pragma: no cover - defensive
+                smoke_progress.update(
+                    current=index,
+                    correct=index - 1,
+                    average_score=max(0.0, (index - 1) / max(index, 1)),
+                    case_id=case.case_id,
+                    last_status="FAIL",
+                )
+                smoke_progress.finish(correct=index - 1, average_score=(index - 1) / max(len(smoke_cases), 1))
                 return False, f"Smoke run crashed for case {case.case_id}: {exc}"
 
+        smoke_progress.finish(correct=len(smoke_cases), average_score=1.0)
         return True, "smoke passed"
 
 
@@ -786,3 +806,54 @@ def _cluster_summary(digest: TrainingSetDigest, case_id: str) -> str:
         if case_id in cluster.representative_case_ids:
             return " ".join(cluster.summary_lines[:2])
     return "Selected representative case from the current training digest."
+
+
+class _ProgressPrinter:
+    def __init__(self, label: str, total: int):
+        self.label = label
+        self.total = total
+        self.start_time = 0.0
+        self.last_width = 0
+
+    def start(self) -> None:
+        self.start_time = time.monotonic()
+        self._write(
+            f"[subset-progress] {self.label} 000/{self.total:03d} "
+            f"elapsed=0.0s acc=0.000 avg_score=0.000"
+        )
+
+    def update(
+        self,
+        current: int,
+        correct: int,
+        average_score: float,
+        case_id: str,
+        last_status: str,
+    ) -> None:
+        elapsed = time.monotonic() - self.start_time
+        accuracy = (correct / current) if current else 0.0
+        message = (
+            f"[subset-progress] {self.label} {current:03d}/{self.total:03d} "
+            f"elapsed={elapsed:.1f}s acc={accuracy:.3f} avg_score={average_score:.3f} "
+            f"last={last_status} case={case_id}"
+        )
+        self._write(message)
+
+    def finish(self, correct: int, average_score: float) -> None:
+        elapsed = time.monotonic() - self.start_time
+        accuracy = (correct / self.total) if self.total else 0.0
+        message = (
+            f"[subset-progress] {self.label} {self.total:03d}/{self.total:03d} "
+            f"elapsed={elapsed:.1f}s acc={accuracy:.3f} avg_score={average_score:.3f} done"
+        )
+        self._write(message, final=True)
+
+    def _write(self, message: str, final: bool = False) -> None:
+        padded = message
+        if len(message) < self.last_width:
+            padded = message + (" " * (self.last_width - len(message)))
+        self.last_width = max(self.last_width, len(message))
+        sys.stdout.write("\r" + padded)
+        if final:
+            sys.stdout.write("\n")
+        sys.stdout.flush()
