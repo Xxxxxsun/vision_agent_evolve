@@ -47,3 +47,6 @@ datasets/mira/images/
 !learned/tools/.gitkeep
 !learned/skills/.gitkeep
 !datasets/mira/images/.gitkeep
+datasets/GTA/
+opencompass/
+gta_dataset.zip

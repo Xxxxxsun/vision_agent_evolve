@@ -1,0 +1,30 @@
+{
+  "dataset_name": "gta",
+  "total_cases": 172,
+  "train_cases": 51,
+  "val_cases": 121,
+  "train_ratio": 0.3,
+  "seed": 42,
+  "unique_tools": [
+    "AddText",
+    "Calculator",
+    "CountGivenObject",
+    "DrawBox",
+    "GoogleSearch",
+    "ImageDescription",
+    "ImageStylization",
+    "MathOCR",
+    "OCR",
+    "Plot",
+    "RegionAttributeDescription",
+    "Solver",
+    "TextToBbox"
+  ],
+  "tool_categories": [
+    "perception",
+    "perception+creativity",
+    "perception+logic",
+    "perception+operation",
+    "perception+operation+logic"
+  ]
+}
