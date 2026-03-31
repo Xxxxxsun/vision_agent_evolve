@@ -20,6 +20,7 @@ class CapabilityStore:
         self.learned_dir = learned_dir
         self.tools_dir = learned_dir / "tools"
         self.skills_dir = learned_dir / "skills"
+        self.memory_dir = learned_dir / "training_memory"
         self.snapshots_dir = learned_dir.parent / "snapshots"
         self.candidates_dir = learned_dir.parent / "candidate"
         self.rejected_plans_file = learned_dir.parent / "rejected_plans.json"
@@ -28,6 +29,7 @@ class CapabilityStore:
         # Create directories
         self.tools_dir.mkdir(parents=True, exist_ok=True)
         self.skills_dir.mkdir(parents=True, exist_ok=True)
+        self.memory_dir.mkdir(parents=True, exist_ok=True)
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
         self.candidates_dir.mkdir(parents=True, exist_ok=True)
 
@@ -54,6 +56,7 @@ class CapabilityStore:
             "description": proposal.description,
             "applicability_conditions": proposal.applicability_conditions,
             "usage_example": proposal.usage_example,
+            "primitive_category": proposal.primitive_category,
             "created_at": datetime.now().isoformat(),
             "validation": {
                 "static_ok": validation.static_ok,
@@ -382,6 +385,38 @@ kind: failure_lesson
                     pass
 
         return [c for c in solved if c]
+
+    def write_training_memory(self, payload: dict) -> Path:
+        """Persist planner-facing training memory for the current active/candidate root."""
+        path = self.memory_dir / "training_digest.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
+    def load_training_memory(self) -> dict:
+        """Load persisted training memory if present."""
+        path = self.memory_dir / "training_digest.json"
+        if not path.exists():
+            return {}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def list_tool_records(self) -> list[dict]:
+        """Return manifest-backed active tool records for planner memory."""
+        records: list[dict] = []
+        for manifest_file in sorted(self.tools_dir.glob("*.json")):
+            try:
+                payload = json.loads(manifest_file.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            payload.setdefault("name", manifest_file.stem)
+            payload.setdefault("primitive_category", "")
+            records.append(payload)
+        return records
 
     def log_step(self, step_data: dict):
         """Log evolution step."""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from io import BytesIO
@@ -25,7 +26,7 @@ from evolution.benchmark_adapters import ChartQAAdapter, HRBenchAdapter, MathVis
 from evolution.loop import EvolutionLoop
 from evolution.roles import AnalyzerDecider
 from evolution.store import CapabilityStore
-from evolution.subset_loop import SubsetEvolutionLoop, SubsetEvolutionRunReport, SubsetPlanner
+from evolution.subset_loop import SubsetEvaluator, SubsetEvolutionLoop, SubsetEvolutionRunReport, SubsetPlanner
 from evolution.structured_runner import (
     StructuredBenchmarkRunner,
     StructuredCaseRecord,
@@ -35,15 +36,23 @@ from evolution.structured_runner import (
 from evolution.types import (
     CapabilityBundleProposal,
     CandidateEvalResult,
+    CoverageContract,
     FailedDirection,
     FailureAnalysis,
+    FamilyMemory,
+    MasteryProfile,
+    MasteryStrategyCandidate,
+    RevisionBrief,
     SkillProposal,
+    ToolProposal,
     ToolChainContext,
     TrainSetEvalRecord,
     TrainSetEvalSummary,
+    TrainingSetDigest,
     ValidationResult,
 )
 from scripts.run_structured_experiment import _normalize_settings
+from tools.builtin_tools import execute_builtin_tool
 
 
 class DummyClient:
@@ -140,8 +149,8 @@ class FakeLoop:
         self.validator = FakeValidator()
         self.run_single_case_calls: list[str] = []
 
-    def _create_agent(self, case, attempt=None, phase="solve", required_skill_name=None, require_bash_action_before_complete=False, required_image_artifact_before_complete=False, **kwargs):
-        learned = self.store.has_skill("chartqa")
+    def _create_agent(self, case, attempt=None, phase="solve", required_skill_name=None, require_bash_action_before_complete=False, required_image_artifact_before_complete=False, include_learned_skills=True, **kwargs):
+        learned = include_learned_skills and self.store.has_skill("chartqa")
         if case.case_id == "1":
             return FakeAgent(case.gold_answer)
         if case.case_id == "2":
@@ -195,8 +204,8 @@ class FrozenLoop(FakeLoop):
 
 
 class ScratchFakeLoop(FakeLoop):
-    def _create_agent(self, case, attempt=None, phase="solve", required_skill_name=None, require_bash_action_before_complete=False, required_image_artifact_before_complete=False, **kwargs):
-        learned = self.store.has_skill("chartqa")
+    def _create_agent(self, case, attempt=None, phase="solve", required_skill_name=None, require_bash_action_before_complete=False, required_image_artifact_before_complete=False, include_learned_skills=True, **kwargs):
+        learned = include_learned_skills and self.store.has_skill("chartqa")
         if case.case_id == "1":
             return ScratchFakeAgent(case.gold_answer, artifact="artifacts/case1_edit.png")
         if case.case_id == "2":
@@ -288,6 +297,20 @@ class LoopAnalyzerStub:
 class LoopGeneratorStub:
     total_usage = DummyUsage()
 
+    def generate_coverage_contract(self, case, target_cluster_ids, training_context, representative_case_summaries, planner_action):
+        return CoverageContract(
+            target_family=case.capability_family(),
+            target_cluster_ids=list(target_cluster_ids),
+            problem_pattern="shared family pattern",
+            supported_variations=["variation a", "variation b"],
+            unsupported_variations=["variation outside scope"],
+            forbidden_case_specific_assumptions=["no one-image thresholds"],
+            primitive_category="chart_value_overlay",
+            tool_validation_scope="family",
+            recommended_action=planner_action,
+            why_this_should_generalize="Cluster-level pattern repeats.",
+        )
+
     def generate_skill(self, *args, **kwargs):
         return SkillProposal(
             name="chartqa",
@@ -297,6 +320,9 @@ class LoopGeneratorStub:
             level="mid",
             depends_on=[],
         )
+
+    def revise_skill(self, skill, revision_brief, coverage_contract, training_context):
+        return skill
 
 
 class LoopValidatorStub:
@@ -1271,14 +1297,196 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("Tool generation preference: prefer_tools", prompt_text)
         self.assertIn("prefer `generate_both` or `generate_tool`", prompt_text)
 
+    def test_subset_planner_materialize_bundle_attaches_coverage_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), root / "skills")
+            case = TaskCase(
+                case_id="seed",
+                problem_id="chartqa",
+                prompt="Read the right bar",
+                gold_answer="5",
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            )
+            digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+                baseline_summary=TrainSetEvalSummary(
+                    total_cases=1,
+                    correct_cases=0,
+                    primary_score=0.0,
+                    per_dataset_scores={"chartqa": 0.0},
+                    per_family_scores={"chartqa": 0.0},
+                ),
+                failure_clusters=[
+                    __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                        cluster_id="cluster_1",
+                        dataset_name="chartqa",
+                        capability_family="chartqa",
+                        cluster_key="chartqa::generic",
+                        total_cases=1,
+                        case_ids=["seed"],
+                        representative_case_ids=["seed"],
+                        summary_lines=["case_id=seed; prompt=Read the right bar"],
+                    )
+                ],
+                representative_cases=[{"case_id": "seed", "dataset_name": "chartqa", "capability_family": "chartqa", "prompt": "Read the right bar"}],
+                recent_rejected_plans=[],
+            )
+
+            bundle = planner.materialize_bundle(
+                {
+                    "target_family": "chartqa",
+                    "target_cluster_ids": ["cluster_1"],
+                    "representative_case_ids": ["seed"],
+                    "next_action": "generate_skill",
+                    "skill_update_note": "Improve chart SOP",
+                    "rationale": "Cluster-level fix",
+                    "expected_gain": "Improve train score",
+                },
+                digest,
+                {"seed": case},
+                root / "learned" / "active",
+                root / "artifacts",
+            )
+
+            self.assertIsNotNone(bundle.coverage_contract)
+            self.assertEqual(bundle.coverage_contract.problem_pattern, "shared family pattern")
+            self.assertEqual(bundle.tools, [])
+            self.assertEqual(len(bundle.skills), 1)
+
+    def test_subset_loop_selects_up_to_three_cluster_smoke_cases(self):
+        subset_loop = SubsetEvolutionLoop(
+            subset_id="chartqa_refocus_smoke",
+            learned_root=Path("/tmp/learned"),
+            skills_dir=Path("/tmp/skills"),
+            work_dir=Path("/tmp/artifacts"),
+            vlm_client=DummyClient(),
+            adapters={"chartqa": ChartQAAdapter()},
+            max_planning_rounds=1,
+        )
+        bundle = CapabilityBundleProposal(
+            run_id="round",
+            target_family="chartqa",
+            target_cluster_ids=["cluster_1"],
+            representative_case_ids=["1", "2"],
+        )
+        digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+            baseline_summary=TrainSetEvalSummary(total_cases=3, correct_cases=0, primary_score=0.0),
+            failure_clusters=[
+                __import__("evolution.types", fromlist=["FailureCluster"]).FailureCluster(
+                    cluster_id="cluster_1",
+                    dataset_name="chartqa",
+                    capability_family="chartqa",
+                    cluster_key="chartqa::generic",
+                    total_cases=4,
+                    case_ids=["1", "2", "3", "4"],
+                    representative_case_ids=["1", "2"],
+                    summary_lines=[],
+                )
+            ],
+        )
+
+        self.assertEqual(subset_loop._select_cluster_smoke_case_ids(bundle, digest), ["1", "2", "3"])
+
+    def test_subset_loop_rejects_cluster_only_tool_after_family_smoke(self):
+        subset_loop = SubsetEvolutionLoop(
+            subset_id="chartqa_refocus_smoke",
+            learned_root=Path("/tmp/learned"),
+            skills_dir=Path("/tmp/skills"),
+            work_dir=Path("/tmp/artifacts"),
+            vlm_client=DummyClient(),
+            adapters={"chartqa": ChartQAAdapter()},
+            max_planning_rounds=1,
+        )
+
+        class ValidatorStub:
+            def validate_tool(self, tool, origin_case, agent_factory, regression_cases=None, chain_context=None, attempt=None):
+                return ValidationResult(passed=True, static_ok=True, origin_ok=True, regression_ok=True)
+
+            def _run_tool_command(self, tool_name, image_path, project_root, problem_id, case_id, attempt, phase):
+                if phase.startswith("family_smoke"):
+                    return "STATUS: error\nANSWER:\n", 1
+                return "STATUS: ok\nARTIFACTS: artifacts/out.png", 0
+
+            def _extract_artifacts(self, output):
+                return ["artifacts/out.png"] if "ARTIFACTS:" in output and "STATUS: error" not in output else []
+
+            def _failure_result(self, base_result, reason, failure_type, evidence, rewrite_requirements, banned_patterns, retry_action):
+                return ValidationResult(
+                    passed=False,
+                    reason=reason,
+                    failure_type=failure_type,
+                    revision_brief=RevisionBrief(
+                        failure_type=failure_type,
+                        reason=reason,
+                        evidence=evidence,
+                        rewrite_requirements=rewrite_requirements,
+                        banned_patterns=banned_patterns,
+                        retry_action=retry_action,
+                    ),
+                )
+
+        tool = ToolProposal(
+            name="chart_reader",
+            description="desc",
+            applicability_conditions="Use for chart reading.",
+            code="",
+            usage_example="python -m tools chart_reader <image_path>",
+            expected_inputs=["image_path"],
+            expected_outputs=["artifacts/out.png"],
+            primitive_category="chart_value_overlay",
+        )
+        cluster_case = TaskCase(case_id="1", problem_id="chartqa", prompt="Q1", gold_answer="1", image_path="/tmp/a.png", metadata={"dataset_name": "chartqa", "capability_family": "chartqa"})
+        family_case = TaskCase(case_id="4", problem_id="chartqa", prompt="Q4", gold_answer="4", image_path="/tmp/b.png", metadata={"dataset_name": "chartqa", "capability_family": "chartqa"})
+        result = subset_loop._validate_tool_across_cases(ValidatorStub(), object(), tool, [cluster_case], [family_case])
+
+        self.assertFalse(result.passed)
+        self.assertEqual(result.failure_type, "cluster_only_tool")
+
     def test_subset_planner_can_bias_next_action_toward_tools(self):
         planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="prefer_tools")
         proposal = planner._apply_tool_preference({"next_action": "generate_skill"})
         self.assertEqual(proposal["next_action"], "generate_both")
 
+        blocked = planner._apply_tool_preference(
+            {
+                "next_action": "generate_skill",
+                "primitive_category": "localized_text_zoom",
+                "toolability_blocked": True,
+            }
+        )
+        self.assertEqual(blocked["next_action"], "generate_skill")
+
         require_tool_planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="require_tools")
         proposal = require_tool_planner._apply_tool_preference({"next_action": "generate_skill"})
         self.assertEqual(proposal["next_action"], "generate_tool")
+
+    def test_subset_planner_switches_to_skill_after_repeated_case_specific_rejections(self):
+        planner = SubsetPlanner(DummyClient(), LoopGeneratorStub(), Path("/tmp/skills"), tool_preference="prefer_tools")
+        digest = __import__("evolution.types", fromlist=["TrainingSetDigest"]).TrainingSetDigest(
+            baseline_summary=TrainSetEvalSummary(total_cases=1, correct_cases=0, primary_score=0.0),
+            recent_rejected_plans=[
+                {
+                    "target_family": "chartqa",
+                    "failure_type": "case_specific_logic",
+                    "coverage_contract": {"primitive_category": "chart_value_overlay"},
+                },
+                {
+                    "target_family": "chartqa",
+                    "failure_type": "case_specific_logic",
+                    "coverage_contract": {"primitive_category": "chart_value_overlay"},
+                },
+            ],
+        )
+        adjusted = planner._apply_rejection_strategy(
+            {
+                "target_family": "chartqa",
+                "next_action": "generate_tool",
+                "primitive_category": "chart_value_overlay",
+            },
+            digest,
+        )
+        self.assertEqual(adjusted["next_action"], "generate_skill")
+        self.assertTrue(adjusted["toolability_blocked"])
 
     def test_subset_planner_materialize_bundle_normalizes_representative_case_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1337,6 +1545,38 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
         self.assertEqual(bundle.representative_case_ids, ["11"])
         self.assertEqual(bundle.target_family, "mathvista_generic_free_form")
+        self.assertEqual(bundle.tools, [])
+
+    def test_evolution_loop_tool_snapshot_includes_builtin_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+            )
+
+            snapshot = loop._tool_availability_snapshot()
+
+            self.assertIn("localized_text_zoom", snapshot.available_tools)
+            self.assertIn("chart_value_overlay", snapshot.available_tools)
+
+    def test_execute_builtin_tool_returns_ok_result(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_path = root / "sample.png"
+            Image.new("RGB", (24, 24), color=(240, 240, 240)).save(image_path)
+            cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                output = execute_builtin_tool("localized_text_zoom", str(image_path))
+            finally:
+                os.chdir(cwd)
+
+            self.assertIn("STATUS: ok", output)
+            self.assertTrue((root / "artifacts" / "localized_text_zoom_output.png").exists())
 
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1714,6 +1954,141 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertTrue(record.used_tool)
             self.assertEqual(record.tool_names, ["chart_bar_approximation_tool"])
 
+    def test_run_frozen_inference_resumes_existing_cases(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills").mkdir(parents=True, exist_ok=True)
+            (root / "learned").mkdir(parents=True, exist_ok=True)
+            chart_dir = root / "charts"
+            self._write_image(chart_dir / "1.png")
+            self._write_image(chart_dir / "2.png")
+            rows = [
+                {
+                    "id": "1",
+                    "problem_id": "chartqa",
+                    "prompt": "Q1",
+                    "answer": "A",
+                    "image_path": str(chart_dir / "1.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "1", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+                {
+                    "id": "2",
+                    "problem_id": "chartqa",
+                    "prompt": "Q2",
+                    "answer": "B",
+                    "image_path": str(chart_dir / "2.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "2", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+            ]
+            self._write_normalized_chartqa(root / "normalized", "val", rows)
+
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_resume_v1",
+                held_out_limit=2,
+            )
+            online_loop = FakeLoop(root / "learned" / config.subset_id)
+            frozen_loop = FrozenLoop(root / "learned" / config.subset_id)
+            runner = TestStructuredRunner(config, root, online_loop, frozen_loop)
+            runner.records_path.parent.mkdir(parents=True, exist_ok=True)
+            runner.records_path.write_text(
+                json.dumps(
+                    {
+                        "setting": "frozen_inference",
+                        "split": "val",
+                        "case_id": "1",
+                        "problem_id": "chartqa",
+                        "expected": "A",
+                        "answer": "A",
+                        "correct": True,
+                        "score": 1.0,
+                        "turns": 1,
+                        "tool_count": 0,
+                        "tool_names": [],
+                        "used_tool": False,
+                        "artifact_paths": [],
+                        "chain_trace": [],
+                        "image_path": str(chart_dir / "1.png"),
+                        "metadata": {"dataset_name": "chartqa", "capability_family": "chartqa"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            records = runner.run_frozen_inference(subset_id=config.subset_id)
+
+            self.assertEqual([row.case_id for row in records], ["1", "2"])
+            self.assertEqual(records[0].answer, "A")
+            persisted = runner.records_path.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(persisted), 2)
+
+    def test_run_frozen_inference_reruns_bad_existing_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills").mkdir(parents=True, exist_ok=True)
+            (root / "learned").mkdir(parents=True, exist_ok=True)
+            chart_dir = root / "charts"
+            self._write_image(chart_dir / "1.png")
+            rows = [
+                {
+                    "id": "1",
+                    "problem_id": "chartqa",
+                    "prompt": "Q1",
+                    "answer": "A",
+                    "image_path": str(chart_dir / "1.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "1", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+            ]
+            self._write_normalized_chartqa(root / "normalized", "val", rows)
+
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_refocus_resume_v2",
+                held_out_limit=1,
+            )
+            online_loop = FakeLoop(root / "learned" / config.subset_id)
+            frozen_loop = FrozenLoop(root / "learned" / config.subset_id)
+            runner = TestStructuredRunner(config, root, online_loop, frozen_loop)
+            runner.records_path.parent.mkdir(parents=True, exist_ok=True)
+            runner.records_path.write_text(
+                json.dumps(
+                    {
+                        "setting": "frozen_inference",
+                        "split": "val",
+                        "case_id": "1",
+                        "problem_id": "chartqa",
+                        "expected": "A",
+                        "answer": "",
+                        "correct": False,
+                        "score": 0.0,
+                        "turns": 1,
+                        "tool_count": 0,
+                        "tool_names": [],
+                        "used_tool": False,
+                        "artifact_paths": [],
+                        "chain_trace": [],
+                        "image_path": str(chart_dir / "1.png"),
+                        "metadata": {"dataset_name": "chartqa", "capability_family": "chartqa", "runtime_error": "timeout"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            records = runner.run_frozen_inference(subset_id=config.subset_id)
+
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].case_id, "1")
+            self.assertEqual(records[0].answer, "A")
+            persisted = [json.loads(line) for line in runner.records_path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(persisted), 2)
+            self.assertEqual(persisted[-1]["answer"], "A")
+
     def test_rebuild_summary_includes_existing_frozen_rows(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1778,6 +2153,82 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertAlmostEqual(summary["settings"]["frozen_inference"]["accuracy"], 1.0)
             self.assertAlmostEqual(summary["frozen_inference_accuracy"], 1.0)
+
+    def test_run_preset_tools_only_disables_evolved_skill_loading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills").mkdir(parents=True, exist_ok=True)
+            subset_dir = root / "learned" / "chartqa_mastery_v1"
+            subset_dir.mkdir(parents=True, exist_ok=True)
+            chart_dir = root / "charts"
+            self._write_image(chart_dir / "2.png")
+            rows = [
+                {
+                    "id": "2",
+                    "problem_id": "chartqa",
+                    "prompt": "Q2",
+                    "answer": "B",
+                    "image_path": str(chart_dir / "2.png"),
+                    "metadata": {"dataset_name": "chartqa", "split": "val", "source_id": "2", "question_type": "generic", "answer_type": "string", "capability_family": "chartqa"},
+                },
+            ]
+            self._write_normalized_chartqa(root / "normalized", "val", rows)
+            CapabilityStore(subset_dir).promote_skill(
+                "chartqa",
+                SkillProposal(
+                    name="chartqa",
+                    description="Use the learned chart focus tool when direct reading fails.",
+                    applicability_conditions="Use when chart text or bars need local emphasis.",
+                    content="## SOP\n1. Run `python -m tools focus_chart <image_path>`.\n2. Answer from the improved chart artifact.",
+                    level="mid",
+                    depends_on=[],
+                ),
+            )
+
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_mastery_v1",
+                held_out_limit=1,
+            )
+            online_loop = FakeLoop(subset_dir)
+            frozen_loop = FrozenLoop(subset_dir)
+            runner = TestStructuredRunner(config, root, online_loop, frozen_loop)
+
+            records = runner.run_frozen_inference(subset_id=config.subset_id, use_skill=False)
+
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].setting, "preset_tools_only")
+            self.assertEqual(records[0].answer, "wrong")
+            summary = runner.rebuild_summary(snapshot_name="chartqa_mastery_v1_train_snapshot")
+            self.assertAlmostEqual(summary["settings"]["preset_tools_only"]["accuracy"], 0.0)
+            self.assertAlmostEqual(summary["preset_tools_only_accuracy"], 0.0)
+
+    def test_run_preset_tools_only_still_keeps_builtin_tools_visible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                subset_id="chartqa_mastery_v2",
+            )
+            case = TaskCase(
+                case_id="1",
+                problem_id="chartqa",
+                prompt="Q",
+                gold_answer="A",
+                image_path="img.png",
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            )
+
+            _ = loop._create_agent(case, include_learned_skills=False)
+            snapshot = loop._tool_availability_snapshot()
+
+            self.assertIn("localized_text_zoom", snapshot.available_tools)
+            self.assertIn("chart_value_overlay", snapshot.available_tools)
 
     def test_subset_summary_tracks_multiple_dataset_scores(self):
         rows = [
@@ -1858,7 +2309,54 @@ class StructuredBenchmarkTests(unittest.TestCase):
             ["direct_vlm", "agent_train_adaptive"],
         )
         self.assertEqual(_normalize_settings(["frozen_transfer"]), ["frozen_inference"])
+        self.assertEqual(_normalize_settings(["preset_tools_only"]), ["preset_tools_only"])
         self.assertEqual(_normalize_settings(["scratch_skill_train_adaptive"]), ["scratch_skill_train_adaptive"])
+
+    def test_skill_from_mastery_strategy_builds_branching_sop(self):
+        loop = SubsetEvolutionLoop.__new__(SubsetEvolutionLoop)
+        strategy = MasteryStrategyCandidate(
+            name="text_zoom_then_chart",
+            tool_sequence=["localized_text_zoom", "chart_value_overlay"],
+            trigger_conditions=["small labels or crowded chart text"],
+            avoid_conditions=["direct value is already obvious"],
+            fallback_action="answer_directly",
+            rationale="Chain zoom before chart overlay when labels are hard to read.",
+        )
+
+        skill = loop._skill_from_mastery_strategy("chartqa", strategy)
+
+        self.assertEqual(skill.name, "chartqa")
+        self.assertIn("## SOP", skill.content)
+        self.assertIn("localized_text_zoom", skill.content)
+        self.assertIn("chart_value_overlay", skill.content)
+        self.assertIn("avoid condition", skill.content)
+
+    def test_digest_payload_includes_mastery_profiles(self):
+        evaluator = SubsetEvaluator.__new__(SubsetEvaluator)
+        digest = TrainingSetDigest(
+            baseline_summary=TrainSetEvalSummary(total_cases=1, correct_cases=1, primary_score=1.0),
+            family_memories=[
+                FamilyMemory(
+                    capability_family="chartqa",
+                    mastery_profiles=[
+                        MasteryProfile(
+                            capability_family="chartqa",
+                            primary_tool="chart_value_overlay",
+                            best_strategy_name="chart_overlay_primary",
+                            coverage=0.75,
+                            precision=0.8,
+                            score_delta=0.1,
+                        )
+                    ],
+                )
+            ],
+        )
+
+        payload = evaluator.digest_payload(digest)
+
+        self.assertIn("mastery_profiles", payload)
+        self.assertIn("chartqa", payload["mastery_profiles"])
+        self.assertEqual(payload["mastery_profiles"]["chartqa"][0]["primary_tool"], "chart_value_overlay")
 
 
 if __name__ == "__main__":

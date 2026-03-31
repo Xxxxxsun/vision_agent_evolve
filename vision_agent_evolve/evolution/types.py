@@ -54,6 +54,35 @@ class ToolProposal:
     usage_example: str
     expected_inputs: list[str]
     expected_outputs: list[str]
+    primitive_category: str = ""
+
+
+@dataclass
+class CoverageContract:
+    """Cluster-level generalization contract created before generation."""
+
+    target_family: str
+    target_cluster_ids: list[str] = field(default_factory=list)
+    problem_pattern: str = ""
+    supported_variations: list[str] = field(default_factory=list)
+    unsupported_variations: list[str] = field(default_factory=list)
+    forbidden_case_specific_assumptions: list[str] = field(default_factory=list)
+    primitive_category: str = ""
+    tool_validation_scope: Literal["cluster", "family"] = "cluster"
+    recommended_action: Literal["generate_tool", "generate_skill", "generate_both", "generate_code_skill", "give_up"] = "generate_skill"
+    why_this_should_generalize: str = ""
+
+
+@dataclass
+class RevisionBrief:
+    """Structured rewrite guidance derived from validator failures."""
+
+    failure_type: str
+    reason: str
+    evidence: list[str] = field(default_factory=list)
+    rewrite_requirements: list[str] = field(default_factory=list)
+    banned_patterns: list[str] = field(default_factory=list)
+    retry_action: Literal["revise_tool", "revise_skill", "switch_to_skill", "switch_to_tool", "give_up"] = "give_up"
 
 
 @dataclass
@@ -81,6 +110,9 @@ class ValidationResult:
     input_image: str = ""
     chain_trace: list[str] = field(default_factory=list)
     replaced_existing_tool: bool = False
+    failure_type: str = ""
+    revision_brief: RevisionBrief | None = None
+    smoke_case_results: list[dict[str, str | bool]] = field(default_factory=list)
 
 
 @dataclass
@@ -193,8 +225,133 @@ class FailureCluster:
     capability_family: str
     cluster_key: str
     total_cases: int
+    case_ids: list[str] = field(default_factory=list)
     representative_case_ids: list[str] = field(default_factory=list)
     summary_lines: list[str] = field(default_factory=list)
+    common_failure_signals: list[str] = field(default_factory=list)
+    shared_tool_patterns: list[str] = field(default_factory=list)
+    shared_prompt_patterns: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ClusterMemory:
+    """Structured training-memory record for one failure cluster."""
+
+    cluster_id: str
+    dataset_name: str
+    capability_family: str
+    cluster_key: str
+    total_cases: int
+    case_ids: list[str] = field(default_factory=list)
+    representative_case_ids: list[str] = field(default_factory=list)
+    common_failure_signals: list[str] = field(default_factory=list)
+    shared_tool_patterns: list[str] = field(default_factory=list)
+    shared_prompt_patterns: list[str] = field(default_factory=list)
+    example_case_summaries: list[str] = field(default_factory=list)
+    primitive_category: str = ""
+    toolability: str = "unknown"
+
+
+@dataclass
+class ToolboxGap:
+    """One reusable primitive the family appears to be missing."""
+
+    primitive_category: str
+    summary: str
+    target_cluster_ids: list[str] = field(default_factory=list)
+    target_case_ids: list[str] = field(default_factory=list)
+    supported_patterns: list[str] = field(default_factory=list)
+    blocked_by: list[str] = field(default_factory=list)
+    recommended_action: Literal["generate_tool", "generate_skill", "give_up"] = "generate_skill"
+
+
+@dataclass
+class FamilyToolRecord:
+    """One active family tool tracked in planner memory."""
+
+    name: str
+    primitive_category: str
+    applicability_conditions: str = ""
+    supported_families: list[str] = field(default_factory=list)
+    supported_cluster_patterns: list[str] = field(default_factory=list)
+    validation_scope: Literal["cluster", "family"] = "cluster"
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class MasteryStrategyCandidate:
+    """One candidate policy for using existing tools in a family."""
+
+    name: str
+    tool_sequence: list[str] = field(default_factory=list)
+    trigger_conditions: list[str] = field(default_factory=list)
+    avoid_conditions: list[str] = field(default_factory=list)
+    fallback_action: str = "answer_directly"
+    rationale: str = ""
+
+
+@dataclass
+class MasteryEvalResult:
+    """Evaluation result for one mastery strategy candidate."""
+
+    strategy_name: str
+    evaluated_case_ids: list[str] = field(default_factory=list)
+    supported_case_ids: list[str] = field(default_factory=list)
+    failed_case_ids: list[str] = field(default_factory=list)
+    coverage: float = 0.0
+    precision: float = 0.0
+    score_delta: float = 0.0
+    supported_cluster_patterns: list[str] = field(default_factory=list)
+    failure_cluster_patterns: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class MasteryProfile:
+    """Family-level tool-boundary profile learned during mastery exploration."""
+
+    capability_family: str
+    primary_tool: str = ""
+    tool_sequence: list[str] = field(default_factory=list)
+    supported_families: list[str] = field(default_factory=list)
+    supported_cluster_patterns: list[str] = field(default_factory=list)
+    negative_cluster_patterns: list[str] = field(default_factory=list)
+    success_case_ids: list[str] = field(default_factory=list)
+    failure_case_ids: list[str] = field(default_factory=list)
+    common_success_signals: list[str] = field(default_factory=list)
+    common_failure_signals: list[str] = field(default_factory=list)
+    recommended_trigger_conditions: list[str] = field(default_factory=list)
+    negative_trigger_conditions: list[str] = field(default_factory=list)
+    best_chain_patterns: list[str] = field(default_factory=list)
+    bad_chain_patterns: list[str] = field(default_factory=list)
+    best_strategy_name: str = ""
+    coverage: float = 0.0
+    precision: float = 0.0
+    score_delta: float = 0.0
+    candidate_evaluations: list[MasteryEvalResult] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class FamilyMemory:
+    """Structured training-memory record for one capability family."""
+
+    capability_family: str
+    dataset_names: list[str] = field(default_factory=list)
+    total_cases: int = 0
+    failed_cases: int = 0
+    baseline_score: float = 0.0
+    common_question_patterns: list[str] = field(default_factory=list)
+    recurring_failure_signals: list[str] = field(default_factory=list)
+    tool_usage_patterns: list[str] = field(default_factory=list)
+    recent_revision_briefs: list[str] = field(default_factory=list)
+    recent_coverage_notes: list[str] = field(default_factory=list)
+    cluster_memories: list[ClusterMemory] = field(default_factory=list)
+    toolbox_gaps: list[ToolboxGap] = field(default_factory=list)
+    family_toolbox: list[FamilyToolRecord] = field(default_factory=list)
+    cross_cluster_validation_history: list[str] = field(default_factory=list)
+    mastery_profiles: list[MasteryProfile] = field(default_factory=list)
+    mastery_history: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -205,6 +362,7 @@ class TrainingSetDigest:
     failure_clusters: list[FailureCluster] = field(default_factory=list)
     representative_cases: list[dict[str, str]] = field(default_factory=list)
     recent_rejected_plans: list[dict] = field(default_factory=list)
+    family_memories: list[FamilyMemory] = field(default_factory=list)
     candidate_summary: TrainSetEvalSummary | None = None
     per_dataset_delta: dict[str, float] = field(default_factory=dict)
     per_family_delta: dict[str, float] = field(default_factory=dict)
@@ -222,8 +380,11 @@ class CapabilityBundleProposal:
     representative_case_ids: list[str] = field(default_factory=list)
     rationale: str = ""
     expected_gain: str = ""
+    coverage_contract: CoverageContract | None = None
+    primitive_category: str = ""
     tools: list[ToolProposal] = field(default_factory=list)
     skills: list[SkillProposal] = field(default_factory=list)
+    mastery_profile: MasteryProfile | None = None
 
 
 @dataclass

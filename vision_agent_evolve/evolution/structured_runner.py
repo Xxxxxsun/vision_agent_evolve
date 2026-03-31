@@ -12,7 +12,7 @@ from typing import Any
 
 from core.agent import AgentConfig, ReActAgent
 from core.structured_data import check_chartqa_case_answer, load_normalized_cases
-from core.types import AgentResult, TaskCase
+from core.types import AgentResult, AgentStep, TaskCase
 from core.vlm_client import ModelSettings, VLMClient
 from evolution.benchmark_adapters import BenchmarkAdapter, get_benchmark_adapter
 from evolution.loop import EvolutionLoop
@@ -39,7 +39,7 @@ class StructuredExperimentConfig:
     representatives_per_cluster: int = 3
     tool_preference: str = "balanced"
     readability_judge_enabled: bool = False
-    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "frozen_inference"])
+    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
     save_first_n_evolves: int = 10
     forced_skill_name: str | None = None
 
@@ -267,6 +267,18 @@ class StructuredBenchmarkRunner:
                 snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
             records.extend(self.run_frozen_inference(snapshot_name=snapshot_name, cases=held_out_cases))
 
+        if "preset_tools_only" in self.config.settings:
+            print(f"\n=== Preset-tools-only inference on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    use_skill=False,
+                )
+            )
+
         if "frozen_inference_forced_skill" in self.config.settings:
             print(f"\n=== Frozen inference with forced skill on {self.config.held_out_split} ===")
             if not snapshot_name:
@@ -314,22 +326,34 @@ class StructuredBenchmarkRunner:
         cases: list[TaskCase] | None = None,
         force_skill: bool = False,
         capability_mode: str = "persistent_tools",
+        use_skill: bool = True,
     ) -> list[StructuredCaseRecord]:
         """Evaluate a frozen subset or snapshot without further mutations."""
         held_out_cases = cases or self._load_cases(split=self.config.held_out_split, limit=self.config.held_out_limit)
         loop = self._make_frozen_loop(snapshot_name=snapshot_name, subset_id=subset_id, capability_mode=capability_mode)
+        setting_name = self._frozen_setting_name(capability_mode, force_skill, use_skill)
+        existing_by_case = self._existing_records_by_case(setting=setting_name, split=self.config.held_out_split)
 
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(held_out_cases, start=1):
+            existing = existing_by_case.get(case.case_id)
+            if existing is not None:
+                records.append(existing)
+                print(
+                    f"[{index:03d}/{len(held_out_cases):03d}] "
+                    f"SKIP case={case.case_id} answer={existing.answer!r} (resume)"
+                )
+                continue
             result, chain_trace = self._run_with_learned_capabilities(
                 loop,
                 case,
                 phase=f"{'forced_skill_' if force_skill else ''}frozen_inference_{index}",
                 force_skill=force_skill,
                 capability_mode=capability_mode,
+                use_skill=use_skill,
             )
             record = self._record_from_agent_result(
-                setting=self._frozen_setting_name(capability_mode, force_skill),
+                setting=setting_name,
                 split=self.config.held_out_split,
                 case=case,
                 result=result,
@@ -361,7 +385,12 @@ class StructuredBenchmarkRunner:
     def _run_direct_vlm(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(cases, start=1):
-            answer = self._direct_answer(case)
+            answer = ""
+            direct_error = ""
+            try:
+                answer = self._direct_answer(case)
+            except Exception as exc:
+                direct_error = str(exc)
             score = self._score_answer(answer, case)
             record = StructuredCaseRecord(
                 setting="direct_vlm",
@@ -380,6 +409,8 @@ class StructuredBenchmarkRunner:
                 image_path=case.image_path,
                 metadata=dict(case.metadata),
             )
+            if direct_error:
+                record.metadata["runtime_error"] = direct_error
             self._append_record(record)
             records.append(record)
             print(
@@ -392,7 +423,10 @@ class StructuredBenchmarkRunner:
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(cases, start=1):
             agent = self._create_plain_react_agent(case, phase=f"pure_react_{index}")
-            result = agent.run(case.prompt, case.image_path, initial_observations=[])
+            try:
+                result = agent.run(case.prompt, case.image_path, initial_observations=[])
+            except Exception as exc:
+                result = self._runtime_failure_result(case, exc)
             record = self._record_from_agent_result(
                 setting="pure_react",
                 split=self.config.evolve_split,
@@ -603,7 +637,7 @@ class StructuredBenchmarkRunner:
             artifact_paths=artifacts,
             chain_trace=chain_trace,
             image_path=case.image_path,
-            metadata=dict(case.metadata),
+            metadata=_merge_record_metadata(case.metadata, result.error),
             readability_improved=None if readability is None else readability.get("readability_improved"),
             target_region_clearer=None if readability is None else readability.get("target_region_clearer"),
             text_or_marks_more_legible=None if readability is None else readability.get("text_or_marks_more_legible"),
@@ -648,11 +682,14 @@ class StructuredBenchmarkRunner:
         phase: str,
         force_skill: bool = False,
         capability_mode: str = "persistent_tools",
+        use_skill: bool = True,
     ) -> tuple[AgentResult, list[str]]:
-        skill = loop.store.get_skill(case.capability_family())
+        skill = loop.store.get_skill(case.capability_family()) if use_skill else None
         required_skill_name = self._forced_skill_name(case) if force_skill and skill is not None else None
         create_agent_kwargs = {"attempt": 1, "phase": phase}
         create_agent_signature = inspect.signature(loop._create_agent)
+        if "include_learned_skills" in create_agent_signature.parameters:
+            create_agent_kwargs["include_learned_skills"] = use_skill
         if "required_skill_name" in create_agent_signature.parameters:
             create_agent_kwargs["required_skill_name"] = required_skill_name
         if "require_bash_action_before_complete" in create_agent_signature.parameters:
@@ -670,12 +707,27 @@ class StructuredBenchmarkRunner:
             skill_content,
             attempt=1,
         )
-        result = agent.run(
-            case.prompt,
-            case.image_path,
-            initial_observations=loop._chain_observations_for_agent(chain_context),
-        )
+        try:
+            result = agent.run(
+                case.prompt,
+                case.image_path,
+                initial_observations=loop._chain_observations_for_agent(chain_context),
+            )
+        except Exception as exc:
+            result = self._runtime_failure_result(case, exc)
         return result, list(chain_context.tool_sequence)
+
+    @staticmethod
+    def _runtime_failure_result(case: TaskCase, exc: Exception) -> AgentResult:
+        return AgentResult(
+            task=case.prompt,
+            final_answer="",
+            steps=[AgentStep(turn=1, observation=f"RUNTIME_ERROR: {exc}", is_format_error=True)],
+            total_turns=1,
+            success=False,
+            error=str(exc),
+            all_artifacts=[],
+        )
 
     def _make_online_loop(self, capability_mode: str = "persistent_tools") -> EvolutionLoop:
         return EvolutionLoop(
@@ -743,9 +795,11 @@ class StructuredBenchmarkRunner:
         return adapter.score_answer(answer, case)
 
     @staticmethod
-    def _frozen_setting_name(capability_mode: str, force_skill: bool) -> str:
+    def _frozen_setting_name(capability_mode: str, force_skill: bool, use_skill: bool = True) -> str:
         if capability_mode == "scratch_code_skill":
             return "scratch_skill_frozen_forced" if force_skill else "scratch_skill_frozen_inference"
+        if not use_skill:
+            return "preset_tools_only"
         return "frozen_inference_forced_skill" if force_skill else "frozen_inference"
 
     def _annotate_scratch_record(self, record: StructuredCaseRecord, result: AgentResult, capability_mode: str) -> None:
@@ -796,6 +850,7 @@ class StructuredBenchmarkRunner:
             "settings": settings_summary,
             "full_agent_accuracy": settings_summary.get("agent_train_adaptive", {}).get("full_agent_accuracy", 0.0),
             "post_evolve_recovery_accuracy": settings_summary.get("agent_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
+            "preset_tools_only_accuracy": settings_summary.get("preset_tools_only", {}).get("accuracy", 0.0),
             "frozen_inference_accuracy": settings_summary.get("frozen_inference", {}).get("accuracy", 0.0),
             "forced_skill_frozen_accuracy": settings_summary.get("frozen_inference_forced_skill", {}).get("accuracy", 0.0),
             "scratch_skill_full_agent_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("full_agent_accuracy", 0.0),
@@ -827,6 +882,17 @@ class StructuredBenchmarkRunner:
             payload = json.loads(line)
             rows.append(StructuredCaseRecord(**payload))
         return rows
+
+    def _existing_records_by_case(self, setting: str, split: str) -> dict[str, StructuredCaseRecord]:
+        rows = self._load_existing_records()
+        by_case: dict[str, StructuredCaseRecord] = {}
+        for row in rows:
+            if row.setting != setting or row.split != split:
+                continue
+            if not _record_is_resume_eligible(row):
+                continue
+            by_case[row.case_id] = row
+        return by_case
 
     def _existing_snapshot_name(self) -> str:
         if not self.summary_path.exists():
@@ -876,6 +942,22 @@ def _extract_scratch_script_summary(result: AgentResult) -> str | None:
     if not commands:
         return None
     return " | ".join(commands[:2])
+
+
+def _merge_record_metadata(metadata: dict[str, Any], runtime_error: str | None) -> dict[str, Any]:
+    payload = dict(metadata)
+    if runtime_error:
+        payload["runtime_error"] = runtime_error
+    return payload
+
+
+def _record_is_resume_eligible(record: StructuredCaseRecord) -> bool:
+    runtime_error = str(record.metadata.get("runtime_error", "") or "").strip()
+    if runtime_error:
+        return False
+    if not str(record.answer or "").strip():
+        return False
+    return True
 
 
 def _aggregate_records(records: list[StructuredCaseRecord]) -> dict[str, Any]:

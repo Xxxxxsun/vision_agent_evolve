@@ -11,6 +11,7 @@ from core.types import TaskCase, AgentResult
 from core.agent import ReActAgent, AgentConfig
 from core.vlm_client import VLMClient, UsageStats
 from skills import Skill, render_skills
+from tools.builtin_tools import list_builtin_tools
 from .types import EvolutionStep, FailedDirection, ToolChainContext, ToolAvailabilitySnapshot
 from .roles import AnalyzerDecider, Generator
 from .validator import Validator
@@ -435,6 +436,7 @@ class EvolutionLoop:
         self,
         case: TaskCase,
         task_skill_override: Skill | None = None,
+        include_learned_skills: bool = True,
         required_tool_name: str | None = None,
         required_skill_name: str | None = None,
         require_bash_action_before_complete: bool = False,
@@ -447,11 +449,12 @@ class EvolutionLoop:
         all_skills = []
         if task_skill_override is not None:
             all_skills.append(task_skill_override)
-        else:
+        elif include_learned_skills:
             task_skill = self.store.get_skill(case.capability_family())
             if task_skill is not None and self._skill_uses_only_available_tools(task_skill.content, capability_snapshot):
                 all_skills.append(task_skill)
-        all_skills.extend(self.store.list_failure_skills(case.capability_family(), limit=3))
+        if include_learned_skills:
+            all_skills.extend(self.store.list_failure_skills(case.capability_family(), limit=3))
 
         # Render skills and task-specific prompting hints.
         skill_text = render_skills(all_skills)
@@ -461,26 +464,31 @@ class EvolutionLoop:
         )
 
         # Build tool_definitions listing actually available learned tools
-        tools_dir = self.learned_dir / "tools"
         available_tools = []
-        if tools_dir.exists():
-            for tool_name in capability_snapshot.available_tools:
-                tool_file = tools_dir / f"{tool_name}.py"
-                meta_file = tools_dir / f"{tool_name}.json"
-                if meta_file.exists():
-                    meta = json.loads(meta_file.read_text())
-                    applicability = meta.get("applicability_conditions", "")
-                    applicability_text = f" | applies when: {applicability}" if applicability else ""
-                    available_tools.append(
-                        f"  - {tool_name}: {meta.get('description', '')}{applicability_text} | usage: {meta.get('usage_example', f'python -m tools {tool_name} <image_path>')}"
-                    )
-                else:
-                    available_tools.append(f"  - {tool_name}: python -m tools {tool_name} <image_path>")
+        builtin_specs = {tool.name: tool for tool in list_builtin_tools()}
+        for tool_name in capability_snapshot.available_tools:
+            if tool_name in builtin_specs:
+                spec = builtin_specs[tool_name]
+                available_tools.append(
+                    f"  - {tool_name}: {spec.description} | applies when: {spec.applicability} | usage: python -m tools {tool_name} <image_path>"
+                )
+                continue
+            tool_file = self.learned_dir / "tools" / f"{tool_name}.py"
+            meta_file = self.learned_dir / "tools" / f"{tool_name}.json"
+            if meta_file.exists():
+                meta = json.loads(meta_file.read_text())
+                applicability = meta.get("applicability_conditions", "")
+                applicability_text = f" | applies when: {applicability}" if applicability else ""
+                available_tools.append(
+                    f"  - {tool_name}: {meta.get('description', '')}{applicability_text} | usage: {meta.get('usage_example', f'python -m tools {tool_name} <image_path>')}"
+                )
+            elif tool_file.exists():
+                available_tools.append(f"  - {tool_name}: python -m tools {tool_name} <image_path>")
 
         if available_tools:
             tool_definitions = "Use: python -m tools <tool_name> [args]\n\nAvailable tools:\n" + "\n".join(available_tools)
         else:
-            tool_definitions = "Use: python -m tools <tool_name> [args]\n\nNo learned tools available yet."
+            tool_definitions = "Use: python -m tools <tool_name> [args]\n\nNo tools available."
 
         # Create agent
         config = AgentConfig(
@@ -510,16 +518,11 @@ class EvolutionLoop:
         family = case.capability_family().strip().lower()
 
         if dataset_name == "textvqa" or family.startswith("textvqa"):
-            no_tools_hint = (
-                "- No learned tool is required for most OCR-style questions here; if the answer is visible, "
-                "skip bash and complete immediately."
-                if not snapshot.available_tools else
-                "- Use bash only when a tool is clearly necessary; otherwise answer directly from the image."
-            )
             return (
                 "Task-specific instructions for OCR / short-answer VQA:\n"
                 "- Read the relevant text or attribute directly from the image before deciding to act.\n"
-                f"{no_tools_hint}\n"
+                "- No learned tool is required for most OCR-style questions here; if the answer is visible, skip bash and complete immediately.\n"
+                "- Use bash only when a preset tool is clearly necessary to enlarge or clarify local evidence; otherwise answer directly from the image.\n"
                 "- On your first valid completion, use exactly this format:\n"
                 "  Final Answer: <shortest exact answer string>\n"
                 "  ACTION: TASK_COMPLETE\n"
@@ -532,8 +535,10 @@ class EvolutionLoop:
 
     def _tool_availability_snapshot(self) -> ToolAvailabilitySnapshot:
         """Build the fail-closed tool inventory for the current subset."""
-        tools_dir = self.learned_dir / "tools"
         snapshot = ToolAvailabilitySnapshot()
+        snapshot.available_tools.extend(tool.name for tool in list_builtin_tools())
+
+        tools_dir = self.learned_dir / "tools"
         if not tools_dir.exists():
             return snapshot
 
@@ -546,7 +551,8 @@ class EvolutionLoop:
             if self.validator.is_untrusted_tool_code(code):
                 snapshot.untrusted_tools.append(tool_name)
             else:
-                snapshot.available_tools.append(tool_name)
+                if tool_name not in snapshot.available_tools:
+                    snapshot.available_tools.append(tool_name)
 
         for tool_name in sorted(manifest_names - py_names):
             snapshot.manifest_only_tools.append(tool_name)

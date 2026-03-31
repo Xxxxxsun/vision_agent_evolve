@@ -7,6 +7,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
+from tools.builtin_tools import execute_builtin_tool, list_builtin_tools
 from tools.dynamic_loader import discover_learned_tools, execute_learned_tool
 
 
@@ -31,6 +32,7 @@ def _discover_all_learned_tools(learned_dir: Path) -> dict[str, Path]:
 def main():
     """Main CLI dispatcher with dynamic learned tool support."""
     project_root = Path(__file__).parents[1]
+    builtin_tools = {tool.name: tool for tool in list_builtin_tools()}
     scoped_learned_dir = os.environ.get("VISION_AGENT_LEARNED_DIR", "").strip()
     if scoped_learned_dir:
         learned_dir = Path(scoped_learned_dir)
@@ -41,17 +43,25 @@ def main():
 
     if len(sys.argv) < 2:
         print("Usage: python -m tools <tool_name> [args...]")
-        print("\nNo built-in tools are enabled in this version.")
+        print("\nBuilt-in tools:")
+        for tool in sorted(builtin_tools.values(), key=lambda item: item.name):
+            print(f"  {tool.name}  - {tool.description}")
         if learned_tools:
             print("\nLearned tools:")
             for tool_name in sorted(learned_tools.keys()):
                 print(f"  {tool_name}  - Dynamically loaded")
         else:
             print("\nNo learned tools found yet.")
-            print("Run evolution first to generate tools under learned/...")
         sys.exit(1)
 
     tool_name = sys.argv[1]
+
+    if tool_name in builtin_tools:
+        if len(sys.argv) < 3:
+            print(f"Usage: python -m tools {tool_name} <image_path>")
+            sys.exit(1)
+        print(execute_builtin_tool(tool_name, sys.argv[2]))
+        return
 
     if tool_name in learned_tools:
         # Execute learned tool
@@ -62,12 +72,13 @@ def main():
         return
 
     print(f"Unknown tool: {tool_name}")
+    print("Available built-in tools:")
+    for name in sorted(builtin_tools.keys()):
+        print(f"  {name}")
     if learned_tools:
         print("Available learned tools:")
         for name in sorted(learned_tools.keys()):
             print(f"  {name}")
-    else:
-        print("No learned tools available yet.")
     sys.exit(1)
 
 

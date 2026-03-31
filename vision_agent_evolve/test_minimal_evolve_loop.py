@@ -11,6 +11,8 @@ from time import sleep
 import sys
 import os
 
+from PIL import Image
+
 from core.types import AgentResult
 from core.types import ToolResult
 from core.agent import AgentConfig, ReActAgent
@@ -20,6 +22,7 @@ from evolution.roles import AnalyzerDecider, Generator
 from evolution.store import CapabilityStore
 from evolution.types import FailureAnalysis, SkillProposal, ToolProposal, ValidationResult
 from evolution.validator import Validator
+from tools.builtin_tools import execute_builtin_tool, list_builtin_tools
 from tools.dynamic_loader import execute_learned_tool
 from run import _build_cases
 
@@ -752,6 +755,74 @@ class MinimalEvolveLoopTests(unittest.TestCase):
         self.assertIn("preserves the previously useful behavior", prompt)
         self.assertIn("<artifact_path>", prompt)
 
+    def test_generate_skill_prompt_includes_preset_tool_catalog(self):
+        client = SkillGeneratorClient(
+            textwrap.dedent(
+                """
+                {
+                  "name": "mirror_clock",
+                  "description": "Use preset tools when local evidence is hard to read.",
+                  "applicability_conditions": "Use when small local visual evidence needs clarification.",
+                  "content": "## SOP\\n1. If the evidence is a small text label, run `python -m tools localized_text_zoom <image_path>`.\\n2. Otherwise if the evidence is a small local region, run `python -m tools localized_region_zoom <image_path>`.\\n3. Wait for the Observation and inspect the artifact.\\n4. Answer the original question from the improved view.",
+                  "level": "mid",
+                  "depends_on": []
+                }
+                """
+            ).strip()
+        )
+        generator = Generator(client)
+        analysis = FailureAnalysis(
+            root_cause="Small evidence is hard to inspect.",
+            next_action="generate_skill",
+            confidence=0.8,
+            missing_step="Use a preset zoom tool before answering.",
+            skill_update_note="Branch between text zoom and generic region zoom.",
+            rationale="Preset tools should be orchestrated in the SOP.",
+        )
+
+        proposal = generator.generate_skill(
+            __import__("core.types", fromlist=["TaskCase"]).TaskCase(
+                case_id="9",
+                problem_id="mirror_clock",
+                prompt="What year is written on the sign?",
+                gold_answer="1998",
+                image_path="datasets/mira/images/9.png",
+            ),
+            analysis,
+            None,
+        )
+
+        self.assertEqual(proposal.name, "mirror_clock")
+        prompt = client.last_messages[1]["content"]
+        self.assertIn("Preset built-in tools are available for this rule:", prompt)
+        self.assertIn("localized_text_zoom", prompt)
+        self.assertIn("localized_region_zoom", prompt)
+        self.assertIn("Do not invent any new tool names.", prompt)
+
+    def test_builtin_tools_catalog_is_nonempty(self):
+        tool_names = [tool.name for tool in list_builtin_tools()]
+        self.assertIn("localized_text_zoom", tool_names)
+        self.assertIn("localized_region_zoom", tool_names)
+
+    def test_execute_builtin_tool_writes_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_path = root / "sample.png"
+            image = Image.new("RGB", (32, 32), color=(255, 255, 255))
+            image.save(image_path)
+
+            cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                output = execute_builtin_tool("localized_region_zoom", str(image_path))
+            finally:
+                os.chdir(cwd)
+
+            self.assertIn("STATUS: ok", output)
+            self.assertIn("ARTIFACTS:", output)
+            artifact_path = root / "artifacts" / "localized_region_zoom_output.png"
+            self.assertTrue(artifact_path.exists())
+
     def test_review_skill_receives_existing_sop_and_draft(self):
         client = SkillGeneratorClient(
             textwrap.dedent(
@@ -1044,6 +1115,8 @@ class MinimalEvolveLoopTests(unittest.TestCase):
             self.assertIn("Dense Caption: Unique muted green arrow.", text_part["text"])
             self.assertIn("the code must include real detection/extraction steps that use those cues", text_part["text"])
             self.assertIn("Do not skip those cues by hardcoding image-specific coordinates", text_part["text"])
+            self.assertIn("Scaffold Code Template:", text_part["text"])
+            self.assertIn("def run(image_path: str) -> ToolResult", text_part["text"])
             self.assertNotIn("Expected Answer:", text_part["text"])
             self.assertIn("Do not output the task's final answer from the tool itself.", text_part["text"])
             self.assertTrue(any(part["type"] == "image_url" for part in user_content))
@@ -1124,6 +1197,8 @@ class MinimalEvolveLoopTests(unittest.TestCase):
             self.assertFalse(result.passed)
             self.assertTrue(result.leakage_detected)
             self.assertIn("runtime output leaked", result.reason)
+            self.assertEqual(result.failure_type, "answer_leakage")
+            self.assertIsNotNone(result.revision_brief)
 
     def test_validator_restores_existing_tool_after_failed_same_name_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1166,6 +1241,39 @@ class MinimalEvolveLoopTests(unittest.TestCase):
             self.assertFalse(result.passed)
             self.assertTrue(result.replaced_existing_tool)
             self.assertEqual((tools_dir / "shared_tool.py").read_text(encoding="utf-8"), original_code)
+
+    def test_validator_rejects_case_specific_tool_with_revision_brief(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            validator = Validator(root, root / "learned")
+            case = __import__("core.types", fromlist=["TaskCase"]).TaskCase(
+                case_id="case_100",
+                problem_id="vstar",
+                prompt="Which side?",
+                gold_answer="A",
+                image_path="datasets/vstar/example_100.png",
+            )
+            proposal = ToolProposal(
+                name="left_right_relation_checker",
+                description="Case specific relation checker",
+                applicability_conditions="Use on this exact image",
+                code="from core.types import ToolResult\nX=100\nY=120\nZ=140\nW=160\nQ=180\nR=200\nS=220\nT=240\nU=260\nV=280\nA=300\nB=320\n\ndef run(image_path: str) -> ToolResult:\n    return ToolResult(status='ok', answer='', artifacts=['artifacts/out.png'])\n",
+                usage_example="python -m tools left_right_relation_checker <image_path>",
+                expected_inputs=["image_path"],
+                expected_outputs=["artifacts/out.png"],
+            )
+
+            result = validator.validate_tool(
+                proposal,
+                origin_case=case,
+                agent_factory=lambda: FakeAgent(""),
+                regression_cases=None,
+            )
+
+            self.assertFalse(result.passed)
+            self.assertEqual(result.failure_type, "case_specific_logic")
+            self.assertIsNotNone(result.revision_brief)
+            self.assertEqual(result.revision_brief.retry_action, "revise_tool")
 
     def test_build_chain_context_fails_closed_for_manifest_only_tool(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1228,7 +1336,7 @@ class MinimalEvolveLoopTests(unittest.TestCase):
             agent = loop._create_agent(case)
 
             self.assertNotIn("ghost_tool", agent.system_prompt)
-            self.assertIn("No learned tools available yet.", agent.system_prompt)
+            self.assertIn("localized_text_zoom", agent.system_prompt)
 
     def test_required_tool_blocks_premature_task_complete(self):
         client = ScriptedClient([

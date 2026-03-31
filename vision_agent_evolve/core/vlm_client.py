@@ -136,6 +136,10 @@ class VLMClient:
             "quota_id": self.quota_id,
             "app": self.app,
         }
+        if self._is_gemini_model():
+            payload["params"] = self._gemini_params(settings)
+            payload["tag"] = os.getenv("VLM_TAG", "").strip() or "web_chat_client"
+            payload["category"] = os.getenv("VLM_CATEGORY", "").strip() or "问答"
 
         req = request.Request(
             self.base_url,
@@ -221,9 +225,10 @@ class VLMClient:
             return "alibaba_chat"
         return "openai"
 
-    @staticmethod
-    def _serialize_prompt(messages: list[dict[str, Any]]) -> str | list[dict[str, Any]]:
-        """Map internal chat messages to the Alibaba prompt format."""
+    def _serialize_prompt(self, messages: list[dict[str, Any]]) -> str | list[dict[str, Any]]:
+        """Map internal chat messages to the backend-specific prompt format."""
+        if self._is_gemini_model():
+            return self._serialize_prompt_gemini(messages)
         if (
             len(messages) == 1
             and messages[0].get("role") == "user"
@@ -231,6 +236,100 @@ class VLMClient:
         ):
             return str(messages[0]["content"])
         return messages
+
+    def _is_gemini_model(self) -> bool:
+        return self.api_style == "alibaba_chat" and "gemini" in self.model.strip().lower()
+
+    def _gemini_params(self, settings: ModelSettings) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "use_gemini_httpstream_api": "1",
+            "temperature": settings.temperature,
+            "maxOutputTokens": settings.max_tokens,
+            # Keep both spellings for proxy compatibility; docs and examples conflict.
+            "max_tokens": settings.max_tokens,
+            # Avoid returning thought traces to the caller.
+            "includeThoughts": False,
+            "thinkingBudget": max(256, settings.max_tokens // 2),
+        }
+        response_mime_type = os.getenv("VLM_GEMINI_RESPONSE_MIME_TYPE", "").strip()
+        if response_mime_type:
+            params["responseMimeType"] = response_mime_type
+        return params
+
+    def _serialize_prompt_gemini(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        prompt: list[dict[str, Any]] = []
+        system_texts: list[str] = []
+        for message in messages:
+            role = str(message.get("role", "user")).strip().lower() or "user"
+            content = message.get("content", "")
+            if role == "system":
+                system_text = self._flatten_system_content(content)
+                if system_text:
+                    system_texts.append(system_text)
+                continue
+
+            parts = self._gemini_parts_from_content(content)
+            if system_texts and role == "user":
+                prefix = "\n\n".join(system_texts)
+                parts = [{"text": f"System instruction:\n{prefix}"}] + parts
+                system_texts = []
+            prompt.append(
+                {
+                    "role": "model" if role == "assistant" else "user",
+                    "parts": parts or [{"text": ""}],
+                }
+            )
+        if system_texts and not prompt:
+            prompt.append({"role": "user", "parts": [{"text": "\n\n".join(system_texts)}]})
+        return prompt
+
+    def _gemini_parts_from_content(self, content: Any) -> list[dict[str, Any]]:
+        if isinstance(content, str):
+            return [{"text": content}]
+        if not isinstance(content, list):
+            return [{"text": str(content)}]
+
+        parts: list[dict[str, Any]] = []
+        for item in content:
+            if not isinstance(item, dict):
+                parts.append({"text": str(item)})
+                continue
+            item_type = str(item.get("type", "")).strip().lower()
+            if item_type == "text":
+                parts.append({"text": str(item.get("text", ""))})
+                continue
+            if item_type == "image_url":
+                image_url = item.get("image_url") or {}
+                url = str(image_url.get("url", ""))
+                mime_type, data = self._gemini_inline_data(url)
+                parts.append({"inlineData": {"mimeType": mime_type, "data": data}})
+                continue
+            parts.append({"text": str(item)})
+        return parts
+
+    @staticmethod
+    def _flatten_system_content(content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if not isinstance(content, list):
+            return str(content)
+        texts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and str(item.get("type", "")).strip().lower() == "text":
+                texts.append(str(item.get("text", "")))
+            else:
+                texts.append(str(item))
+        return "\n".join(texts).strip()
+
+    @staticmethod
+    def _gemini_inline_data(url: str) -> tuple[str, str]:
+        if url.startswith("data:"):
+            header, encoded = url.split(",", 1)
+            mime_type = header.split(":", 1)[1].split(";", 1)[0]
+            return mime_type, encoded
+        if url.startswith("http://") or url.startswith("https://"):
+            return "image/png", url
+        raise ValueError(f"Unsupported Gemini image payload: {url[:80]}")
 
     @staticmethod
     def image_message_parts(image_path: str, text: str) -> list[dict[str, Any]]:

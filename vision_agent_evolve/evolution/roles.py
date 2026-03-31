@@ -9,7 +9,8 @@ from typing import Any
 from core.vlm_client import VLMClient, ModelSettings, UsageStats
 from core.types import AgentResult, TaskCase
 from skills.base import Skill
-from .types import FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, ToolChainContext
+from tools.builtin_tools import list_builtin_tools
+from .types import CoverageContract, FailedDirection, FailureAnalysis, MasteryProfile, MasteryStrategyCandidate, RevisionBrief, ToolProposal, SkillProposal, ToolChainContext
 
 
 class AnalyzerDecider:
@@ -352,9 +353,11 @@ class Generator:
         case: TaskCase,
         analysis: FailureAnalysis,
         chain_context: ToolChainContext | None = None,
+        training_context: str = "",
+        coverage_contract: CoverageContract | None = None,
     ) -> ToolProposal:
         """Generate a new tool based on failure analysis."""
-        prompt = self._build_tool_prompt(case, analysis, chain_context)
+        prompt = self._build_tool_prompt(case, analysis, chain_context, training_context, coverage_contract)
         messages = self._build_tool_messages(case, prompt, chain_context)
 
         response, usage = self.client.chat(messages, ModelSettings(temperature=0.4, max_tokens=12000))
@@ -395,9 +398,18 @@ class Generator:
             {"role": "user", "content": content if len(content) > 1 else prompt},
         ]
 
-    def _build_tool_prompt(self, case: TaskCase, analysis: FailureAnalysis, chain_context: ToolChainContext | None) -> str:
+    def _build_tool_prompt(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        chain_context: ToolChainContext | None,
+        training_context: str,
+        coverage_contract: CoverageContract | None,
+    ) -> str:
         chain_summary = chain_context.summary() if chain_context else "No existing tool chain."
         latest_artifact = chain_context.latest_artifact if chain_context else ""
+        primitive_category = coverage_contract.primitive_category if coverage_contract else ""
+        tool_skeleton = self._tool_skeleton_guidance(case, primitive_category)
         return f"""You are generating a new Python tool to solve a vision task.
 
 Task: {case.prompt}
@@ -411,7 +423,21 @@ Failure Analysis:
 Existing Tool Chain:
 {chain_summary}
 
-Generate a simple, focused tool that addresses this specific need.
+Aggregated Training Context:
+{training_context or "No aggregated training context provided."}
+
+Coverage Contract:
+{self._format_coverage_contract(coverage_contract)}
+
+Primitive Skeleton Guidance:
+{tool_skeleton}
+
+Scaffold Code Template:
+```python
+{self._tool_code_scaffold(case, primitive_category)}
+```
+
+Generate one reusable family-level primitive tool, not a case-solving tool.
 
 CRITICAL REQUIREMENTS:
 - Maximum 150 lines of code
@@ -428,11 +454,21 @@ CRITICAL REQUIREMENTS:
 - Prefer a single short script over framework-heavy structure
 - Do not rely on custom CLI parsing; runtime can call `run(image_path)` directly
 - The easiest successful tools are usually: load image -> transform image -> save artifact -> return ToolResult
+- Prefer image-derived quantities over fixed numeric literals. A few small constants are fine, but avoid many bespoke thresholds.
 - If there is already a tool chain, design this tool as the next processing step after the latest artifact: `{latest_artifact or "<artifact_path>"}`.
 - If the dense caption or failure analysis provides measurable visual cues (for example colors, markers, geometry, orientations, or other detectable properties), the code must include real detection/extraction steps that use those cues.
 - Do not skip those cues by hardcoding image-specific coordinates, fixed vectors, or a fixed final answer in place of detection.
 - Do not output the task's final answer from the tool itself.
 - `ToolResult.answer` should usually be empty, or at most a short intermediate status/result summary that helps debugging without solving the task for the agent.
+- Design for the recurring family/cluster pattern in the aggregated training context, not just this single representative case.
+- Implement exactly one primitive visual operation or extraction step that a family skill can orchestrate later.
+- Do not combine multiple unrelated transformations or solve the question end-to-end inside the tool.
+- Do not compute the final arithmetic/comparison answer for the task. Only produce an artifact or an intermediate signal.
+- Do not encode fixed coordinates, hardcoded answer options, fixed years, fixed counts, or per-example threshold tables.
+- Avoid fixed coordinates, case ids, one-off text literals from this example, or logic that only makes sense for one image.
+- Applicability conditions must describe when this tool should be used across the family, including at least one variation pattern seen in the training context.
+- Preserve the scaffold's overall control flow and helper structure unless there is a strong reason not to.
+- Replace only the marked TODO sections or helper internals with family-generic logic.
 
 Follow this EXACT structure:
 
@@ -476,7 +512,8 @@ Provide response as JSON:
     "code": "full Python code (with main() function)",
     "usage_example": "python -m tools tool_name <image_path>",
     "expected_inputs": ["image_path", "other params if needed"],
-    "expected_outputs": ["description of output", "artifacts/output.png"]
+    "expected_outputs": ["description of output", "artifacts/output.png"],
+    "primitive_category": "family primitive category"
 }}
 
 IMPORTANT:
@@ -502,23 +539,26 @@ IMPORTANT:
         tool_proposal: ToolProposal | None = None,
         existing_skill_content: str | None = None,
         chain_context: ToolChainContext | None = None,
+        training_context: str = "",
+        coverage_contract: CoverageContract | None = None,
     ) -> SkillProposal:
         """Generate a new skill based on failure analysis."""
 
-        tool_context = ""
+        preset_catalog = self._format_preset_tool_catalog()
+        tool_context = f"""
+Preset built-in tools are available for this rule:
+{preset_catalog}
+
+The skill MUST select from this preset catalog only.
+"""
         if tool_proposal:
-            tool_context = f"""
-A tool is available for this task family:
+            tool_context += f"""
+One newly staged tool is also available in this draft:
 - Name: {tool_proposal.name}
 - Description: {tool_proposal.description}
 - Usage: {tool_proposal.usage_example}
 
-The skill MUST tell the solver to use this tool first when the rule applies.
-"""
-        else:
-            tool_context = """
-No tool is available for this rule.
-Write only a short solver rule. Do not invent any tools.
+If you reference it, preserve the preset-tool branches too.
 """
 
         existing_sop_context = ""
@@ -541,14 +581,19 @@ Current failure: {analysis.root_cause}
 Missing step: {analysis.missing_step}
 Skill update note: {analysis.skill_update_note or analysis.rationale}
 Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+Aggregated training context: {training_context or "No aggregated training context provided."}
+Coverage contract: {self._format_coverage_contract(coverage_contract)}
 
 {tool_context}
 {existing_sop_context}
 
 IMPORTANT CONTEXT:
 - This skill is for future solves of THIS task family only.
+- This skill should orchestrate the preset family tools with explicit branches when different cluster patterns need different primitives.
 - The current question, image path, and dense caption are provided only so you can avoid copying sample-specific details into the SOP.
 - The updated SOP must explicitly state its applicability conditions, including when the original tool alone is enough and when an added step/tool is needed.
+- The SOP must cover the recurring family-level patterns in the aggregated training context, not only the current example.
+- If the training context shows multiple cluster variants, the SOP should include branch conditions instead of one fixed procedure.
 - Keep it short and operational.
 - Write it as an SOP, not as background explanation.
 - Make it reusable across future examples in the same task family.
@@ -559,7 +604,10 @@ IMPORTANT CONTEXT:
   2. ...
   3. ...
   4. ...
-- If a tool is provided, step 1 or step 2 must contain the exact command pattern `python -m tools {tool_proposal.name if tool_proposal else "<tool_name>"} <image_path>`.
+- At least one step must explicitly branch, for example "If ... use tool A, otherwise ...".
+- Step 1 or step 2 must contain at least one exact command pattern such as `python -m tools localized_text_zoom <image_path>`.
+- Only reference preset tools from the catalog above unless a staged tool is explicitly listed.
+- Do not invent any new tool names.
 - If this SOP extends an existing tool chain, write the next tool step using `<artifact_path>` as the input placeholder.
 - When a prior tool already exists, preserve that earlier step and add the new step after it.
 - Always use the placeholder `<image_path>`, not a concrete dataset path.
@@ -597,12 +645,217 @@ Provide response as JSON:
 
         return self._normalize_skill_proposal(case, analysis, proposal_dict, tool_proposal, existing_skill_content)
 
+    def generate_mastery_candidates(
+        self,
+        case: TaskCase,
+        training_context: str,
+        coverage_contract: CoverageContract | None = None,
+        existing_skill_content: str | None = None,
+    ) -> list[MasteryStrategyCandidate]:
+        preset_catalog = self._format_preset_tool_catalog()
+        prompt = f"""You are proposing candidate tool-usage strategies for a mastery phase.
+
+Task family: {case.capability_family()}
+Current question: {case.prompt}
+Coverage contract: {self._format_coverage_contract(coverage_contract)}
+Aggregated training context: {training_context or "No aggregated training context provided."}
+Existing family skill:
+{existing_skill_content or "N/A"}
+
+Available preset tools:
+{preset_catalog}
+
+Return JSON only:
+{{
+  "candidates": [
+    {{
+      "name": "short strategy name",
+      "tool_sequence": ["tool_a", "tool_b"],
+      "trigger_conditions": ["when this strategy should be used"],
+      "avoid_conditions": ["when not to use it"],
+      "fallback_action": "answer_directly|use_existing_skill",
+      "rationale": "why this strategy should work"
+    }}
+  ]
+}}
+
+Rules:
+- Propose 2 to 4 candidates.
+- Only use tools from the preset catalog.
+- Focus on when to use tools, when not to use them, and when to chain them.
+- At least one candidate may choose no tool if direct reasoning is better.
+- Keep trigger and avoid conditions family-level, not one-case-specific.
+"""
+        messages = [
+            {"role": "system", "content": "You design compact mastery strategies. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=3000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/MasteryCandidates] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        payload = self._extract_json(response)
+        candidates = self._normalize_mastery_candidates(payload.get("candidates", []))
+        if candidates:
+            return candidates
+        return self._fallback_mastery_candidates(case, coverage_contract)
+
+    def distill_mastery_skill(
+        self,
+        case: TaskCase,
+        analysis: FailureAnalysis,
+        mastery_profile: MasteryProfile,
+        existing_skill_content: str | None = None,
+        training_context: str = "",
+        coverage_contract: CoverageContract | None = None,
+    ) -> SkillProposal:
+        prompt = f"""You are distilling a final mastery skill from an evaluated tool-boundary profile.
+
+Task family: {case.capability_family()}
+Current question: {case.prompt}
+Coverage contract: {self._format_coverage_contract(coverage_contract)}
+Aggregated training context: {training_context or "No aggregated training context provided."}
+Existing skill:
+{existing_skill_content or "N/A"}
+
+Mastery profile:
+{self._format_mastery_profile(mastery_profile)}
+
+Return JSON only:
+{{
+    "name": "{case.capability_family()}",
+    "description": "one sentence describing the mastery SOP",
+    "applicability_conditions": "when this mastery SOP applies",
+    "content": "short markdown SOP only",
+    "level": "mid",
+    "depends_on": []
+}}
+
+Rules:
+- The SOP must be derived from the mastery profile, not from one current example.
+- Include explicit positive trigger conditions and negative trigger conditions.
+- Reference only tools that appear in the mastery profile.
+- If the profile says to avoid tools for some pattern, include a no-tool branch.
+- Keep it short and operational.
+"""
+        messages = [
+            {"role": "system", "content": "You distill mastery profiles into reusable SOPs. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=5000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/MasterySkill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal_dict = self._extract_json(response)
+        proposal = self._normalize_skill_proposal(case, analysis, proposal_dict, None, existing_skill_content)
+        if not proposal.content.strip() or "## SOP" not in proposal.content:
+            proposal.content = self._build_mastery_skill_content(mastery_profile)
+        if not proposal.applicability_conditions.strip():
+            proposal.applicability_conditions = self._sanitize_applicability(
+                "; ".join(mastery_profile.recommended_trigger_conditions or mastery_profile.common_success_signals)
+            )
+        return proposal
+
+    @staticmethod
+    def _format_preset_tool_catalog() -> str:
+        lines: list[str] = []
+        for spec in list_builtin_tools():
+            lines.append(
+                f"- {spec.name}: {spec.description} | applies when: {spec.applicability} | notes: {spec.benchmark_notes}"
+            )
+        return "\n".join(lines) or "- none"
+
+    def _format_mastery_profile(self, profile: MasteryProfile) -> str:
+        return (
+            f"primary_tool={profile.primary_tool or 'none'}; "
+            f"tool_sequence={', '.join(profile.tool_sequence) or 'none'}; "
+            f"supported_patterns={'; '.join(profile.supported_cluster_patterns) or 'N/A'}; "
+            f"negative_patterns={'; '.join(profile.negative_cluster_patterns) or 'N/A'}; "
+            f"trigger={'; '.join(profile.recommended_trigger_conditions) or 'N/A'}; "
+            f"avoid={'; '.join(profile.negative_trigger_conditions) or 'N/A'}; "
+            f"success_signals={'; '.join(profile.common_success_signals) or 'N/A'}; "
+            f"failure_signals={'; '.join(profile.common_failure_signals) or 'N/A'}; "
+            f"best_chain={'; '.join(profile.best_chain_patterns) or 'N/A'}; "
+            f"bad_chain={'; '.join(profile.bad_chain_patterns) or 'N/A'}; "
+            f"coverage={profile.coverage:.3f}; precision={profile.precision:.3f}; delta={profile.score_delta:.3f}"
+        )
+
+    def _normalize_mastery_candidates(self, raw_candidates: list[Any]) -> list[MasteryStrategyCandidate]:
+        available = {spec.name for spec in list_builtin_tools()}
+        normalized: list[MasteryStrategyCandidate] = []
+        for index, item in enumerate(raw_candidates[:4], start=1):
+            if not isinstance(item, dict):
+                continue
+            tools = [str(tool).strip() for tool in item.get("tool_sequence", []) if str(tool).strip() in available]
+            candidate = MasteryStrategyCandidate(
+                name=str(item.get("name", "")).strip() or f"strategy_{index}",
+                tool_sequence=tools,
+                trigger_conditions=[str(value).strip() for value in item.get("trigger_conditions", []) if str(value).strip()],
+                avoid_conditions=[str(value).strip() for value in item.get("avoid_conditions", []) if str(value).strip()],
+                fallback_action=str(item.get("fallback_action", "answer_directly")).strip() or "answer_directly",
+                rationale=str(item.get("rationale", "")).strip(),
+            )
+            normalized.append(candidate)
+        return normalized
+
+    def _fallback_mastery_candidates(
+        self,
+        case: TaskCase,
+        coverage_contract: CoverageContract | None,
+    ) -> list[MasteryStrategyCandidate]:
+        primitive = (coverage_contract.primitive_category if coverage_contract else "").strip()
+        if primitive and primitive in {spec.name for spec in list_builtin_tools()}:
+            return [
+                MasteryStrategyCandidate(
+                    name=f"{primitive}_primary",
+                    tool_sequence=[primitive],
+                    trigger_conditions=[f"use when the family pattern matches {primitive} evidence needs"],
+                    avoid_conditions=["skip when direct reading or reasoning already resolves the case reliably"],
+                    fallback_action="answer_directly",
+                    rationale="Primary single-tool mastery candidate derived from the family primitive.",
+                ),
+                MasteryStrategyCandidate(
+                    name="no_tool_fallback",
+                    tool_sequence=[],
+                    trigger_conditions=["use when the question is already directly answerable from the raw image"],
+                    avoid_conditions=[f"avoid when {primitive} is clearly needed to localize evidence"],
+                    fallback_action="answer_directly",
+                    rationale="No-tool baseline for boundary discovery.",
+                ),
+            ]
+        return [
+            MasteryStrategyCandidate(
+                name="no_tool_fallback",
+                tool_sequence=[],
+                trigger_conditions=["use when the task is directly answerable without preprocessing"],
+                avoid_conditions=[],
+                fallback_action="answer_directly",
+                rationale="Fallback mastery baseline without tools.",
+            )
+        ]
+
+    def _build_mastery_skill_content(self, profile: MasteryProfile) -> str:
+        primary_tool = profile.primary_tool or (profile.tool_sequence[0] if profile.tool_sequence else "")
+        first_command = f"`python -m tools {primary_tool} <image_path>`" if primary_tool else "no tool command"
+        second_command = ""
+        if len(profile.tool_sequence) > 1:
+            second_command = f" then `python -m tools {profile.tool_sequence[1]} <artifact_path>`"
+        trigger = self._strip_bullet("; ".join(profile.recommended_trigger_conditions or profile.common_success_signals) or "the current image matches the profiled tool-trigger pattern")
+        avoid = self._strip_bullet("; ".join(profile.negative_trigger_conditions or profile.common_failure_signals) or "direct answering is already sufficient")
+        return "\n".join([
+            "## SOP",
+            f"1. Confirm this applies: {trigger}",
+            f"2. If the current case matches that trigger, run {first_command}{second_command} and wait for the Observation before answering.",
+            f"3. If the case instead matches this avoid condition, skip the tool path and answer directly: {avoid}.",
+            "4. Answer the original question from the final artifact when the tool path is used; otherwise answer from the raw image.",
+        ])
+
     def generate_code_writing_skill(
         self,
         case: TaskCase,
         analysis: FailureAnalysis,
         existing_skill_content: str | None = None,
         chain_context: ToolChainContext | None = None,
+        training_context: str = "",
+        coverage_contract: CoverageContract | None = None,
     ) -> SkillProposal:
         """Generate a skill that teaches the solver to write temporary Python editing code."""
 
@@ -626,12 +879,15 @@ Current failure: {analysis.root_cause}
 Missing step: {analysis.missing_step}
 Skill update note: {analysis.skill_update_note or analysis.rationale}
 Current chain summary: {chain_context.summary() if chain_context else "No existing tool chain."}
+Aggregated training context: {training_context or "No aggregated training context provided."}
+Coverage contract: {self._format_coverage_contract(coverage_contract)}
 
 {existing_sop_context}
 
 IMPORTANT CONTEXT:
 - This skill is for future solves of THIS task family only.
 - The skill must teach the solver how to write temporary Python image-editing code at solve time.
+- The SOP must reflect recurring family-level conditions from the aggregated training context, not a one-case editing trick.
 - The temporary code should remove or weaken irrelevant visual content, preserve only the evidence needed for the question, and save an edited image under `artifacts/`.
 - The solver must observe the edited image before answering.
 - Do not invent a permanent tool name or a learned tool registration step.
@@ -676,6 +932,147 @@ Provide response as JSON:
         print(f"  [Generator/CodeSkill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
         proposal_dict = self._extract_json(response)
         return self._normalize_code_skill_proposal(case, analysis, proposal_dict, existing_skill_content)
+
+    def generate_coverage_contract(
+        self,
+        case: TaskCase,
+        target_cluster_ids: list[str],
+        training_context: str,
+        representative_case_summaries: list[str],
+        planner_action: str,
+    ) -> CoverageContract:
+        prompt = f"""You are writing a reusable coverage contract before generating a capability.
+
+Task family: {case.capability_family()}
+Representative case summaries:
+{chr(10).join(representative_case_summaries) or "N/A"}
+
+Aggregated training context:
+{training_context or "No aggregated training context provided."}
+
+Planner requested action: {planner_action}
+
+Return JSON only:
+{{
+  "target_family": "{case.capability_family()}",
+  "target_cluster_ids": {json.dumps(target_cluster_ids)},
+  "problem_pattern": "short family-level pattern",
+  "supported_variations": ["variation 1", "variation 2"],
+  "unsupported_variations": ["variation outside intended scope"],
+  "forbidden_case_specific_assumptions": ["do not hardcode one image", "no one-off coordinates"],
+  "primitive_category": "localized_text_zoom|localized_color_focus|relative_position_marker|chart_value_overlay|count_support_view|generic_visual_focus",
+  "tool_validation_scope": "cluster|family",
+  "recommended_action": "generate_tool|generate_skill|generate_both|generate_code_skill|give_up",
+  "why_this_should_generalize": "short reason"
+}}
+
+        Rules:
+- Summarize the cluster-level pattern, not individual case trivia.
+- Prefer one reusable primitive category rather than a full end-to-end solver tool.
+- If the family/problem looks theorem-like, symbolic, or text-reasoning dominant, prefer generate_skill.
+- If the pattern is not stable enough for a reusable tool, prefer generate_skill.
+- Keep forbidden assumptions concrete and anti-overfitting.
+"""
+        messages = [
+            {"role": "system", "content": "You write compact capability coverage contracts. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=2000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/Coverage] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        return self._normalize_coverage_contract(case.capability_family(), target_cluster_ids, self._extract_json(response), planner_action)
+
+    def revise_tool(
+        self,
+        tool: ToolProposal,
+        revision_brief: RevisionBrief,
+        coverage_contract: CoverageContract | None,
+        training_context: str,
+    ) -> ToolProposal:
+        prompt = f"""Revise this tool proposal according to the validator feedback.
+
+Current tool name: {tool.name}
+Current description: {tool.description}
+Current applicability: {tool.applicability_conditions}
+Current usage: {tool.usage_example}
+Current code:
+{tool.code}
+
+Coverage contract:
+{self._format_coverage_contract(coverage_contract)}
+
+Aggregated training context:
+{training_context}
+
+Revision brief:
+{self._format_revision_brief(revision_brief)}
+
+Return JSON only with the same schema as tool generation.
+Rules:
+- Keep the tool name the same unless impossible.
+- Satisfy every rewrite requirement.
+- Remove banned patterns explicitly.
+"""
+        messages = [
+            {"role": "system", "content": "You revise reusable vision tools. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=12000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/ToolRevision] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal = self._normalize_tool_proposal(self._extract_json(response))
+        proposal.name = tool.name
+        proposal.usage_example = f"python -m tools {tool.name} <image_path>"
+        if not proposal.primitive_category:
+            proposal.primitive_category = tool.primitive_category or (coverage_contract.primitive_category if coverage_contract else "")
+        return proposal
+
+    def revise_skill(
+        self,
+        skill: SkillProposal,
+        revision_brief: RevisionBrief,
+        coverage_contract: CoverageContract | None,
+        training_context: str,
+    ) -> SkillProposal:
+        prompt = f"""Revise this skill proposal according to the validator feedback.
+
+Current skill name: {skill.name}
+Current description: {skill.description}
+Current applicability: {skill.applicability_conditions}
+Current content:
+{skill.content}
+
+Coverage contract:
+{self._format_coverage_contract(coverage_contract)}
+
+Aggregated training context:
+{training_context}
+
+Revision brief:
+{self._format_revision_brief(revision_brief)}
+
+Return JSON only with the same schema as skill generation.
+Rules:
+- Keep the skill name the same.
+- Satisfy every rewrite requirement.
+- Remove banned patterns explicitly.
+"""
+        messages = [
+            {"role": "system", "content": "You revise reusable task-family SOPs. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        response, usage = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=6000))
+        self.total_usage = self.total_usage + usage
+        print(f"  [Generator/SkillRevision] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
+        proposal = self._normalize_skill_proposal(
+            TaskCase(case_id="", problem_id=skill.name, prompt="", gold_answer=""),
+            FailureAnalysis(root_cause=revision_brief.reason, next_action="generate_skill", confidence=0.0),
+            self._extract_json(response),
+            None,
+            skill.content,
+        )
+        proposal.name = skill.name
+        return proposal
 
     def review_skill(
         self,
@@ -868,6 +1265,57 @@ Return JSON:
                 pass
         return {}
 
+    def _normalize_coverage_contract(
+        self,
+        target_family: str,
+        target_cluster_ids: list[str],
+        payload: dict[str, Any],
+        fallback_action: str,
+    ) -> CoverageContract:
+        recommended_action = str(payload.get("recommended_action", "")).strip() or fallback_action
+        if recommended_action not in {"generate_tool", "generate_skill", "generate_both", "generate_code_skill", "give_up"}:
+            recommended_action = fallback_action
+        return CoverageContract(
+            target_family=str(payload.get("target_family", "")).strip() or target_family,
+            target_cluster_ids=[str(item) for item in payload.get("target_cluster_ids", target_cluster_ids)],
+            problem_pattern=str(payload.get("problem_pattern", "")).strip() or "Reusable family-level failure pattern.",
+            supported_variations=[str(item).strip() for item in payload.get("supported_variations", []) if str(item).strip()],
+            unsupported_variations=[str(item).strip() for item in payload.get("unsupported_variations", []) if str(item).strip()],
+            forbidden_case_specific_assumptions=[
+                str(item).strip() for item in payload.get("forbidden_case_specific_assumptions", []) if str(item).strip()
+            ],
+            primitive_category=str(payload.get("primitive_category", "")).strip() or "generic_visual_focus",
+            tool_validation_scope=str(payload.get("tool_validation_scope", "cluster")).strip() in {"family"} and "family" or "cluster",
+            recommended_action=recommended_action,  # type: ignore[arg-type]
+            why_this_should_generalize=str(payload.get("why_this_should_generalize", "")).strip() or "Covers a repeated cluster-level pattern rather than a single example.",
+        )
+
+    def _format_coverage_contract(self, contract: CoverageContract | None) -> str:
+        if contract is None:
+            return "No coverage contract available."
+        return (
+            f"family={contract.target_family}; clusters={','.join(contract.target_cluster_ids) or 'N/A'}; "
+            f"pattern={contract.problem_pattern or 'N/A'}; "
+            f"supported={'; '.join(contract.supported_variations) or 'N/A'}; "
+            f"unsupported={'; '.join(contract.unsupported_variations) or 'N/A'}; "
+            f"forbidden={'; '.join(contract.forbidden_case_specific_assumptions) or 'N/A'}; "
+            f"primitive_category={contract.primitive_category or 'N/A'}; "
+            f"tool_validation_scope={contract.tool_validation_scope}; "
+            f"recommended_action={contract.recommended_action}; "
+            f"why={contract.why_this_should_generalize or 'N/A'}"
+        )
+
+    def _format_revision_brief(self, brief: RevisionBrief | None) -> str:
+        if brief is None:
+            return "No revision brief available."
+        return (
+            f"failure_type={brief.failure_type}; reason={brief.reason}; "
+            f"evidence={'; '.join(brief.evidence) or 'N/A'}; "
+            f"rewrite_requirements={'; '.join(brief.rewrite_requirements) or 'N/A'}; "
+            f"banned_patterns={'; '.join(brief.banned_patterns) or 'N/A'}; "
+            f"retry_action={brief.retry_action}"
+        )
+
     def _normalize_tool_proposal(self, proposal_dict: dict[str, Any]) -> ToolProposal:
         """Normalize generator output into the runtime contract."""
         raw_name = str(proposal_dict.get("name", "unnamed_tool"))
@@ -885,7 +1333,164 @@ Return JSON:
             usage_example=str(usage_example).replace("python learned/tools/", "python -m tools ").replace(".py", ""),
             expected_inputs=list(proposal_dict.get("expected_inputs", ["image_path"])),
             expected_outputs=list(proposal_dict.get("expected_outputs", [f"artifacts/{name}_output.png"])),
+            primitive_category=str(proposal_dict.get("primitive_category", "")).strip(),
         )
+
+    def _tool_skeleton_guidance(self, case: TaskCase, primitive_category: str) -> str:
+        dataset_name = str(case.metadata.get("dataset_name", "")).strip().lower() if hasattr(case, "metadata") else ""
+        if primitive_category == "chart_value_overlay" or dataset_name == "chartqa":
+            return (
+                "- Allowed flow: detect chart region -> detect bars/series geometry from the image -> draw overlay/labels -> save artifact.\n"
+                "- The tool must not return numeric chart answers or perform dataset-specific scale lookup.\n"
+                "- Avoid fixed pixel x/y positions, fixed axis ranges, hardcoded years/countries/categories, or hand-tuned threshold tables.\n"
+                "- Prefer producing an overlay artifact that helps the solver read the chart manually."
+            )
+        if dataset_name == "mathvista":
+            return (
+                "- Allowed flow: highlight/count candidate objects, mark relative positions, or crop a localized evidence region -> save artifact.\n"
+                "- The tool must not solve geometry, arithmetic, or multiple-choice reasoning inside code.\n"
+                "- Avoid age/angle/count answer literals, absolute coordinates, and any one-image layout assumptions."
+            )
+        if primitive_category in {"localized_color_focus", "localized_text_zoom"}:
+            return (
+                "- Allowed flow: isolate a local region, boost contrast/zoom, or mark candidate regions -> save artifact.\n"
+                "- The tool must not map visual evidence directly to final answer options."
+            )
+        if primitive_category == "relative_position_marker":
+            return (
+                "- Allowed flow: detect salient objects/regions, mark relative left-right or top-bottom relations, and save an annotated image.\n"
+                "- The tool must not emit the final relational answer directly."
+            )
+        return (
+            "- Keep the tool to one primitive visual transformation or annotation step.\n"
+            "- Save an artifact that helps the solver reason, rather than solving the task in code."
+        )
+
+    def _tool_code_scaffold(self, case: TaskCase, primitive_category: str) -> str:
+        dataset_name = str(case.metadata.get("dataset_name", "")).strip().lower() if hasattr(case, "metadata") else ""
+        if primitive_category == "chart_value_overlay" or dataset_name == "chartqa":
+            return """from core.types import ToolResult
+from tools.implementations.shared import load_image, save_image
+import cv2
+import numpy as np
+
+def _find_chart_region(image: np.ndarray) -> tuple[int, int, int, int]:
+    h, w = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 40, 120)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    best = (0, 0, w, h)
+    best_area = 0
+    image_area = float(h * w)
+    for contour in contours:
+        x, y, cw, ch = cv2.boundingRect(contour)
+        area = float(cw * ch)
+        if area < image_area * 0.08:
+            continue
+        if area > best_area:
+            best = (x, y, cw, ch)
+            best_area = area
+    return best
+
+def run(image_path: str) -> ToolResult:
+    try:
+        image = load_image(image_path)
+        overlay = image.copy()
+        x, y, w, h = _find_chart_region(image)
+        cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 255), 2)
+        # TODO: detect bar-like regions inside the chart box using relative geometry only.
+        # TODO: draw generic overlays/labels that help a solver read values manually.
+        output_path = "artifacts/chart_value_overlay_output.png"
+        save_image(overlay, output_path)
+        return ToolResult(status="ok", answer="", artifacts=[output_path])
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+"""
+        if dataset_name == "mathvista" or primitive_category == "relative_position_marker":
+            return """from core.types import ToolResult
+from tools.implementations.shared import load_image, save_image
+import cv2
+import numpy as np
+
+def _candidate_regions(image: np.ndarray) -> list[tuple[int, int, int, int]]:
+    h, w = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blur, 50, 150)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    boxes: list[tuple[int, int, int, int]] = []
+    image_area = float(h * w)
+    for contour in contours:
+        x, y, bw, bh = cv2.boundingRect(contour)
+        area = float(bw * bh)
+        if area < image_area * 0.01 or area > image_area * 0.8:
+            continue
+        boxes.append((x, y, bw, bh))
+    return boxes
+
+def run(image_path: str) -> ToolResult:
+    try:
+        image = load_image(image_path)
+        overlay = image.copy()
+        boxes = _candidate_regions(image)
+        for x, y, w, h in boxes[:12]:
+            cv2.rectangle(overlay, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # TODO: mark generic relative-position or evidence regions without computing the final answer.
+        output_path = "artifacts/relative_position_marker_output.png"
+        save_image(overlay, output_path)
+        return ToolResult(status="ok", answer="", artifacts=[output_path])
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+"""
+        if primitive_category in {"localized_color_focus", "localized_text_zoom"} or dataset_name == "hrbench":
+            return """from core.types import ToolResult
+from tools.implementations.shared import load_image, save_image
+import cv2
+import numpy as np
+
+def _proposal_regions(image: np.ndarray) -> list[tuple[int, int, int, int]]:
+    h, w = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    grad_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    grad_y = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    mag = cv2.convertScaleAbs(cv2.magnitude(grad_x, grad_y))
+    _, mask = cv2.threshold(mag, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    image_area = float(h * w)
+    boxes: list[tuple[int, int, int, int]] = []
+    for contour in contours:
+        x, y, bw, bh = cv2.boundingRect(contour)
+        area = float(bw * bh)
+        if area < image_area * 0.005 or area > image_area * 0.6:
+            continue
+        boxes.append((x, y, bw, bh))
+    return boxes
+
+def run(image_path: str) -> ToolResult:
+    try:
+        image = load_image(image_path)
+        overlay = image.copy()
+        for x, y, w, h in _proposal_regions(image)[:10]:
+            cv2.rectangle(overlay, (x, y), (x + w, y + h), (255, 200, 0), 2)
+        # TODO: boost contrast or highlight a few candidate local regions generically.
+        output_path = "artifacts/localized_focus_output.png"
+        save_image(overlay, output_path)
+        return ToolResult(status="ok", answer="", artifacts=[output_path])
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+"""
+        return """from core.types import ToolResult
+from tools.implementations.shared import load_image, save_image
+
+def run(image_path: str) -> ToolResult:
+    try:
+        image = load_image(image_path)
+        output_path = "artifacts/generic_visual_focus_output.png"
+        save_image(image, output_path)
+        return ToolResult(status="ok", answer="", artifacts=[output_path])
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+"""
 
     def _normalize_tool_name(self, raw_name: str) -> str:
         normalized = re.sub(r"[^a-z0-9_]+", "_", raw_name.strip().lower())

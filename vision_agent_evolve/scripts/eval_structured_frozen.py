@@ -36,6 +36,11 @@ def main() -> None:
         action="store_true",
         help="Require the task skill to be executed before completion. In scratch mode, this also requires a new image artifact.",
     )
+    parser.add_argument(
+        "--disable-skill",
+        action="store_true",
+        help="Evaluate with built-in/persistent tools available but without loading evolved family skills.",
+    )
     parser.add_argument("--enable-readability-judge", action="store_true")
     args = parser.parse_args()
 
@@ -55,6 +60,7 @@ def main() -> None:
         subset_id=None if args.snapshot_name else args.subset_id,
         force_skill=args.force_skill,
         capability_mode=args.capability_mode,
+        use_skill=not args.disable_skill,
     )
     summary = runner.rebuild_summary(snapshot_name=args.snapshot_name or None)
     payload = {
@@ -64,10 +70,11 @@ def main() -> None:
         "held_out_split": args.held_out_split,
         "capability_mode": args.capability_mode,
         "force_skill": args.force_skill,
+        "use_skill": not args.disable_skill,
         "total": len(records),
         "correct": sum(1 for row in records if row.correct),
         "summary_path": str(runner.summary_path),
-        "frozen_accuracy": summary.get("settings", {}).get(runner._frozen_setting_name(args.capability_mode, args.force_skill), {}).get("accuracy", 0.0),
+        "frozen_accuracy": summary.get("settings", {}).get(runner._frozen_setting_name(args.capability_mode, args.force_skill, not args.disable_skill), {}).get("accuracy", 0.0),
         "records": [row.__dict__ for row in records],
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
