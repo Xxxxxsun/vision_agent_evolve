@@ -14,13 +14,14 @@ import os
 from PIL import Image
 
 from core.types import AgentResult
+from core.types import TaskCase
 from core.types import ToolResult
 from core.agent import AgentConfig, ReActAgent
 from core.parser import ReActParser
 from evolution.loop import EvolutionLoop
 from evolution.roles import AnalyzerDecider, Generator
 from evolution.store import CapabilityStore
-from evolution.types import FailureAnalysis, SkillProposal, ToolProposal, ValidationResult
+from evolution.types import FailureAnalysis, MasteryProfile, SkillProposal, SkillReferenceProposal, ToolProposal, ValidationResult
 from evolution.validator import Validator
 from tools.builtin_tools import execute_builtin_tool, list_builtin_tools
 from tools.dynamic_loader import execute_learned_tool
@@ -487,6 +488,97 @@ class MinimalEvolveLoopTests(unittest.TestCase):
         self.assertIn("## Failure Lessons / Things To Watch", rendered)
         self.assertIn("Watch arrow direction ambiguity", rendered)
         self.assertIn("Re-check the initial direction", rendered)
+
+    def test_render_skills_expands_only_explicit_references(self):
+        from skills import load_skill, render_skills
+
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "skills" / "chartqa"
+            refs_dir = skill_dir / "references"
+            refs_dir.mkdir(parents=True, exist_ok=True)
+            (skill_dir / "SKILL.md").write_text(
+                textwrap.dedent(
+                    """
+                    ---
+                    name: chartqa
+                    description: "Router"
+                    level: mid
+                    depends_on: []
+                    ---
+
+                    ## Router
+                    1. See reference: references/tool_branch.md
+                    2. Ignore unrelated branches.
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+            (refs_dir / "tool_branch.md").write_text("## SOP\n1. Use chart overlay.", encoding="utf-8")
+            (refs_dir / "unused_branch.md").write_text("## SOP\n1. This should not be rendered.", encoding="utf-8")
+
+            skill = load_skill(skill_dir / "SKILL.md")
+            rendered = render_skills([skill])
+
+            self.assertEqual([path.name for path in skill.references], ["tool_branch.md"])
+            self.assertIn("Branch Detail", rendered)
+            self.assertIn("Use chart overlay.", rendered)
+            self.assertNotIn("This should not be rendered.", rendered)
+
+    def test_store_writes_skill_package_references(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            learned_dir = Path(tmp) / "learned"
+            store = CapabilityStore(learned_dir)
+            proposal = SkillProposal(
+                name="chartqa",
+                description="Router skill",
+                applicability_conditions="Use on labeled chart questions.",
+                content="## Router\n1. See reference: references/tool_branch.md",
+                level="mid",
+                depends_on=[],
+                references=[
+                    SkillReferenceProposal(
+                        path="references/tool_branch.md",
+                        description="Primary branch",
+                        content="## SOP\n1. Use `chart_value_overlay` first.",
+                    )
+                ],
+            )
+
+            store.promote_skill("chartqa", proposal)
+
+            reference_file = learned_dir / "skills" / "chartqa" / "references" / "tool_branch.md"
+            self.assertTrue(reference_file.exists())
+            loaded = store.get_skill("chartqa")
+            self.assertEqual([path.name for path in loaded.references], ["tool_branch.md"])
+
+    def test_distill_mastery_skill_falls_back_to_skill_package(self):
+        client = SkillGeneratorClient(
+            '{"name":"chartqa","description":"router","applicability_conditions":"when chart labels are visible","content":"## SOP\\n1. Be careful.","level":"mid","depends_on":[]}'
+        )
+        generator = Generator(client)
+        case = TaskCase(
+            case_id="1",
+            problem_id="chartqa",
+            prompt="What value is shown for 2019?",
+            gold_answer="7",
+            metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+        )
+        analysis = FailureAnalysis(root_cause="needs tool routing", next_action="generate_skill", confidence=0.9)
+        profile = MasteryProfile(
+            capability_family="chartqa",
+            primary_tool="chart_value_overlay",
+            tool_sequence=["chart_value_overlay", "localized_text_zoom"],
+            recommended_trigger_conditions=["single labeled value for one series/category"],
+            negative_trigger_conditions=["needs combining multiple chart elements"],
+            common_success_signals=["visible value annotations"],
+            common_failure_signals=["annotation unreadable or absent"],
+        )
+
+        proposal = generator.distill_mastery_skill(case, analysis, profile)
+
+        self.assertIn("references/tool_branch.md", proposal.content)
+        self.assertGreaterEqual(len(proposal.references), 2)
+        self.assertEqual(proposal.references[0].path, "references/tool_branch.md")
 
     def test_create_agent_skips_untrusted_learned_tools_with_hardcoded_answers(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -19,6 +19,7 @@ class Skill:
     applicability_conditions: str = ""
     skill_path: Path | None = None
     references: list[Path] = field(default_factory=list)
+    missing_references: list[str] = field(default_factory=list)
 
     def __str__(self) -> str:
         """Format skill for system prompt."""

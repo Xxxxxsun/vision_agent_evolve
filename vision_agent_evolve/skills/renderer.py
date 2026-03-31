@@ -1,6 +1,7 @@
 """Skill renderer for system prompts."""
 
 from __future__ import annotations
+from .loader import load_skill
 from .base import Skill
 
 
@@ -90,6 +91,7 @@ def _render_task_skill(skill: Skill) -> list[str]:
     if skill.applicability_conditions:
         lines.extend(["", f"Applicability: {skill.applicability_conditions}"])
     lines.extend(["", skill.content.strip()])
+    lines.extend(_render_references(skill))
     return lines
 
 
@@ -100,4 +102,28 @@ def _render_failure_skill(skill: Skill) -> list[str]:
     if skill.applicability_conditions:
         lines.extend(["", f"When this matters: {skill.applicability_conditions}"])
     lines.extend(["", skill.content.strip()])
+    lines.extend(_render_references(skill))
+    return lines
+
+
+def _render_references(skill: Skill) -> list[str]:
+    """Render only the reference docs explicitly linked from the main skill."""
+    lines: list[str] = []
+    for ref_path in skill.references:
+        try:
+            ref_skill = load_skill(ref_path)
+        except Exception as exc:
+            lines.extend(["", f"[Missing reference detail: {ref_path.name} ({exc})]"])
+            continue
+        title = ref_skill.description or ref_skill.name or ref_path.stem
+        lines.extend(
+            [
+                "",
+                f"#### Branch Detail: {title}",
+                "",
+                ref_skill.content.strip(),
+            ]
+        )
+    for target in skill.missing_references:
+        lines.extend(["", f"[Missing reference detail: {target}]"])
     return lines

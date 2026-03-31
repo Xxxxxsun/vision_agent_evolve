@@ -17,10 +17,7 @@ def load_skill(skill_path: Path) -> Skill:
     main_content = _strip_frontmatter(content)
 
     # Find references
-    refs_dir = skill_path.parent / "references"
-    references = []
-    if refs_dir.exists():
-        references = sorted(refs_dir.glob("*.md"))
+    references, missing_references = _resolve_references(skill_path, main_content)
 
     return Skill(
         name=metadata.get("name", skill_path.stem),
@@ -32,6 +29,7 @@ def load_skill(skill_path: Path) -> Skill:
         applicability_conditions=metadata.get("applicability_conditions", ""),
         skill_path=skill_path,
         references=references,
+        missing_references=missing_references,
     )
 
 
@@ -121,3 +119,31 @@ def _strip_frontmatter(content: str) -> str:
         return content
 
     return content[end_idx + 4:].lstrip("\n")
+
+
+def _resolve_references(skill_path: Path, content: str) -> tuple[list[Path], list[str]]:
+    """Resolve only explicitly referenced branch docs."""
+    references: list[Path] = []
+    missing: list[str] = []
+    seen: set[str] = set()
+    for target in _extract_reference_targets(content):
+        if target in seen:
+            continue
+        seen.add(target)
+        ref_path = (skill_path.parent / target).resolve()
+        try:
+            ref_path.relative_to(skill_path.parent.resolve())
+        except ValueError:
+            missing.append(target)
+            continue
+        if ref_path.exists() and ref_path.is_file():
+            references.append(ref_path)
+        else:
+            missing.append(target)
+    return references, missing
+
+
+def _extract_reference_targets(content: str) -> list[str]:
+    """Return referenced branch-doc paths in order of appearance."""
+    pattern = re.compile(r"(?P<path>references/[A-Za-z0-9._/\-]+\.md)")
+    return [match.group("path") for match in pattern.finditer(content)]

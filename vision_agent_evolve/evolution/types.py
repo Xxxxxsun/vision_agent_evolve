@@ -86,6 +86,15 @@ class RevisionBrief:
 
 
 @dataclass
+class SkillReferenceProposal:
+    """One referenced branch/detail document inside a skill package."""
+
+    path: str
+    content: str
+    description: str = ""
+
+
+@dataclass
 class SkillProposal:
     """Proposal for a new skill."""
     name: str
@@ -94,6 +103,7 @@ class SkillProposal:
     content: str
     level: Literal["foundation", "high", "mid", "low"]
     depends_on: list[str]
+    references: list[SkillReferenceProposal] = field(default_factory=list)
 
 
 @dataclass

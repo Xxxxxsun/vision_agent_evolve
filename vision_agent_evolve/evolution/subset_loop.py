@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 import sys
 import time
-from typing import Any
+from typing import Any, Callable
 
 from core.types import AgentResult, TaskCase
 from core.vlm_client import ModelSettings, VLMClient
@@ -882,6 +882,7 @@ class SubsetEvolutionLoop:
         families_per_round_limit: int = 3,
         tool_preference: str = "balanced",
         capability_mode: str = "persistent_tools",
+        checkpoint_callback: Callable[[list[TrainSetEvalRecord], list[TrainSetEvalRecord], list[CandidateEvalResult], str], None] | None = None,
     ):
         self.subset_id = subset_id
         self.skills_dir = skills_dir
@@ -893,6 +894,7 @@ class SubsetEvolutionLoop:
         self.families_per_round_limit = families_per_round_limit
         self.tool_preference = tool_preference
         self.capability_mode = capability_mode
+        self.checkpoint_callback = checkpoint_callback
 
         self.subset_root = learned_root / subset_id
         self.active_dir = self.subset_root / "active"
@@ -922,6 +924,7 @@ class SubsetEvolutionLoop:
         current_summary = baseline_summary
         current_records = baseline_records
         round_results: list[CandidateEvalResult] = []
+        self._emit_checkpoint(baseline_records, current_records, round_results, snapshot_name="")
 
         for round_idx in range(1, self.max_planning_rounds + 1):
             print(
@@ -1078,6 +1081,7 @@ class SubsetEvolutionLoop:
                     candidate_summary=candidate_summary,
                 )
             )
+            self._emit_checkpoint(baseline_records, current_records, round_results, snapshot_name=snapshot_name)
 
         snapshot_name = f"{self.subset_id}_train_snapshot"
         self.active_store.snapshot_current_capabilities(snapshot_name)
@@ -1099,6 +1103,7 @@ class SubsetEvolutionLoop:
         self._attach_active_toolbox(final_digest)
         self._attach_mastery_profile(final_digest, None)
         self.active_store.write_training_memory(self.evaluator.digest_payload(final_digest))
+        self._emit_checkpoint(baseline_records, final_records, round_results, snapshot_name=snapshot_name)
         print(
             f"[subset-loop] finished: snapshot={snapshot_name} "
             f"final_score={final_summary.primary_score:.4f} "
@@ -1111,6 +1116,22 @@ class SubsetEvolutionLoop:
             final_records=final_records,
             round_results=round_results,
             snapshot_name=snapshot_name,
+        )
+
+    def _emit_checkpoint(
+        self,
+        baseline_records: list[TrainSetEvalRecord],
+        current_records: list[TrainSetEvalRecord],
+        round_results: list[CandidateEvalResult],
+        snapshot_name: str,
+    ) -> None:
+        if self.checkpoint_callback is None:
+            return
+        self.checkpoint_callback(
+            baseline_records,
+            current_records,
+            round_results,
+            snapshot_name,
         )
 
     def _attach_active_toolbox(self, digest: TrainingSetDigest) -> None:

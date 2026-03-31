@@ -10,7 +10,7 @@ from core.vlm_client import VLMClient, ModelSettings, UsageStats
 from core.types import AgentResult, TaskCase
 from skills.base import Skill
 from tools.builtin_tools import list_builtin_tools
-from .types import CoverageContract, FailedDirection, FailureAnalysis, MasteryProfile, MasteryStrategyCandidate, RevisionBrief, ToolProposal, SkillProposal, ToolChainContext
+from .types import CoverageContract, FailedDirection, FailureAnalysis, MasteryProfile, MasteryStrategyCandidate, RevisionBrief, ToolProposal, SkillProposal, SkillReferenceProposal, ToolChainContext
 
 
 class AnalyzerDecider:
@@ -725,17 +725,26 @@ Return JSON only:
     "name": "{case.capability_family()}",
     "description": "one sentence describing the mastery SOP",
     "applicability_conditions": "when this mastery SOP applies",
-    "content": "short markdown SOP only",
+    "content": "router markdown only; reference branch docs explicitly using paths like references/tool_branch.md",
     "level": "mid",
-    "depends_on": []
+    "depends_on": [],
+    "references": [
+        {{
+            "path": "references/tool_branch.md",
+            "description": "what this branch handles",
+            "content": "detailed markdown branch skill"
+        }}
+    ]
 }}
 
 Rules:
+- The main content must act as a router, not a full summary.
+- Put branch details into references/*.md.
 - The SOP must be derived from the mastery profile, not from one current example.
 - Include explicit positive trigger conditions and negative trigger conditions.
 - Reference only tools that appear in the mastery profile.
-- If the profile says to avoid tools for some pattern, include a no-tool branch.
-- Keep it short and operational.
+- Always include at least one no-tool or do-not-use branch reference.
+- Keep the router short and operational.
 """
         messages = [
             {"role": "system", "content": "You distill mastery profiles into reusable SOPs. Return JSON only."},
@@ -746,8 +755,8 @@ Rules:
         print(f"  [Generator/MasterySkill] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
         proposal_dict = self._extract_json(response)
         proposal = self._normalize_skill_proposal(case, analysis, proposal_dict, None, existing_skill_content)
-        if not proposal.content.strip() or "## SOP" not in proposal.content:
-            proposal.content = self._build_mastery_skill_content(mastery_profile)
+        if not proposal.content.strip() or "references/" not in proposal.content or not proposal.references:
+            proposal.content, proposal.references = self._build_mastery_skill_package(mastery_profile)
         if not proposal.applicability_conditions.strip():
             proposal.applicability_conditions = self._sanitize_applicability(
                 "; ".join(mastery_profile.recommended_trigger_conditions or mastery_profile.common_success_signals)
@@ -1541,6 +1550,7 @@ if __name__ == "__main__":
         )
         level = str(proposal_dict.get("level", "mid"))
         depends_on = list(proposal_dict.get("depends_on", []))
+        references = self._normalize_skill_references(proposal_dict.get("references", []))
 
         if tool_proposal is None:
             content = raw_content or self._build_plain_skill_content(analysis)
@@ -1554,6 +1564,7 @@ if __name__ == "__main__":
             content=content,
             level=level if level in {"foundation", "high", "mid", "low"} else "mid",
             depends_on=depends_on,
+            references=references,
         )
 
     def _normalize_code_skill_proposal(
@@ -1585,6 +1596,105 @@ if __name__ == "__main__":
             level=level if level in {"foundation", "high", "mid", "low"} else "mid",
             depends_on=depends_on,
         )
+
+    def _normalize_skill_references(self, raw_references: Any) -> list[SkillReferenceProposal]:
+        """Normalize structured reference docs for progressive-disclosure skills."""
+        if not isinstance(raw_references, list):
+            return []
+        references: list[SkillReferenceProposal] = []
+        seen: set[str] = set()
+        for item in raw_references:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path", "")).strip()
+            content = str(item.get("content", "")).strip()
+            description = str(item.get("description", "")).strip()
+            if not path or not content:
+                continue
+            if not path.startswith("references/") or not path.endswith(".md"):
+                continue
+            if path in seen:
+                continue
+            seen.add(path)
+            references.append(
+                SkillReferenceProposal(
+                    path=path,
+                    content=content,
+                    description=description,
+                )
+            )
+        return references
+
+    def _build_mastery_skill_package(
+        self,
+        profile: MasteryProfile,
+    ) -> tuple[str, list[SkillReferenceProposal]]:
+        """Build a router skill plus branch detail docs from a mastery profile."""
+        primary_sequence = profile.tool_sequence or ([profile.primary_tool] if profile.primary_tool else [])
+        tool_branch_path = "references/tool_branch.md"
+        fallback_path = "references/no_tool_fallback.md"
+        tool_steps = []
+        if primary_sequence:
+            tool_steps.append(f"1. Use this branch only when the task matches the supported trigger conditions for `{primary_sequence[0]}`.")
+            for index, tool_name in enumerate(primary_sequence, start=2):
+                tool_steps.append(f"{index}. Run `{tool_name}` and inspect the returned artifact before answering.")
+            tool_steps.append(f"{len(tool_steps) + 1}. Answer only after the artifact clearly supports the conclusion.")
+        else:
+            tool_steps.extend(
+                [
+                    "1. Use this branch only when the positive trigger conditions clearly match.",
+                    "2. Apply the most suitable preset tool already confirmed by the mastery profile.",
+                    "3. Answer only if the artifact materially clarifies the target evidence.",
+                ]
+            )
+        if profile.bad_chain_patterns:
+            tool_steps.append(f"{len(tool_steps) + 1}. Do not continue chaining tools if you hit: {'; '.join(profile.bad_chain_patterns)}.")
+
+        fallback_steps = [
+            "## Branch Goal",
+            "Use direct visual reasoning when the tool branch is not clearly justified.",
+            "",
+            "## SOP",
+            "1. Prefer this branch when the chart/scene lacks a clean localized cue for the tool path.",
+            "2. Use direct reasoning if the problem requires combining multiple elements or the artifact stays ambiguous.",
+            "3. Do not force tool use just because a tool is available.",
+        ]
+        if profile.negative_trigger_conditions:
+            fallback_steps.append(f"4. Explicit avoid conditions: {'; '.join(profile.negative_trigger_conditions)}.")
+
+        references = [
+            SkillReferenceProposal(
+                path=tool_branch_path,
+                description="Primary tool-enabled branch for this mastery skill.",
+                content="\n".join(
+                    [
+                        "## Branch Goal",
+                        "Apply the tool-backed branch only for the supported pattern cluster.",
+                        "",
+                        "## SOP",
+                        *tool_steps,
+                    ]
+                ),
+            ),
+            SkillReferenceProposal(
+                path=fallback_path,
+                description="No-tool or do-not-use fallback branch.",
+                content="\n".join(fallback_steps),
+            ),
+        ]
+        positive = "; ".join(profile.recommended_trigger_conditions or profile.common_success_signals) or "the task clearly matches the supported pattern"
+        negative = "; ".join(profile.negative_trigger_conditions or profile.common_failure_signals) or "the tool path stays ambiguous"
+        router = "\n".join(
+            [
+                "## Router",
+                f"1. Positive trigger: {positive}.",
+                f"2. Negative trigger: {negative}.",
+                f"3. If the positive trigger clearly matches, see reference: {tool_branch_path}",
+                f"4. If the negative trigger matches or the artifact would be inconclusive, see reference: {fallback_path}",
+                "5. Do not improvise a new branch outside these references.",
+            ]
+        )
+        return router, references
 
     def _build_plain_skill_content(self, analysis: FailureAnalysis) -> str:
         when_text = self._sanitize_context_text(analysis.missing_step or "When this exact task pattern appears.")

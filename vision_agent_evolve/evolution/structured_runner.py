@@ -444,7 +444,7 @@ class StructuredBenchmarkRunner:
         return records
 
     def _run_agent_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
-        subset_loop = self._make_subset_loop()
+        subset_loop = self._make_subset_loop(cases)
         report = subset_loop.run(cases)
         self.last_subset_rounds = [asdict(item) for item in report.round_results]
         round_payload = [
@@ -468,53 +468,26 @@ class StructuredBenchmarkRunner:
             for index, result in enumerate(report.round_results[: self.config.save_first_n_evolves], start=1)
         ]
         self._save_evolve_reports(round_payload)
-
-        baseline_map = {row.case_id: row for row in report.baseline_records}
-        final_map = {row.case_id: row for row in report.final_records}
-        evolved = bool(report.round_results)
-        records: list[StructuredCaseRecord] = []
-        for index, case in enumerate(cases, start=1):
-            baseline = baseline_map[case.case_id]
-            final = final_map[case.case_id]
-            record = StructuredCaseRecord(
-                setting="agent_train_adaptive",
-                split=self.config.evolve_split,
-                case_id=case.case_id,
-                problem_id=case.problem_id,
-                expected=case.gold_answer,
-                answer=final.answer,
-                correct=final.correct,
-                score=final.score,
-                turns=final.turns,
-                tool_count=len(_merge_tool_names(list(final.tool_names), list(final.chain_trace))),
-                tool_names=_merge_tool_names(list(final.tool_names), list(final.chain_trace)),
-                used_tool=bool(_merge_tool_names(list(final.tool_names), list(final.chain_trace))),
-                artifact_paths=list(final.artifact_paths),
-                chain_trace=list(final.chain_trace),
-                image_path=case.image_path,
-                metadata=dict(case.metadata),
-            )
-            record.initial_answer = baseline.answer
-            record.initial_correct = baseline.correct
-            record.full_agent_answer = baseline.answer
-            record.full_agent_correct = baseline.correct
-            record.post_evolve_answer = final.answer
-            record.post_evolve_correct = final.correct
-            record.evolve_triggered = evolved and not baseline.correct
-            record.evolve_success = final.correct if record.evolve_triggered else True
-            self._append_record(record)
-            records.append(record)
+        records = self._materialize_agent_train_records(
+            cases,
+            report.baseline_records,
+            report.final_records,
+            report.round_results,
+        )
+        self._replace_records_for_setting("agent_train_adaptive", self.config.evolve_split, records)
+        for index, record in enumerate(records, start=1):
 
             status = "OK" if record.correct else "FAIL"
             extra = " evolved" if record.evolve_triggered else " no-evolve"
             print(
                 f"[{index:03d}/{len(cases):03d}] {status}{extra} "
-                f"case={case.case_id} answer={record.answer!r}"
+                f"case={record.case_id} answer={record.answer!r}"
             )
 
         return records, report.snapshot_name
 
-    def _make_subset_loop(self) -> SubsetEvolutionLoop:
+    def _make_subset_loop(self, cases: list[TaskCase] | None = None) -> SubsetEvolutionLoop:
+        train_cases = list(cases or [])
         return SubsetEvolutionLoop(
             subset_id=self.config.subset_id,
             learned_root=self.learned_root,
@@ -526,6 +499,13 @@ class StructuredBenchmarkRunner:
             representatives_per_cluster=self.config.representatives_per_cluster,
             families_per_round_limit=self.config.families_per_round_limit,
             tool_preference=self.config.tool_preference,
+            checkpoint_callback=lambda baseline_records, current_records, round_results, snapshot_name: self._checkpoint_agent_train_adaptive(
+                cases=train_cases,
+                baseline_records=baseline_records,
+                current_records=current_records,
+                round_results=round_results,
+                snapshot_name=snapshot_name,
+            ),
         )
 
     def _run_scratch_skill_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
@@ -815,6 +795,73 @@ class StructuredBenchmarkRunner:
     def _append_record(self, record: StructuredCaseRecord) -> None:
         with self.records_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+
+    def _replace_records_for_setting(self, setting: str, split: str, records: list[StructuredCaseRecord]) -> None:
+        existing = self._load_existing_records()
+        kept = [row for row in existing if not (row.setting == setting and row.split == split)]
+        rows = kept + records
+        self.records_path.parent.mkdir(parents=True, exist_ok=True)
+        self.records_path.write_text(
+            "".join(json.dumps(asdict(row), ensure_ascii=False) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+
+    def _checkpoint_agent_train_adaptive(
+        self,
+        cases: list[TaskCase],
+        baseline_records: list[TrainSetEvalRecord],
+        current_records: list[TrainSetEvalRecord],
+        round_results: list[CandidateEvalResult],
+        snapshot_name: str,
+    ) -> None:
+        records = self._materialize_agent_train_records(cases, baseline_records, current_records, round_results)
+        self.last_subset_rounds = [asdict(item) for item in round_results]
+        self._replace_records_for_setting("agent_train_adaptive", self.config.evolve_split, records)
+        self._write_summary(self._load_existing_records(), snapshot_name=snapshot_name or self._existing_snapshot_name())
+
+    def _materialize_agent_train_records(
+        self,
+        cases: list[TaskCase],
+        baseline_records: list[TrainSetEvalRecord],
+        final_records: list[TrainSetEvalRecord],
+        round_results: list[CandidateEvalResult],
+    ) -> list[StructuredCaseRecord]:
+        baseline_map = {row.case_id: row for row in baseline_records}
+        final_map = {row.case_id: row for row in final_records}
+        evolved = bool(round_results)
+        records: list[StructuredCaseRecord] = []
+        for case in cases:
+            baseline = baseline_map[case.case_id]
+            final = final_map[case.case_id]
+            tool_names = _merge_tool_names(list(final.tool_names), list(final.chain_trace))
+            record = StructuredCaseRecord(
+                setting="agent_train_adaptive",
+                split=self.config.evolve_split,
+                case_id=case.case_id,
+                problem_id=case.problem_id,
+                expected=case.gold_answer,
+                answer=final.answer,
+                correct=final.correct,
+                score=final.score,
+                turns=final.turns,
+                tool_count=len(tool_names),
+                tool_names=tool_names,
+                used_tool=bool(tool_names),
+                artifact_paths=list(final.artifact_paths),
+                chain_trace=list(final.chain_trace),
+                image_path=case.image_path,
+                metadata=dict(case.metadata),
+            )
+            record.initial_answer = baseline.answer
+            record.initial_correct = baseline.correct
+            record.full_agent_answer = baseline.answer
+            record.full_agent_correct = baseline.correct
+            record.post_evolve_answer = final.answer
+            record.post_evolve_correct = final.correct
+            record.evolve_triggered = evolved and not baseline.correct
+            record.evolve_success = final.correct if record.evolve_triggered else True
+            records.append(record)
+        return records
 
     def rebuild_summary(self, snapshot_name: str | None = None) -> dict[str, Any]:
         records = self._load_existing_records()

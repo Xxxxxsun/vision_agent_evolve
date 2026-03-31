@@ -10,7 +10,7 @@ from datetime import datetime
 from difflib import SequenceMatcher
 
 from skills import load_skill
-from .types import CapabilityBundleProposal, FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, ValidationResult
+from .types import CapabilityBundleProposal, FailedDirection, FailureAnalysis, ToolProposal, SkillProposal, SkillReferenceProposal, ValidationResult
 
 
 class CapabilityStore:
@@ -86,6 +86,7 @@ class CapabilityStore:
         """Write a skill into this capability root."""
         skill_dir = self.skills_dir / problem_id
         skill_dir.mkdir(exist_ok=True)
+        references_dir = skill_dir / "references"
 
         skill_file = skill_dir / "SKILL.md"
         rendered = f"""---
@@ -99,9 +100,31 @@ applicability_conditions: "{proposal.applicability_conditions}"
 {proposal.content}
 """
         skill_file.write_text(rendered, encoding="utf-8")
+        if references_dir.exists():
+            shutil.rmtree(references_dir)
+        if proposal.references:
+            references_dir.mkdir(parents=True, exist_ok=True)
+            for reference in proposal.references:
+                self._write_skill_reference(references_dir, reference)
 
         if log_decision:
             self._log_promotion("skill", problem_id, "keep")
+
+    def _write_skill_reference(self, references_dir: Path, reference: SkillReferenceProposal) -> None:
+        """Write one branch/detail skill document inside references/."""
+        relative_path = Path(reference.path)
+        if relative_path.is_absolute():
+            relative_path = Path(relative_path.name)
+        target = (references_dir.parent / relative_path).resolve()
+        try:
+            target.relative_to(references_dir.parent.resolve())
+        except ValueError:
+            target = references_dir / relative_path.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        rendered = reference.content.strip()
+        if reference.description.strip():
+            rendered = f"<!-- {reference.description.strip()} -->\n\n{rendered}"
+        target.write_text(rendered + ("\n" if not rendered.endswith("\n") else ""), encoding="utf-8")
 
     def save_failure_skill(self, problem_id: str, case_id: str, proposal: SkillProposal):
         """Persist a failure-derived lesson without promoting it as the main solver skill."""

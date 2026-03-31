@@ -368,9 +368,9 @@ class TestStructuredRunner(StructuredBenchmarkRunner):
     def _make_online_loop(self, capability_mode="persistent_tools"):
         return self._online_loop
 
-    def _make_subset_loop(self):
+    def _make_subset_loop(self, cases=None):
         if self._subset_loop is None:
-            return super()._make_subset_loop()
+            return super()._make_subset_loop(cases)
         return self._subset_loop
 
     def _make_frozen_loop(self, snapshot_name: str | None = None, subset_id: str | None = None, capability_mode="persistent_tools"):
@@ -2153,6 +2153,151 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertAlmostEqual(summary["settings"]["frozen_inference"]["accuracy"], 1.0)
             self.assertAlmostEqual(summary["frozen_inference_accuracy"], 1.0)
+
+    def test_agent_train_checkpoint_writes_partial_records(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_checkpoint_v1",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            case = TaskCase(
+                case_id="1",
+                problem_id="chartqa",
+                prompt="Q",
+                gold_answer="A",
+                image_path="img.png",
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            )
+            baseline = TrainSetEvalRecord(
+                case_id="1",
+                dataset_name="chartqa",
+                capability_family="chartqa",
+                prompt="Q",
+                expected="A",
+                answer="wrong",
+                correct=False,
+                turns=1,
+                tool_names=[],
+                artifact_paths=[],
+                chain_trace=[],
+            )
+            final = TrainSetEvalRecord(
+                case_id="1",
+                dataset_name="chartqa",
+                capability_family="chartqa",
+                prompt="Q",
+                expected="A",
+                answer="A",
+                correct=True,
+                turns=1,
+                tool_names=["chart_value_overlay"],
+                artifact_paths=["artifacts/focus.png"],
+                chain_trace=["chart_value_overlay"],
+            )
+            round_result = CandidateEvalResult(
+                run_id="round_1",
+                accepted=True,
+                reason="Accepted candidate",
+                baseline_score=0.0,
+                candidate_score=1.0,
+                score_delta=1.0,
+                smoke_passed=True,
+                target_family="chartqa",
+                target_cluster_ids=["cluster_1"],
+                representative_case_ids=["1"],
+                activated_snapshot="chartqa_checkpoint_v1_round_1_accepted",
+                baseline_summary=TrainSetEvalSummary(total_cases=1, correct_cases=0, primary_score=0.0),
+                candidate_summary=TrainSetEvalSummary(total_cases=1, correct_cases=1, primary_score=1.0),
+            )
+
+            runner._checkpoint_agent_train_adaptive(
+                cases=[case],
+                baseline_records=[baseline],
+                current_records=[final],
+                round_results=[round_result],
+                snapshot_name="chartqa_checkpoint_v1_round_1_accepted",
+            )
+
+            rows = [json.loads(line) for line in runner.records_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["setting"], "agent_train_adaptive")
+            self.assertEqual(rows[0]["answer"], "A")
+            summary = json.loads(runner.summary_path.read_text(encoding="utf-8"))
+            self.assertAlmostEqual(summary["settings"]["agent_train_adaptive"]["accuracy"], 1.0)
+            self.assertEqual(summary["snapshot_name"], "chartqa_checkpoint_v1_round_1_accepted")
+
+    def test_agent_train_final_write_replaces_checkpointed_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="chartqa",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="chartqa_checkpoint_v2",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            case = TaskCase(
+                case_id="1",
+                problem_id="chartqa",
+                prompt="Q",
+                gold_answer="A",
+                image_path="img.png",
+                metadata={"dataset_name": "chartqa", "capability_family": "chartqa"},
+            )
+            baseline = TrainSetEvalRecord(
+                case_id="1",
+                dataset_name="chartqa",
+                capability_family="chartqa",
+                prompt="Q",
+                expected="A",
+                answer="wrong",
+                correct=False,
+                turns=1,
+                tool_names=[],
+                artifact_paths=[],
+                chain_trace=[],
+            )
+            final = TrainSetEvalRecord(
+                case_id="1",
+                dataset_name="chartqa",
+                capability_family="chartqa",
+                prompt="Q",
+                expected="A",
+                answer="A",
+                correct=True,
+                turns=1,
+                tool_names=["chart_value_overlay"],
+                artifact_paths=["artifacts/focus.png"],
+                chain_trace=["chart_value_overlay"],
+            )
+            report = SubsetEvolutionRunReport(
+                baseline_summary=TrainSetEvalSummary(total_cases=1, correct_cases=0, primary_score=0.0),
+                final_summary=TrainSetEvalSummary(total_cases=1, correct_cases=1, primary_score=1.0),
+                baseline_records=[baseline],
+                final_records=[final],
+                round_results=[],
+                snapshot_name="chartqa_checkpoint_v2_train_snapshot",
+            )
+            subset_loop = FakeSubsetLoop(report)
+            runner = TestStructuredRunner(config, root, online_loop=FakeLoop(root / "learned"), frozen_loop=FrozenLoop(root / "learned"), subset_loop=subset_loop)
+
+            runner._checkpoint_agent_train_adaptive(
+                cases=[case],
+                baseline_records=[baseline],
+                current_records=[final],
+                round_results=[],
+                snapshot_name="chartqa_checkpoint_v2_round_1_accepted",
+            )
+            records, _ = runner._run_agent_train_adaptive([case])
+
+            self.assertEqual(len(records), 1)
+            rows = [json.loads(line) for line in runner.records_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["answer"], "A")
 
     def test_run_preset_tools_only_disables_evolved_skill_loading(self):
         with tempfile.TemporaryDirectory() as tmp:
