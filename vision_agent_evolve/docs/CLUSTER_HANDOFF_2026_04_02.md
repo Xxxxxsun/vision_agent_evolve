@@ -107,6 +107,147 @@ Important raw-data roots used in this cluster:
 - GTA raw root:
   - `/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset`
 
+## Dataset Setup
+
+This repo now supports two dataset-preparation patterns:
+
+- some benchmarks are normalized automatically the first time `scripts/run_structured_experiment.py` is called
+- some benchmarks also have explicit `scripts/prepare_*.py` helpers for precomputing normalized files ahead of time
+
+In all cases, the normalized outputs expected by the current experiments live under:
+
+- `datasets/structured_multibench/`
+
+### General rule
+
+If you already have the raw dataset on disk, the simplest path is:
+
+```bash
+cd /root/vision_agent_evolve/vision_agent_evolve
+export PYTHONPATH=.
+python scripts/run_structured_experiment.py \
+  --dataset <dataset_name> \
+  --raw-data-root <raw_dataset_root> \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id <your_run_id> \
+  --settings direct_vlm
+```
+
+If the normalized JSONL files do not exist yet, the current structured-data pipeline will create them.
+
+### VStar
+
+Raw root used in this cluster:
+
+- `/root/vqa_datasets/datasets/vstar_bench`
+
+Optional explicit preparation:
+
+```bash
+python scripts/prepare_vstar.py \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --train-size 40 \
+  --val-size 151
+```
+
+Expected normalized outputs:
+
+- `datasets/structured_multibench/vstar/train.jsonl`
+- `datasets/structured_multibench/vstar/val.jsonl`
+
+### HRBench4K
+
+Raw root used in this cluster:
+
+- `/root/vqa_datasets/datasets/hr_bench`
+
+Optional explicit preparation:
+
+```bash
+python scripts/prepare_hrbench.py \
+  --raw-data-root /root/vqa_datasets/datasets/hr_bench \
+  --normalized-data-root ./datasets/structured_multibench
+```
+
+Expected normalized outputs:
+
+- `datasets/structured_multibench/hrbench/train.jsonl`
+- `datasets/structured_multibench/hrbench/val.jsonl`
+
+### MathVista
+
+Raw root used in this cluster:
+
+- `/root/vqa_datasets/datasets/mathvista`
+
+MathVista is normalized through the shared structured-data pipeline when `run_structured_experiment.py` is invoked.
+There is no dedicated `prepare_mathvista.py` helper in the current repo.
+
+Expected normalized outputs:
+
+- `datasets/structured_multibench/mathvista/train.jsonl`
+- `datasets/structured_multibench/mathvista/val.jsonl`
+
+The normalizer expects the local raw root to contain the MathVista `testmini` data files and referenced images.
+
+### ChartQA
+
+Raw root used in this cluster:
+
+- `/root/vqa_datasets/datasets/chartqa`
+
+ChartQA is also normalized through the shared structured-data pipeline when `run_structured_experiment.py` is invoked.
+The normalizer searches the raw root for ChartQA annotation files and matching image files.
+
+Expected normalized outputs:
+
+- `datasets/structured_multibench/chartqa/train.jsonl`
+- `datasets/structured_multibench/chartqa/val.jsonl`
+
+If your local ChartQA layout differs from the one used on this cluster, first confirm that:
+
+- the raw root contains the annotation JSON files for `train` and `val`
+- image filenames referenced by the annotations are reachable from that root
+
+### GTA
+
+Raw root used in this cluster:
+
+- `/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset`
+
+GTA does require an explicit preparation step to create the normalized train/val JSONL files:
+
+```bash
+python scripts/prepare_gta.py \
+  --raw-data-root /root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset \
+  --normalized-data-root ./datasets/structured_multibench \
+  --train-ratio 0.3 \
+  --seed 42
+```
+
+Expected normalized outputs:
+
+- `datasets/structured_multibench/gta/train.jsonl`
+- `datasets/structured_multibench/gta/val.jsonl`
+- `datasets/structured_multibench/gta/manifest.json`
+
+The GTA raw root is expected to contain the benchmark files described by the current normalizer, including:
+
+- dataset content
+- tool metadata
+- referenced images
+
+### What is not included here
+
+This handoff now documents:
+
+- the raw-data roots used on this cluster
+- the normalization commands used in this repo
+- the normalized output locations expected by current experiments
+
+It does **not** include external download links or redistribution instructions for third-party datasets. Those still depend on the original dataset providers and local access policy.
+
 ## What Changed
 
 This round focused on restructuring the third stage of evolution from a flat skill rewrite into a `tool mastery` stage.
