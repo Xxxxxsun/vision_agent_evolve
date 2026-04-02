@@ -6,6 +6,107 @@ Current git branch at capture time:
 
 - `main`
 
+## Current Repo Update Check
+
+Before this handoff refresh, the worktree was checked again.
+
+What is already in good shape:
+
+- The third-stage mastery refactor is already committed.
+- Progressive-disclosure skills (`SKILL.md + references/*.md`) are already committed.
+- `preset_tools_only`, frozen-eval resume, and train checkpointing are already committed.
+- GTA adapter and preset-tool runtime support are already committed.
+
+What does **not** need to be pushed as code:
+
+- In-progress or partial experiment artifacts under `artifacts/` and `learned/`
+- Runtime logs under `logs/`
+- Scratch analysis scripts such as `measure*.py`, `find_*.py`, `check_*.py`
+- Ad hoc files such as `solution.py`, `solution.sh`, `final_answer.txt`
+
+So the only new update in this refresh is documentation: an explicit environment section and a clearer note about what should and should not be treated as committed source state.
+
+## Environment Requirements
+
+### Python
+
+- Python `>=3.10`
+
+### Core install
+
+From repo root:
+
+```bash
+cd /root/vision_agent_evolve/vision_agent_evolve
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Optional dev install:
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Python dependencies
+
+Declared in `pyproject.toml`:
+
+- `openai>=1.0.0`
+- `opencv-python>=4.8.0`
+- `numpy>=1.24.0,<2`
+- `Pillow>=10.0.0`
+
+Optional dev dependencies:
+
+- `pytest>=7.0.0`
+- `black>=23.0.0`
+- `ruff>=0.1.0`
+
+### Runtime environment variables
+
+The cluster runs in this handoff mainly used the Alibaba-compatible endpoint.
+
+Typical setup:
+
+```bash
+export PYTHONPATH=.
+export VLM_API_STYLE="alibaba_chat"
+export VLM_BASE_URL="https://llm-chat-api.alibaba-inc.com/v1/api/chat"
+export VLM_MODEL="gpt-5.4-0305-global"
+export VLM_USER_ID="345245"
+export VLM_ACCESS_KEY="efc8c9ca4ac5b0dd4018bcd3a83d767d"
+export VLM_QUOTA_ID="79b2a6c6-f7c6-4138-aae0-abaa3b1608e5"
+export VLM_APP="llm_application"
+export VLM_API_KEY="dummy"
+```
+
+Notes:
+
+- `VLM_API_KEY` can be a dummy value for the Alibaba path used here.
+- `qwen3.5-plus`, `doubao-seed-2.0-pro`, and `gpt-5.4-0305-global` all ran on this path by changing only `VLM_MODEL`.
+- `gemini-3.1-pro-preview` uses the Gemini-over-Alibaba adapter now implemented in `core/vlm_client.py`.
+
+### Dataset roots used in this cluster
+
+Structured normalized datasets live under:
+
+- `datasets/structured_multibench/`
+
+Important raw-data roots used in this cluster:
+
+- VStar:
+  - `/root/vqa_datasets/datasets/vstar_bench`
+- HRBench:
+  - `/root/vqa_datasets/datasets/hr_bench`
+- MathVista:
+  - `/root/vqa_datasets/datasets/mathvista`
+- ChartQA:
+  - `/root/vqa_datasets/datasets/chartqa`
+- GTA raw root:
+  - `/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset`
+
 ## What Changed
 
 This round focused on restructuring the third stage of evolution from a flat skill rewrite into a `tool mastery` stage.
