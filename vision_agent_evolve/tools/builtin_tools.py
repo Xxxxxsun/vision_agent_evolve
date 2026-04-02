@@ -2,25 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Callable
-
 import cv2
 import numpy as np
 
 from core.types import ToolResult
+from tools.gta_tools import GTA_BUILTIN_TOOLS
+from tools.preset_types import BuiltinToolSpec
 from tools.implementations.shared.image_utils import load_image, save_image
-
-
-@dataclass(frozen=True)
-class BuiltinToolSpec:
-    name: str
-    description: str
-    applicability: str
-    benchmark_notes: str
-    chain_safe: bool
-    runner: Callable[[str], ToolResult]
 
 
 def _edge_boxes(image: np.ndarray, min_area_ratio: float = 0.005, max_area_ratio: float = 0.7) -> list[tuple[int, int, int, int]]:
@@ -181,6 +169,7 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Best for hrbench, vstar, and some localized attribute cases.",
         chain_safe=True,
         runner=localized_color_focus,
+        usage_example="python -m tools localized_color_focus <image_path>",
     ),
     "localized_text_zoom": BuiltinToolSpec(
         name="localized_text_zoom",
@@ -189,6 +178,7 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Best for hrbench labels and chart/text-heavy questions.",
         chain_safe=True,
         runner=localized_text_zoom,
+        usage_example="python -m tools localized_text_zoom <image_path>",
     ),
     "localized_region_zoom": BuiltinToolSpec(
         name="localized_region_zoom",
@@ -197,6 +187,7 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Useful across vstar, hrbench, and some mathvista/chartqa cases.",
         chain_safe=True,
         runner=localized_region_zoom,
+        usage_example="python -m tools localized_region_zoom <image_path>",
     ),
     "relative_position_marker": BuiltinToolSpec(
         name="relative_position_marker",
@@ -205,6 +196,7 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Best for vstar and mathvista visual position questions.",
         chain_safe=True,
         runner=relative_position_marker,
+        usage_example="python -m tools relative_position_marker <image_path>",
     ),
     "chart_value_overlay": BuiltinToolSpec(
         name="chart_value_overlay",
@@ -213,6 +205,7 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Best for chartqa.",
         chain_safe=True,
         runner=chart_value_overlay,
+        usage_example="python -m tools chart_value_overlay <image_path>",
     ),
     "count_support_view": BuiltinToolSpec(
         name="count_support_view",
@@ -221,8 +214,10 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         benchmark_notes="Best for mathvista counting-style cases.",
         chain_safe=True,
         runner=count_support_view,
+        usage_example="python -m tools count_support_view <image_path>",
     ),
 }
+BUILTIN_TOOLS.update(GTA_BUILTIN_TOOLS)
 
 
 def list_builtin_tools() -> list[BuiltinToolSpec]:
@@ -233,8 +228,8 @@ def get_builtin_tool(name: str) -> BuiltinToolSpec | None:
     return BUILTIN_TOOLS.get(name)
 
 
-def execute_builtin_tool(name: str, image_path: str) -> str:
+def execute_builtin_tool(name: str, *args: str) -> str:
     spec = BUILTIN_TOOLS.get(name)
     if spec is None:
         raise KeyError(name)
-    return str(spec.runner(image_path))
+    return str(spec.runner(*args))

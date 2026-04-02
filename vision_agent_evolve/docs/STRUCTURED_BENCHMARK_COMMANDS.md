@@ -364,7 +364,55 @@ VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
   --settings direct_vlm
 ```
 
-## 6. Generic frozen eval command
+## 6. GTA
+
+Assumes the GTA raw directory contains:
+
+- `dataset.json`
+- `toolmeta.json`
+- `image/`
+
+### 6.1 Prepare
+
+```bash
+python scripts/prepare_gta.py \
+  --raw-data-root /path/to/gta_dataset \
+  --normalized-data-root ./datasets/structured_multibench \
+  --train-ratio 0.3 \
+  --seed 42
+```
+
+### 6.2 Evolve + frozen
+
+```bash
+python scripts/run_structured_experiment.py \
+  --dataset gta \
+  --raw-data-root /path/to/gta_dataset \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id gta_train51_v1 \
+  --evolve-split train \
+  --held-out-split val \
+  --train-subset-size 51 \
+  --held-out-limit 121 \
+  --max-planning-rounds 3 \
+  --representatives-per-cluster 2 \
+  --families-per-round-limit 2 \
+  --tool-preference prefer_tools \
+  --settings agent_train_adaptive frozen_inference
+```
+
+### 6.3 Frozen eval only
+
+```bash
+python scripts/eval_structured_frozen.py \
+  --dataset gta \
+  --raw-data-root /path/to/gta_dataset \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id gta_train51_v1 \
+  --held-out-split val
+```
+
+## 7. Generic frozen eval command
 
 Use this when you already have a learned subset and just want held-out frozen evaluation:
 
@@ -378,33 +426,33 @@ python scripts/eval_structured_frozen.py \
   --held-out-limit <optional_limit>
 ```
 
-## 7. Quick result checks
+## 8. Quick result checks
 
-### 7.1 Summary
+### 8.1 Summary
 
 ```bash
 cat artifacts/structured_benchmarks/<subset_id>/summary.json
 ```
 
-### 7.2 First evolve rounds
+### 8.2 First evolve rounds
 
 ```bash
 cat artifacts/structured_benchmarks/<subset_id>/first_10_evolves.json
 ```
 
-### 7.3 Active capabilities
+### 8.3 Active capabilities
 
 ```bash
 find learned/<subset_id>/active -maxdepth 4 | sort
 ```
 
-### 7.4 Per-case rows
+### 8.4 Per-case rows
 
 ```bash
 tail -n 20 artifacts/structured_benchmarks/<subset_id>/per_case.jsonl
 ```
 
-## 8. Useful counts
+## 9. Useful counts
 
 ```bash
 wc -l datasets/structured_chartqa/chartqa/train.jsonl
@@ -417,4 +465,6 @@ wc -l datasets/structured_multibench/textvqa/train.jsonl
 wc -l datasets/structured_multibench/textvqa/val.jsonl
 wc -l datasets/structured_multibench/mathvista/train.jsonl
 wc -l datasets/structured_multibench/mathvista/val.jsonl
+wc -l datasets/structured_multibench/gta/train.jsonl
+wc -l datasets/structured_multibench/gta/val.jsonl
 ```

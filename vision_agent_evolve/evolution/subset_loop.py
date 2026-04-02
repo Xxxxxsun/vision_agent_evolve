@@ -1290,10 +1290,13 @@ class SubsetEvolutionLoop:
         ]
         if sequence:
             first = sequence[0]
-            steps.append(f"2. Run `python -m tools {first} <image_path>` and wait for the Observation.")
+            steps.append(f"2. Run `{self._mastery_tool_command(family, first, use_artifact=False)}` and wait for the Observation.")
             if len(sequence) > 1:
                 for offset, tool_name in enumerate(sequence[1:], start=3):
-                    steps.append(f"{offset}. If the previous artifact is still needed, run `python -m tools {tool_name} <artifact_path>` and wait for the Observation.")
+                    steps.append(
+                        f"{offset}. If the previous artifact is still needed, run "
+                        f"`{self._mastery_tool_command(family, tool_name, use_artifact=True)}` and wait for the Observation."
+                    )
                 final_step = len(sequence) + 2
                 steps.append(f"{final_step}. If the avoid condition applies instead ({avoid}), skip the tool path and answer directly; otherwise answer from the final artifact.")
             else:
@@ -1311,6 +1314,30 @@ class SubsetEvolutionLoop:
             level="mid",
             depends_on=[],
         )
+
+    @staticmethod
+    def _mastery_tool_command(family: str, tool_name: str, use_artifact: bool) -> str:
+        image_ref = "<artifact_path>" if use_artifact else "<image_path>"
+        if not family.strip().lower().startswith("gta"):
+            return f"python -m tools {tool_name} {image_ref}"
+
+        gta_templates = {
+            "OCR": f"python -m tools OCR image={image_ref}",
+            "ImageDescription": f"python -m tools ImageDescription image={image_ref}",
+            "CountGivenObject": f'python -m tools CountGivenObject image={image_ref} text="target object"',
+            "TextToBbox": f'python -m tools TextToBbox image={image_ref} text="target object" top1=true',
+            "RegionAttributeDescription": f'python -m tools RegionAttributeDescription image={image_ref} bbox="(x1, y1, x2, y2)" attribute="target attribute"',
+            "MathOCR": f"python -m tools MathOCR image={image_ref}",
+            "Calculator": 'python -m tools Calculator expression="numeric expression"',
+            "Solver": 'python -m tools Solver command="def solution():\n    return result"',
+            "Plot": 'python -m tools Plot command="import matplotlib.pyplot as plt\n\ndef solution():\n    fig, ax = plt.subplots()\n    return fig"',
+            "DrawBox": f'python -m tools DrawBox image={image_ref} bbox="(x1, y1, x2, y2)" annotation="target"',
+            "AddText": f'python -m tools AddText image={image_ref} text="label" position="mt" color=red',
+            "GoogleSearch": 'python -m tools GoogleSearch query="factual query" k=4',
+            "TextToImage": 'python -m tools TextToImage keywords="keyword1, keyword2"',
+            "ImageStylization": f'python -m tools ImageStylization image={image_ref} instruction="edit instruction"',
+        }
+        return gta_templates.get(tool_name, f"python -m tools {tool_name} {image_ref}")
 
     def _build_mastery_eval_result(
         self,

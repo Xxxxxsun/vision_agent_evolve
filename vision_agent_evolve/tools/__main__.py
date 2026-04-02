@@ -46,6 +46,7 @@ def main():
         print("\nBuilt-in tools:")
         for tool in sorted(builtin_tools.values(), key=lambda item: item.name):
             print(f"  {tool.name}  - {tool.description}")
+            print(f"    usage: {tool.usage_example}")
         if learned_tools:
             print("\nLearned tools:")
             for tool_name in sorted(learned_tools.keys()):
@@ -57,10 +58,10 @@ def main():
     tool_name = sys.argv[1]
 
     if tool_name in builtin_tools:
-        if len(sys.argv) < 3:
-            print(f"Usage: python -m tools {tool_name} <image_path>")
+        if len(sys.argv) < 3 and " <image_path>" in builtin_tools[tool_name].usage_example:
+            print(f"Usage: {builtin_tools[tool_name].usage_example}")
             sys.exit(1)
-        print(execute_builtin_tool(tool_name, sys.argv[2]))
+        print(execute_builtin_tool(tool_name, *sys.argv[2:]))
         return
 
     if tool_name in learned_tools:

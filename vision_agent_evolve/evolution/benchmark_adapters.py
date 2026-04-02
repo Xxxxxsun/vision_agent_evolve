@@ -294,11 +294,63 @@ class TextVQAAdapter(GenericJsonlAdapter):
         return check_textvqa_case_answer(answer, case)
 
 
+class GTAAdapter(GenericJsonlAdapter):
+    """GTA-specific answer checking with whitelist/blacklist support."""
+
+    def __init__(self) -> None:
+        super().__init__(dataset_name="gta")
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        actual = _normalize_text(answer)
+        if not actual:
+            return 0.0
+
+        blacklist = case.metadata.get("gt_answer_blacklist")
+        if isinstance(blacklist, list):
+            for group in blacklist:
+                if not isinstance(group, list):
+                    continue
+                for blocked in group:
+                    blocked_text = _normalize_text(str(blocked))
+                    if blocked_text and blocked_text in actual:
+                        return 0.0
+
+        whitelist = case.metadata.get("gt_answer_whitelist")
+        if isinstance(whitelist, list) and any(isinstance(group, list) and group for group in whitelist):
+            for group in whitelist:
+                if not isinstance(group, list) or not group:
+                    continue
+                if all(_gta_match(actual, _normalize_text(str(expected))) for expected in group):
+                    return 1.0
+            return 0.0
+
+        return super().score_answer(answer, case)
+
+    def build_family_id(self, case: TaskCase) -> str:
+        return str(case.metadata.get("capability_family", case.metadata.get("tool_category", "gta")))
+
+    def cluster_key(self, case: TaskCase, result: AgentResult, correct: bool) -> str:
+        if correct:
+            return "correct"
+        tool_category = str(case.metadata.get("tool_category", "unknown"))
+        num_steps = int(case.metadata.get("num_steps", 0) or 0)
+        step_bucket = "single" if num_steps <= 1 else ("short" if num_steps <= 3 else "long")
+        return f"gta::{tool_category}::{step_bucket}"
+
+    def summarize_case(self, case: TaskCase, result: AgentResult, correct: bool) -> dict[str, str]:
+        summary = super().summarize_case(case, result, correct)
+        summary["gt_tools"] = ",".join(str(tool) for tool in case.metadata.get("gt_tools", []))
+        summary["tool_category"] = str(case.metadata.get("tool_category", ""))
+        summary["num_steps"] = str(case.metadata.get("num_steps", 0))
+        return summary
+
+
 def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) -> BenchmarkAdapter:
     """Return the adapter registered for the given dataset."""
     normalized = dataset_name.strip().lower()
     registry: dict[str, BenchmarkAdapter] = {
         "chartqa": ChartQAAdapter(),
+        "gta": GTAAdapter(),
         "vstar": VStarAdapter(),
         "v*": VStarAdapter(),
         "hrbench": HRBenchAdapter(),
@@ -312,13 +364,28 @@ def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) ->
 
 def available_benchmark_datasets() -> list[str]:
     """Return the known dataset names for CLI choices/help."""
-    return ["chartqa", "hrbench", "mathvista", "textvqa", "vstar"]
+    return ["chartqa", "gta", "hrbench", "mathvista", "textvqa", "vstar"]
 
 
 def _normalize_text(value: str) -> str:
     cleaned = str(value).strip().lower()
     cleaned = re.sub(r"\s+", " ", cleaned)
     return cleaned
+
+
+def _gta_match(actual: str, expected: str) -> bool:
+    if not expected:
+        return False
+    if expected in actual:
+        return True
+
+    actual_number = _parse_number(actual)
+    expected_number = _parse_number(expected)
+    if actual_number is not None and expected_number is not None:
+        tolerance = 0.01 * max(1.0, abs(expected_number))
+        return abs(actual_number - expected_number) < tolerance
+
+    return bool(re.search(rf"(?<![a-z0-9]){re.escape(expected)}(?![a-z0-9])", actual))
 
 
 def _parse_number(value: str) -> float | None:

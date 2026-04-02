@@ -6,6 +6,7 @@ import base64
 import hashlib
 import io
 import json
+import random
 import re
 from pathlib import Path
 from typing import Any, Iterable
@@ -273,6 +274,73 @@ def normalize_textvqa_dataset(
             "source_split": "validation" if split == "val" else "train",
             "source_files": [str(path) for path in files],
             "output_file": str(output_file),
+        }
+
+    manifest_path = dataset_root / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def normalize_gta_dataset(
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    train_ratio: float = 0.3,
+    seed: int = 42,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Normalize GTA benchmark data into shared JSONL files."""
+    dataset_root = normalized_data_root / "gta"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+
+    dataset_file = raw_data_root / "dataset.json"
+    toolmeta_file = raw_data_root / "toolmeta.json"
+    image_dir = raw_data_root / "image"
+    if not dataset_file.exists():
+        raise FileNotFoundError(f"Could not find GTA dataset file under {raw_data_root}")
+    if not toolmeta_file.exists():
+        raise FileNotFoundError(f"Could not find GTA tool metadata file under {raw_data_root}")
+    if not image_dir.exists():
+        raise FileNotFoundError(f"Could not find GTA image directory under {raw_data_root}")
+
+    raw_data = json.loads(dataset_file.read_text(encoding="utf-8"))
+    toolmeta = json.loads(toolmeta_file.read_text(encoding="utf-8"))
+
+    records: list[dict[str, Any]] = []
+    for index, (qid, item) in enumerate(sorted(raw_data.items(), key=lambda pair: int(pair[0]))):
+        if limit and index >= limit:
+            break
+        record = _normalize_gta_record(str(qid), item, raw_data_root, toolmeta)
+        if record is not None:
+            records.append(record)
+
+    rng = random.Random(seed)
+    indices = list(range(len(records)))
+    rng.shuffle(indices)
+    train_size = max(1, int(len(records) * train_ratio)) if records else 0
+    train_indices = sorted(indices[:train_size])
+    val_indices = sorted(indices[train_size:])
+
+    split_map = {"train": train_indices, "val": val_indices}
+    manifest: dict[str, Any] = {
+        "dataset": "gta",
+        "raw_data_root": str(raw_data_root),
+        "normalized_data_root": str(dataset_root),
+        "total_cases": len(records),
+        "train_ratio": train_ratio,
+        "seed": seed,
+        "splits": {},
+        "unique_tools": sorted({tool for row in records for tool in row["metadata"].get("gt_tools", [])}),
+        "tool_categories": sorted({str(row["metadata"].get("tool_category", "unknown")) for row in records}),
+    }
+
+    for split, split_indices in split_map.items():
+        split_file = dataset_root / f"{split}.jsonl"
+        with split_file.open("w", encoding="utf-8") as handle:
+            for idx in split_indices:
+                handle.write(json.dumps(records[idx], ensure_ascii=False) + "\n")
+        manifest["splits"][split] = {
+            "count": len(split_indices),
+            "output_file": str(split_file),
         }
 
     manifest_path = dataset_root / "manifest.json"
@@ -560,6 +628,151 @@ def _find_chartqa_image_recursive(raw_data_root: Path, split: str, candidate: Pa
                 return sorted(expanded_matches)[0].resolve()
 
     return None
+
+
+def _normalize_gta_record(
+    qid: str,
+    item: dict[str, Any],
+    raw_data_root: Path,
+    toolmeta: dict[str, Any],
+) -> dict[str, Any] | None:
+    user_query = ""
+    dialogs = item.get("dialogs", [])
+    for dialog in dialogs:
+        if dialog.get("role") == "user":
+            user_query = str(dialog.get("content", "")).strip()
+            break
+
+    image_paths: list[str] = []
+    for file_info in item.get("files", []):
+        raw_path = str(file_info.get("path", "")).strip()
+        if not raw_path:
+            continue
+        resolved = (raw_data_root / raw_path).resolve()
+        image_paths.append(str(resolved))
+
+    whitelist, blacklist, answer_str = _parse_gta_gold_answer(item.get("gt_answer"))
+    if not answer_str.strip():
+        return None
+
+    gt_tools = [str(tool.get("name", "")).strip() for tool in item.get("tools", []) if str(tool.get("name", "")).strip()]
+    gt_chain = _extract_gta_tool_chain(dialogs)
+    tool_category = _classify_gta_tool_category(gt_tools)
+    tool_catalog = _build_gta_tool_description(
+        [toolmeta[name] for name in gt_tools if name in toolmeta]
+        or item.get("tools", [])
+    )
+    image_refs = "\n".join(f"[Image {i + 1}]: {path}" for i, path in enumerate(image_paths))
+    prompt_parts = [user_query]
+    if tool_catalog:
+        prompt_parts.append(f"You have access to the following tools:\n{tool_catalog}")
+    if image_refs:
+        prompt_parts.append(f"Images provided:\n{image_refs}")
+    prompt = "\n\n".join(part for part in prompt_parts if part)
+
+    return {
+        "id": f"gta_{qid}",
+        "problem_id": f"gta_{tool_category}",
+        "prompt": prompt,
+        "answer": answer_str,
+        "image_path": image_paths[0] if image_paths else "",
+        "metadata": {
+            "dataset_name": "gta",
+            "source_id": qid,
+            "question_type": tool_category,
+            "answer_type": "free_form",
+            "gt_tools": gt_tools,
+            "gt_tool_chain": gt_chain,
+            "gt_answer_whitelist": whitelist,
+            "gt_answer_blacklist": blacklist,
+            "all_image_paths": image_paths,
+            "num_tools": len(gt_tools),
+            "num_steps": len(gt_chain),
+            "tool_category": tool_category,
+            "capability_family": f"gta_{tool_category}",
+        },
+    }
+
+
+def _parse_gta_gold_answer(gt_answer: Any) -> tuple[list[list[str]], list[list[str]] | None, str]:
+    whitelist: list[list[str]]
+    blacklist: list[list[str]] | None
+    answer_str = ""
+    if isinstance(gt_answer, dict):
+        raw_whitelist = gt_answer.get("whitelist", [[]])
+        whitelist = [[str(item) for item in group] for group in raw_whitelist if isinstance(group, list)]
+        blacklist_raw = gt_answer.get("blacklist")
+        if isinstance(blacklist_raw, list):
+            blacklist = [[str(item) for item in group] for group in blacklist_raw if isinstance(group, list)]
+        else:
+            blacklist = None
+        if whitelist and whitelist[0]:
+            answer_str = str(whitelist[0][0])
+    elif isinstance(gt_answer, list) and gt_answer:
+        whitelist = [[str(gt_answer[0])]]
+        blacklist = None
+        answer_str = str(gt_answer[0])
+    else:
+        whitelist = [[]]
+        blacklist = None
+    return whitelist, blacklist, answer_str
+
+
+def _build_gta_tool_description(tools: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    for tool in tools:
+        name = str(tool.get("name", "")).strip()
+        if not name:
+            continue
+        inputs = ", ".join(
+            f"{inp.get('name', 'arg')}:{inp.get('type', 'any')}"
+            for inp in tool.get("inputs", [])
+            if isinstance(inp, dict)
+        )
+        outputs = ", ".join(
+            str(output.get("type", "any"))
+            for output in tool.get("outputs", [])
+            if isinstance(output, dict)
+        )
+        description = str(tool.get("description", "")).strip()
+        lines.append(f"- {name}({inputs}) -> {outputs or 'any'}: {description}")
+    return "\n".join(lines)
+
+
+def _extract_gta_tool_chain(dialogs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    chain: list[dict[str, Any]] = []
+    for turn in dialogs:
+        if turn.get("role") != "assistant":
+            continue
+        for tool_call in turn.get("tool_calls", []):
+            function = tool_call.get("function", {}) if isinstance(tool_call, dict) else {}
+            chain.append(
+                {
+                    "tool": str(function.get("name", "")),
+                    "arguments": function.get("arguments", {}),
+                    "thought": str(turn.get("thought", "")),
+                }
+            )
+    return chain
+
+
+def _classify_gta_tool_category(tools: list[str]) -> str:
+    perception = {"OCR", "ImageDescription", "RegionAttributeDescription", "CountGivenObject", "TextToBbox", "MathOCR"}
+    operation = {"DrawBox", "AddText", "GoogleSearch"}
+    logic = {"Calculator", "Plot", "Solver"}
+    creativity = {"TextToImage", "ImageStylization"}
+
+    tool_set = set(tools)
+    categories: list[str] = []
+    if tool_set & perception:
+        categories.append("perception")
+    if tool_set & operation:
+        categories.append("operation")
+    if tool_set & logic:
+        categories.append("logic")
+    if tool_set & creativity:
+        categories.append("creativity")
+    return "+".join(categories) if categories else "unknown"
 
 
 def _discover_data_files(raw_data_root: Path, include_tokens: list[str]) -> list[Path]:

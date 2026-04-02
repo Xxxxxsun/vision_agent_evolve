@@ -441,7 +441,7 @@ Generate one reusable family-level primitive tool, not a case-solving tool.
 
 CRITICAL REQUIREMENTS:
 - Maximum 150 lines of code
-- Our runtime will call it as: `python -m tools <tool_name> <image_path>`
+- Our runtime will call it as: `python -m tools <tool_name> [args...]`
 - The `image_path` input may be an intermediate artifact from a previous tool, not just the raw image.
 - Put the real logic inside a top-level `run(image_path: str) -> ToolResult` function
 - `main()` is optional, but if you include it, it should only do `print(run(sys.argv[1]))`
@@ -510,7 +510,7 @@ Provide response as JSON:
     "description": "brief description",
     "applicability_conditions": "when this tool should be used within the task family",
     "code": "full Python code (with main() function)",
-    "usage_example": "python -m tools tool_name <image_path>",
+  "usage_example": "python -m tools tool_name <image_path>",
     "expected_inputs": ["image_path", "other params if needed"],
     "expected_outputs": ["description of output", "artifacts/output.png"],
     "primitive_category": "family primitive category"
@@ -605,7 +605,7 @@ IMPORTANT CONTEXT:
   3. ...
   4. ...
 - At least one step must explicitly branch, for example "If ... use tool A, otherwise ...".
-- Step 1 or step 2 must contain at least one exact command pattern such as `python -m tools localized_text_zoom <image_path>`.
+- Step 1 or step 2 must contain at least one exact command pattern such as `python -m tools localized_text_zoom <image_path>` or `python -m tools Calculator expression="1+2"`.
 - Only reference preset tools from the catalog above unless a staged tool is explicitly listed.
 - Do not invent any new tool names.
 - If this SOP extends an existing tool chain, write the next tool step using `<artifact_path>` as the input placeholder.
@@ -843,10 +843,10 @@ Rules:
 
     def _build_mastery_skill_content(self, profile: MasteryProfile) -> str:
         primary_tool = profile.primary_tool or (profile.tool_sequence[0] if profile.tool_sequence else "")
-        first_command = f"`python -m tools {primary_tool} <image_path>`" if primary_tool else "no tool command"
+        first_command = f"`python -m tools {primary_tool} [args]`" if primary_tool else "no tool command"
         second_command = ""
         if len(profile.tool_sequence) > 1:
-            second_command = f" then `python -m tools {profile.tool_sequence[1]} <artifact_path>`"
+            second_command = f" then `python -m tools {profile.tool_sequence[1]} [args]`"
         trigger = self._strip_bullet("; ".join(profile.recommended_trigger_conditions or profile.common_success_signals) or "the current image matches the profiled tool-trigger pattern")
         avoid = self._strip_bullet("; ".join(profile.negative_trigger_conditions or profile.common_failure_signals) or "direct answering is already sufficient")
         return "\n".join([
@@ -1031,7 +1031,7 @@ Rules:
         print(f"  [Generator/ToolRevision] Tokens: {usage.total_tokens} (prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})")
         proposal = self._normalize_tool_proposal(self._extract_json(response))
         proposal.name = tool.name
-        proposal.usage_example = f"python -m tools {tool.name} <image_path>"
+        proposal.usage_example = proposal.usage_example or f"python -m tools {tool.name} <image_path>"
         if not proposal.primitive_category:
             proposal.primitive_category = tool.primitive_category or (coverage_contract.primitive_category if coverage_contract else "")
         return proposal
@@ -1751,12 +1751,12 @@ if __name__ == "__main__":
         still_text = self._sanitize_context_text(
             sections.get("If still failing") or analysis.rationale or "Explain what remaining transformation or computation is still missing."
         )
-        generic_command = f"python -m tools {tool_proposal.name} <image_path>"
+        generic_command = tool_proposal.usage_example or f"python -m tools {tool_proposal.name} <image_path>"
         prior_tools = self._extract_tool_names(existing_skill_content or "")
 
         if prior_tools and tool_proposal.name not in prior_tools:
             prior_chain = self._format_existing_chain(prior_tools)
-            chained_command = f"python -m tools {tool_proposal.name} <artifact_path>"
+            chained_command = generic_command.replace("<image_path>", "<artifact_path>")
             return "\n".join([
                 "## SOP",
                 f"1. Confirm this applies: {self._strip_bullet(when_text)}",
@@ -1814,6 +1814,7 @@ if __name__ == "__main__":
     def _sanitize_applicability(self, text: str) -> str:
         cleaned = self._sanitize_context_text(text)
         cleaned = cleaned.replace("tool command `python -m tools <tool_name> <image_path>`", "the relevant tool step")
+        cleaned = cleaned.replace("tool command `python -m tools <tool_name> [args]`", "the relevant tool step")
         if not cleaned or self._looks_example_specific(cleaned):
             return "Use this only when the current image or intermediate artifact matches this task-specific visual condition."
         return cleaned
@@ -1835,7 +1836,7 @@ if __name__ == "__main__":
 
     def _sanitize_context_text(self, text: str) -> str:
         cleaned = text.strip()
-        cleaned = re.sub(r"`?python(?:3)?\s+-m\s+tools\s+\S+\s+\S+`?", "tool command `python -m tools <tool_name> <image_path>`", cleaned)
+        cleaned = re.sub(r"`?python(?:3)?\s+-m\s+tools\s+\S+(?:\s+[^\n`]+)?`?", "tool command `python -m tools <tool_name> [args]`", cleaned)
         cleaned = re.sub(r"\b(?:datasets?|images?)\/[^\s`]+", "<image_path>", cleaned)
         cleaned = re.sub(r"\b\.\/[^\s`]+\.(?:png|jpg|jpeg|webp|gif)\b", "<image_path>", cleaned)
         cleaned = re.sub(r"\b\S+\.(?:png|jpg|jpeg|webp|gif)\b", "<image_path>", cleaned)

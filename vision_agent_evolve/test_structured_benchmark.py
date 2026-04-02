@@ -15,6 +15,7 @@ from core.structured_data import (
     check_multiple_choice_answer,
     load_normalized_cases,
     normalize_chartqa_dataset,
+    normalize_gta_dataset,
     normalize_hrbench_dataset,
     normalize_mathvista_dataset,
     normalize_textvqa_dataset,
@@ -22,7 +23,7 @@ from core.structured_data import (
     score_textvqa_answer,
 )
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
-from evolution.benchmark_adapters import ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
+from evolution.benchmark_adapters import GTAAdapter, ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
 from evolution.loop import EvolutionLoop
 from evolution.roles import AnalyzerDecider
 from evolution.store import CapabilityStore
@@ -823,9 +824,74 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
     def test_available_benchmark_datasets_includes_new_datasets(self):
         datasets = available_benchmark_datasets()
+        self.assertIn("gta", datasets)
         self.assertIn("mathvista", datasets)
         self.assertIn("textvqa", datasets)
         self.assertIn("vstar", datasets)
+
+    def test_gta_adapter_respects_whitelist_blacklist_and_numeric_tolerance(self):
+        adapter = GTAAdapter()
+        case = TaskCase(
+            case_id="g1",
+            problem_id="gta_perception",
+            prompt="How much should I pay?",
+            gold_answer="12",
+            metadata={
+                "dataset_name": "gta",
+                "capability_family": "gta_perception",
+                "tool_category": "perception",
+                "num_steps": 4,
+                "gt_tools": ["OCR", "Calculator"],
+                "gt_answer_whitelist": [["12"]],
+                "gt_answer_blacklist": [["13"]],
+            },
+        )
+
+        self.assertEqual(adapter.score_answer("You should pay 12.0 dollars.", case), 1.0)
+        self.assertEqual(adapter.score_answer("You should pay 13 dollars.", case), 0.0)
+        result = AgentResult(task="", final_answer="", steps=[], total_turns=0, success=True)
+        self.assertEqual(adapter.cluster_key(case, result, False), "gta::perception::long")
+
+    def test_normalize_gta_dataset_writes_current_machine_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw_root = root / "raw_gta"
+            (raw_root / "image").mkdir(parents=True, exist_ok=True)
+            self._write_image(raw_root / "image" / "image_1.jpg")
+
+            dataset = {
+                "0": {
+                    "dialogs": [
+                        {"role": "user", "content": "What number is on the sign?"},
+                        {
+                            "role": "assistant",
+                            "thought": "Use OCR.",
+                            "tool_calls": [{"function": {"name": "OCR", "arguments": {"image": "image/image_1.jpg"}}}],
+                        },
+                    ],
+                    "files": [{"path": "image/image_1.jpg"}],
+                    "gt_answer": {"whitelist": [["42"]], "blacklist": [["24"]]},
+                    "tools": [{"name": "OCR"}],
+                }
+            }
+            toolmeta = {
+                "OCR": {
+                    "name": "OCR",
+                    "description": "Read text from an image.",
+                    "inputs": [{"name": "image", "type": "image"}],
+                    "outputs": [{"type": "text"}],
+                }
+            }
+            (raw_root / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+            (raw_root / "toolmeta.json").write_text(json.dumps(toolmeta), encoding="utf-8")
+
+            manifest = normalize_gta_dataset(raw_root, root / "normalized", train_ratio=1.0, seed=7)
+            cases = load_normalized_cases(root / "normalized", "gta", "train")
+
+            self.assertEqual(manifest["total_cases"], 1)
+            self.assertEqual(cases[0].image_path, str((raw_root / "image" / "image_1.jpg").resolve()))
+            self.assertEqual(cases[0].metadata["tool_category"], "perception")
+            self.assertEqual(cases[0].metadata["gt_answer_whitelist"], [["42"]])
 
     def test_subset_level_train_adaptive_uses_final_active_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1562,6 +1628,8 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertIn("localized_text_zoom", snapshot.available_tools)
             self.assertIn("chart_value_overlay", snapshot.available_tools)
+            self.assertIn("OCR", snapshot.available_tools)
+            self.assertIn("Calculator", snapshot.available_tools)
 
     def test_execute_builtin_tool_returns_ok_result(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1577,6 +1645,32 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertIn("STATUS: ok", output)
             self.assertTrue((root / "artifacts" / "localized_text_zoom_output.png").exists())
+
+    def test_execute_gta_calculator_builtin_tool_returns_numeric_answer(self):
+        output = execute_builtin_tool("Calculator", "expression=round(75 / 59 * 100)")
+        self.assertIn("STATUS: ok", output)
+        self.assertIn("127", output)
+
+    def test_execute_gta_draw_box_builtin_tool_writes_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_path = root / "sample.png"
+            Image.new("RGB", (32, 32), color=(255, 255, 255)).save(image_path)
+            cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                output = execute_builtin_tool(
+                    "DrawBox",
+                    f"image={image_path}",
+                    "bbox=(4, 4, 20, 20)",
+                    "annotation=target",
+                )
+            finally:
+                os.chdir(cwd)
+
+            self.assertIn("STATUS: ok", output)
+            self.assertIn("ARTIFACTS:", output)
+            self.assertTrue((root / "artifacts" / "gta_draw_box_output.png").exists())
 
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1652,6 +1746,31 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("Task-specific instructions for OCR / short-answer VQA", agent.system_prompt)
         self.assertIn("Final Answer: <shortest exact answer string>", agent.system_prompt)
         self.assertIn("skip bash and complete immediately", agent.system_prompt)
+
+    def test_gta_agent_prompt_includes_gta_tool_hints(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+                subset_id=None,
+            )
+            case = TaskCase(
+                case_id="g1",
+                problem_id="gta_perception",
+                prompt="What number is on the sign?",
+                gold_answer="12",
+                metadata={"dataset_name": "gta", "capability_family": "gta_perception"},
+            )
+
+            agent = loop._create_agent(case, attempt=1, phase="solve")
+
+        self.assertIn("Task-specific instructions for GTA tool-using cases", agent.system_prompt)
+        self.assertIn("Fill in concrete arguments such as query=..., expression=..., bbox=...", agent.system_prompt)
+        self.assertIn("usage: python -m tools OCR image=<image_path>", agent.system_prompt)
 
     def test_benchmark_adapters_load_and_score_generic_datasets(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2475,6 +2594,22 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("localized_text_zoom", skill.content)
         self.assertIn("chart_value_overlay", skill.content)
         self.assertIn("avoid condition", skill.content)
+
+    def test_skill_from_mastery_strategy_uses_gta_argument_templates(self):
+        loop = SubsetEvolutionLoop.__new__(SubsetEvolutionLoop)
+        strategy = MasteryStrategyCandidate(
+            name="ocr_then_calculate",
+            tool_sequence=["OCR", "Calculator"],
+            trigger_conditions=["text in image must be read and then computed"],
+            avoid_conditions=["answer is visually obvious"],
+            fallback_action="answer_directly",
+            rationale="Use OCR before arithmetic when the image contains the inputs.",
+        )
+
+        skill = loop._skill_from_mastery_strategy("gta_perception", strategy)
+
+        self.assertIn("python -m tools OCR image=<image_path>", skill.content)
+        self.assertIn('python -m tools Calculator expression="numeric expression"', skill.content)
 
     def test_digest_payload_includes_mastery_profiles(self):
         evaluator = SubsetEvaluator.__new__(SubsetEvaluator)

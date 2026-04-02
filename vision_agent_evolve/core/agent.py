@@ -90,6 +90,7 @@ class ReActAgent:
     ) -> AgentResult:
         """Run agent on task."""
         self._current_image_path = image_path
+        self._latest_artifact_path = ""
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": self._user_content(f"Task: {task}", image_path)},
@@ -195,6 +196,8 @@ class ReActAgent:
             step.artifacts = self._normalize_artifacts(self._extract_artifacts(observation))
             if any(Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"} for path in step.artifacts):
                 required_image_artifact_seen = True
+            if step.artifacts:
+                self._latest_artifact_path = step.artifacts[-1]
             steps.append(step)
 
             messages.append({"role": "assistant", "content": response})
@@ -288,11 +291,20 @@ class ReActAgent:
 
         current_image = getattr(self, "_current_image_path", "")
         if current_image:
+            quoted_current_image = shlex.quote(current_image)
+            rewritten_command = rewritten_command.replace('image="<image_path>"', f"image={quoted_current_image}")
             rewritten_command = re.sub(
                 r"\binput_file_0\.(?:png|jpg|jpeg|webp|gif)\b",
-                shlex.quote(current_image),
+                quoted_current_image,
                 rewritten_command,
             )
+            rewritten_command = rewritten_command.replace("<image_path>", quoted_current_image)
+
+        latest_artifact = getattr(self, "_latest_artifact_path", "")
+        if latest_artifact:
+            quoted_artifact = shlex.quote(latest_artifact)
+            rewritten_command = rewritten_command.replace('image="<artifact_path>"', f"image={quoted_artifact}")
+            rewritten_command = rewritten_command.replace("<artifact_path>", quoted_artifact)
         return rewritten_command
 
     def _user_content(self, text: str, image_path: str) -> Any:

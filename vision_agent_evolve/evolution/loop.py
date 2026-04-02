@@ -470,7 +470,7 @@ class EvolutionLoop:
             if tool_name in builtin_specs:
                 spec = builtin_specs[tool_name]
                 available_tools.append(
-                    f"  - {tool_name}: {spec.description} | applies when: {spec.applicability} | usage: python -m tools {tool_name} <image_path>"
+                    f"  - {tool_name}: {spec.description} | applies when: {spec.applicability} | usage: {spec.usage_example}"
                 )
                 continue
             tool_file = self.learned_dir / "tools" / f"{tool_name}.py"
@@ -516,6 +516,19 @@ class EvolutionLoop:
     ) -> str:
         dataset_name = case.dataset_name().strip().lower()
         family = case.capability_family().strip().lower()
+
+        if dataset_name == "gta" or family.startswith("gta"):
+            gta_tools = [tool for tool in snapshot.available_tools if tool in {"OCR", "ImageDescription", "Calculator", "GoogleSearch", "CountGivenObject", "TextToBbox", "MathOCR", "DrawBox", "AddText", "Plot", "Solver", "ImageStylization", "TextToImage", "RegionAttributeDescription"}]
+            tool_hint = ", ".join(gta_tools[:8]) if gta_tools else "the available GTA-compatible tools"
+            return (
+                "Task-specific instructions for GTA tool-using cases:\n"
+                "- Prefer GTA-compatible preset tools when the question requires OCR, counting, external knowledge, symbolic solving, localization, or image editing.\n"
+                f"- Available GTA-style tools in this run include: {tool_hint}.\n"
+                "- Use the exact tool usage examples shown in the system tool list. Fill in concrete arguments such as query=..., expression=..., bbox=..., text=..., or instruction=... as needed.\n"
+                "- If a prior tool produced an image artifact, you may pass that artifact to a later image tool using the current artifact path.\n"
+                "- Keep the final answer short and exact. Do not add explanation unless the task explicitly asks for it.\n"
+                "- For edit/generation tasks, produce the requested image artifact first, then answer with the final short response."
+            )
 
         if dataset_name == "textvqa" or family.startswith("textvqa"):
             return (

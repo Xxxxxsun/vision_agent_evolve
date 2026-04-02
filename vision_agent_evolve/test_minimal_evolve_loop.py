@@ -895,6 +895,8 @@ class MinimalEvolveLoopTests(unittest.TestCase):
         tool_names = [tool.name for tool in list_builtin_tools()]
         self.assertIn("localized_text_zoom", tool_names)
         self.assertIn("localized_region_zoom", tool_names)
+        self.assertIn("OCR", tool_names)
+        self.assertIn("Calculator", tool_names)
 
     def test_execute_builtin_tool_writes_artifact(self):
         with tempfile.TemporaryDirectory() as tmp:
