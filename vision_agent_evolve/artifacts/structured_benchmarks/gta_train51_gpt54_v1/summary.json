@@ -1,0 +1,237 @@
+{
+  "config": {
+    "dataset": "gta",
+    "datasets": [
+      "gta"
+    ],
+    "raw_data_root": "/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset",
+    "normalized_data_root": "datasets/structured_multibench",
+    "subset_id": "gta_train51_gpt54_v1",
+    "evolve_split": "train",
+    "held_out_split": "val",
+    "k": 200,
+    "train_subset_size": 51,
+    "held_out_limit": 121,
+    "max_attempts": 10,
+    "max_planning_rounds": 3,
+    "families_per_round_limit": 2,
+    "representatives_per_cluster": 2,
+    "tool_preference": "prefer_tools",
+    "readability_judge_enabled": false,
+    "forced_skill_name": null
+  },
+  "snapshot_name": "gta_train51_gpt54_v1_train_snapshot",
+  "records_path": "/root/vision_agent_evolve/vision_agent_evolve/artifacts/structured_benchmarks/gta_train51_gpt54_v1/per_case.jsonl",
+  "subset_evolution_rounds": [
+    {
+      "run_id": "round_20260401_060424_813068",
+      "accepted": false,
+      "reason": "Rejected candidate because score delta was -0.0392",
+      "baseline_score": 0.6274509803921569,
+      "candidate_score": 0.5882352941176471,
+      "score_delta": -0.039215686274509776,
+      "smoke_passed": true,
+      "target_family": "gta_perception",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "representative_case_ids": [
+        "gta_161",
+        "gta_165"
+      ],
+      "activated_snapshot": "",
+      "baseline_summary": {
+        "total_cases": 51,
+        "correct_cases": 32,
+        "primary_score": 0.6274509803921569,
+        "per_dataset_scores": {
+          "gta": 0.6274509803921569
+        },
+        "per_family_scores": {
+          "gta_perception": 0.5238095238095238,
+          "gta_perception+logic": 0.8333333333333334,
+          "gta_perception+operation": 0.7142857142857143,
+          "gta_perception+operation+logic": 0.2
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 51,
+        "correct_cases": 30,
+        "primary_score": 0.5882352941176471,
+        "per_dataset_scores": {
+          "gta": 0.5882352941176471
+        },
+        "per_family_scores": {
+          "gta_perception": 0.42857142857142855,
+          "gta_perception+logic": 0.8333333333333334,
+          "gta_perception+operation": 0.7142857142857143,
+          "gta_perception+operation+logic": 0.2
+        }
+      }
+    },
+    {
+      "run_id": "round_20260401_061506_816763",
+      "accepted": false,
+      "reason": "Rejected candidate because score delta was 0.0000",
+      "baseline_score": 0.6274509803921569,
+      "candidate_score": 0.6274509803921569,
+      "score_delta": 0.0,
+      "smoke_passed": true,
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "representative_case_ids": [
+        "gta_186",
+        "gta_20"
+      ],
+      "activated_snapshot": "",
+      "baseline_summary": {
+        "total_cases": 51,
+        "correct_cases": 32,
+        "primary_score": 0.6274509803921569,
+        "per_dataset_scores": {
+          "gta": 0.6274509803921569
+        },
+        "per_family_scores": {
+          "gta_perception": 0.5238095238095238,
+          "gta_perception+logic": 0.8333333333333334,
+          "gta_perception+operation": 0.7142857142857143,
+          "gta_perception+operation+logic": 0.2
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 51,
+        "correct_cases": 32,
+        "primary_score": 0.6274509803921569,
+        "per_dataset_scores": {
+          "gta": 0.6274509803921569
+        },
+        "per_family_scores": {
+          "gta_perception": 0.5238095238095238,
+          "gta_perception+logic": 0.7777777777777778,
+          "gta_perception+operation": 0.8571428571428571,
+          "gta_perception+operation+logic": 0.2
+        }
+      }
+    },
+    {
+      "run_id": "round_20260401_062548_707545",
+      "accepted": false,
+      "reason": "Rejected candidate because score delta was -0.0392",
+      "baseline_score": 0.6274509803921569,
+      "candidate_score": 0.5882352941176471,
+      "score_delta": -0.039215686274509776,
+      "smoke_passed": true,
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "representative_case_ids": [
+        "gta_186",
+        "gta_20"
+      ],
+      "activated_snapshot": "",
+      "baseline_summary": {
+        "total_cases": 51,
+        "correct_cases": 32,
+        "primary_score": 0.6274509803921569,
+        "per_dataset_scores": {
+          "gta": 0.6274509803921569
+        },
+        "per_family_scores": {
+          "gta_perception": 0.5238095238095238,
+          "gta_perception+logic": 0.8333333333333334,
+          "gta_perception+operation": 0.7142857142857143,
+          "gta_perception+operation+logic": 0.2
+        }
+      },
+      "candidate_summary": {
+        "total_cases": 51,
+        "correct_cases": 30,
+        "primary_score": 0.5882352941176471,
+        "per_dataset_scores": {
+          "gta": 0.5882352941176471
+        },
+        "per_family_scores": {
+          "gta_perception": 0.47619047619047616,
+          "gta_perception+logic": 0.7777777777777778,
+          "gta_perception+operation": 0.8571428571428571,
+          "gta_perception+operation+logic": 0.0
+        }
+      }
+    }
+  ],
+  "settings": {
+    "agent_train_adaptive": {
+      "split": "train",
+      "total": 51,
+      "correct": 31,
+      "accuracy": 0.6078431372549019,
+      "per_dataset_accuracy": {
+        "gta": 0.6078431372549019
+      },
+      "per_family_accuracy": {
+        "gta_perception": 0.42857142857142855,
+        "gta_perception+logic": 0.8333333333333334,
+        "gta_perception+operation": 0.7142857142857143,
+        "gta_perception+operation+logic": 0.4
+      },
+      "full_agent_accuracy": 0.6274509803921569,
+      "post_evolve_recovery_accuracy": 0.6078431372549019,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.0392156862745098,
+      "avg_tool_calls_per_case": 0.0392156862745098,
+      "artifact_production_rate": 0.0392156862745098,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    },
+    "frozen_inference": {
+      "split": "val",
+      "total": 121,
+      "correct": 77,
+      "accuracy": 0.6363636363636364,
+      "per_dataset_accuracy": {
+        "gta": 0.6363636363636364
+      },
+      "per_family_accuracy": {
+        "gta_perception+logic": 0.7068965517241379,
+        "gta_perception": 0.38461538461538464,
+        "gta_perception+operation": 0.7407407407407407,
+        "gta_perception+creativity": 1.0,
+        "gta_perception+operation+logic": 0.5555555555555556
+      },
+      "full_agent_accuracy": 0.6363636363636364,
+      "post_evolve_recovery_accuracy": 0.0,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.03305785123966942,
+      "avg_tool_calls_per_case": 0.03305785123966942,
+      "artifact_production_rate": 0.03305785123966942,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    }
+  },
+  "full_agent_accuracy": 0.6274509803921569,
+  "post_evolve_recovery_accuracy": 0.6078431372549019,
+  "preset_tools_only_accuracy": 0.0,
+  "frozen_inference_accuracy": 0.6363636363636364,
+  "forced_skill_frozen_accuracy": 0.0,
+  "scratch_skill_full_agent_accuracy": 0.0,
+  "scratch_skill_post_evolve_recovery_accuracy": 0.0,
+  "scratch_skill_frozen_accuracy": 0.0,
+  "scratch_skill_forced_accuracy": 0.0
+}

@@ -1,0 +1,40 @@
+{
+  "dataset": "gta",
+  "raw_data_root": "/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset",
+  "normalized_data_root": "datasets/structured_multibench/gta",
+  "total_cases": 172,
+  "train_ratio": 0.3,
+  "seed": 42,
+  "splits": {
+    "train": {
+      "count": 51,
+      "output_file": "datasets/structured_multibench/gta/train.jsonl"
+    },
+    "val": {
+      "count": 121,
+      "output_file": "datasets/structured_multibench/gta/val.jsonl"
+    }
+  },
+  "unique_tools": [
+    "AddText",
+    "Calculator",
+    "CountGivenObject",
+    "DrawBox",
+    "GoogleSearch",
+    "ImageDescription",
+    "ImageStylization",
+    "MathOCR",
+    "OCR",
+    "Plot",
+    "RegionAttributeDescription",
+    "Solver",
+    "TextToBbox"
+  ],
+  "tool_categories": [
+    "perception",
+    "perception+creativity",
+    "perception+logic",
+    "perception+operation",
+    "perception+operation+logic"
+  ]
+}

@@ -1,0 +1,717 @@
+{
+  "baseline_summary": {
+    "total_cases": 51,
+    "correct_cases": 0,
+    "primary_score": 0.0,
+    "per_dataset_scores": {
+      "gta": 0.0
+    },
+    "per_family_scores": {
+      "gta_perception": 0.0,
+      "gta_perception+logic": 0.0,
+      "gta_perception+operation": 0.0,
+      "gta_perception+operation+logic": 0.0
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "cluster_key": "gta::perception+logic::short",
+      "total_cases": 15,
+      "case_ids": [
+        "gta_102",
+        "gta_134",
+        "gta_17",
+        "gta_170",
+        "gta_177",
+        "gta_181",
+        "gta_184",
+        "gta_194",
+        "gta_200",
+        "gta_53",
+        "gta_64",
+        "gta_66",
+        "gta_73",
+        "gta_88",
+        "gta_97"
+      ],
+      "representative_case_ids": [
+        "gta_102",
+        "gta_134"
+      ],
+      "summary_lines": [
+        "case_id=gta_102; prompt=How much money do I spend on vegetables?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input must be a single Python expres; expected=14.89; answer=",
+        "case_id=gta_134; prompt=If I wanted to order all the dishes, how much would it cost in total?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input m; expected=74; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (15/15)"
+      ],
+      "shared_tool_patterns": [
+        "none (15/15)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (9/15)",
+        "counting (6/15)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::short",
+      "total_cases": 12,
+      "case_ids": [
+        "gta_161",
+        "gta_165",
+        "gta_178",
+        "gta_179",
+        "gta_191",
+        "gta_210",
+        "gta_54",
+        "gta_55",
+        "gta_60",
+        "gta_63",
+        "gta_83",
+        "gta_85"
+      ],
+      "representative_case_ids": [
+        "gta_161",
+        "gta_165"
+      ],
+      "summary_lines": [
+        "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=",
+        "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (12/12)"
+      ],
+      "shared_tool_patterns": [
+        "none (12/12)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (7/12)",
+        "counting (5/12)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_4",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::single",
+      "total_cases": 6,
+      "case_ids": [
+        "gta_137",
+        "gta_138",
+        "gta_162",
+        "gta_163",
+        "gta_94",
+        "gta_95"
+      ],
+      "representative_case_ids": [
+        "gta_137",
+        "gta_138"
+      ],
+      "summary_lines": [
+        "case_id=gta_137; prompt=Choose only one dish in Salad and one dish in Sandwich, which combination can be no more than 10.9 yuan in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> tex; expected=Toast; answer=",
+        "case_id=gta_138; prompt=If I wanted to order the two lowest priced dishes, how many dollars would it cost in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recog; expected=15; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (6/6)"
+      ],
+      "shared_tool_patterns": [
+        "none (6/6)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (4/6)",
+        "counting (1/6)",
+        "selection (1/6)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_6",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::long",
+      "total_cases": 3,
+      "case_ids": [
+        "gta_0",
+        "gta_3",
+        "gta_84"
+      ],
+      "representative_case_ids": [
+        "gta_0",
+        "gta_3"
+      ],
+      "summary_lines": [
+        "case_id=gta_0; prompt=How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all; expected=12; answer=",
+        "case_id=gta_3; prompt=I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A use; expected=2; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (3/3)"
+      ],
+      "shared_tool_patterns": [
+        "none (3/3)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (3/3)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_7",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "cluster_key": "gta::perception+logic::single",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_173",
+        "gta_41"
+      ],
+      "representative_case_ids": [
+        "gta_173",
+        "gta_41"
+      ],
+      "summary_lines": [
+        "case_id=gta_173; prompt=Calculate the values of this expression.\n\nYou have access to the following tools:\n- Solver(command:text) -> text: This tool can execute Python code to solve math equations. The cod; expected=2; answer=",
+        "case_id=gta_41; prompt=This is a digital password lock. I forgot part of the password but I remember all four numbers add up to one and the first number is one. Which is the third button I should press?\n; expected=0; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "none (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (1/2)",
+        "selection (1/2)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_8",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "cluster_key": "gta::perception+logic::long",
+      "total_cases": 1,
+      "case_ids": [
+        "gta_2"
+      ],
+      "representative_case_ids": [
+        "gta_2"
+      ],
+      "summary_lines": [
+        "case_id=gta_2; prompt=How many cups of water do the people in the photo need to consume in a day?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that ret; expected=27; answer="
+      ],
+      "common_failure_signals": [
+        "no_tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "none (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (1/1)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "gta_perception",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 21,
+      "failed_cases": 21,
+      "baseline_score": 0.0,
+      "common_question_patterns": [
+        "free_form (21/21)",
+        "perception (21/21)",
+        "counting (9/21)",
+        "generic_question (8/21)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (21/21)"
+      ],
+      "tool_usage_patterns": [
+        "none (21/21)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::short",
+          "total_cases": 12,
+          "case_ids": [
+            "gta_161",
+            "gta_165",
+            "gta_178",
+            "gta_179",
+            "gta_191",
+            "gta_210",
+            "gta_54",
+            "gta_55",
+            "gta_60",
+            "gta_63",
+            "gta_83",
+            "gta_85"
+          ],
+          "representative_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (12/12)"
+          ],
+          "shared_tool_patterns": [
+            "none (12/12)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (7/12)",
+            "counting (5/12)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=",
+            "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_4",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::single",
+          "total_cases": 6,
+          "case_ids": [
+            "gta_137",
+            "gta_138",
+            "gta_162",
+            "gta_163",
+            "gta_94",
+            "gta_95"
+          ],
+          "representative_case_ids": [
+            "gta_137",
+            "gta_138"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (6/6)"
+          ],
+          "shared_tool_patterns": [
+            "none (6/6)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (4/6)",
+            "counting (1/6)",
+            "selection (1/6)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_137; prompt=Choose only one dish in Salad and one dish in Sandwich, which combination can be no more than 10.9 yuan in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> tex; expected=Toast; answer=",
+            "case_id=gta_138; prompt=If I wanted to order the two lowest priced dishes, how many dollars would it cost in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recog; expected=15; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_6",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::long",
+          "total_cases": 3,
+          "case_ids": [
+            "gta_0",
+            "gta_3",
+            "gta_84"
+          ],
+          "representative_case_ids": [
+            "gta_0",
+            "gta_3"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (3/3)"
+          ],
+          "shared_tool_patterns": [
+            "none (3/3)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (3/3)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_0; prompt=How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all; expected=12; answer=",
+            "case_id=gta_3; prompt=I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A use; expected=2; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "supported_patterns": [
+            "generic_question (7/12)",
+            "counting (5/12)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_4"
+          ],
+          "target_case_ids": [
+            "gta_137",
+            "gta_138"
+          ],
+          "supported_patterns": [
+            "generic_question (4/6)",
+            "counting (1/6)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_6"
+          ],
+          "target_case_ids": [
+            "gta_0",
+            "gta_3"
+          ],
+          "supported_patterns": [
+            "counting (3/3)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 18,
+      "failed_cases": 18,
+      "baseline_score": 0.0,
+      "common_question_patterns": [
+        "free_form (18/18)",
+        "perception+logic (18/18)",
+        "counting (7/18)",
+        "generic_question (7/18)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (18/18)"
+      ],
+      "tool_usage_patterns": [
+        "none (18/18)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+logic",
+          "cluster_key": "gta::perception+logic::short",
+          "total_cases": 15,
+          "case_ids": [
+            "gta_102",
+            "gta_134",
+            "gta_17",
+            "gta_170",
+            "gta_177",
+            "gta_181",
+            "gta_184",
+            "gta_194",
+            "gta_200",
+            "gta_53",
+            "gta_64",
+            "gta_66",
+            "gta_73",
+            "gta_88",
+            "gta_97"
+          ],
+          "representative_case_ids": [
+            "gta_102",
+            "gta_134"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (15/15)"
+          ],
+          "shared_tool_patterns": [
+            "none (15/15)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (9/15)",
+            "counting (6/15)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_102; prompt=How much money do I spend on vegetables?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input must be a single Python expres; expected=14.89; answer=",
+            "case_id=gta_134; prompt=If I wanted to order all the dishes, how much would it cost in total?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input m; expected=74; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_7",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+logic",
+          "cluster_key": "gta::perception+logic::single",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_173",
+            "gta_41"
+          ],
+          "representative_case_ids": [
+            "gta_173",
+            "gta_41"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "none (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (1/2)",
+            "selection (1/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_173; prompt=Calculate the values of this expression.\n\nYou have access to the following tools:\n- Solver(command:text) -> text: This tool can execute Python code to solve math equations. The cod; expected=2; answer=",
+            "case_id=gta_41; prompt=This is a digital password lock. I forgot part of the password but I remember all four numbers add up to one and the first number is one. Which is the third button I should press?\n; expected=0; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_8",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+logic",
+          "cluster_key": "gta::perception+logic::long",
+          "total_cases": 1,
+          "case_ids": [
+            "gta_2"
+          ],
+          "representative_case_ids": [
+            "gta_2"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "none (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_2; prompt=How many cups of water do the people in the photo need to consume in a day?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that ret; expected=27; answer="
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+logic.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "gta_102",
+            "gta_134"
+          ],
+          "supported_patterns": [
+            "generic_question (9/15)",
+            "counting (6/15)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+logic.",
+          "target_cluster_ids": [
+            "cluster_7"
+          ],
+          "target_case_ids": [
+            "gta_173",
+            "gta_41"
+          ],
+          "supported_patterns": [
+            "generic_question (1/2)",
+            "selection (1/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+logic.",
+          "target_cluster_ids": [
+            "cluster_8"
+          ],
+          "target_case_ids": [
+            "gta_2"
+          ],
+          "supported_patterns": [
+            "counting (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 7,
+      "failed_cases": 7,
+      "baseline_score": 0.0,
+      "common_question_patterns": [
+        "free_form (7/7)",
+        "perception+operation (7/7)",
+        "counting (3/7)",
+        "direct_lookup (2/7)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (7/7)"
+      ],
+      "tool_usage_patterns": [
+        "none (7/7)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 5,
+      "failed_cases": 5,
+      "baseline_score": 0.0,
+      "common_question_patterns": [
+        "free_form (5/5)",
+        "perception+operation+logic (5/5)",
+        "counting (4/5)",
+        "selection (1/5)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (5/5)"
+      ],
+      "tool_usage_patterns": [
+        "none (5/5)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "gta_102",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "prompt": "How much money do I spend on vegetables?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input must be a single Python expression and you cannot import packages. You"
+    },
+    {
+      "case_id": "gta_134",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "prompt": "If I wanted to order all the dishes, how much would it cost in total?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input must be a single Python expression and yo"
+    },
+    {
+      "case_id": "gta_161",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the in"
+    },
+    {
+      "case_id": "gta_165",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe the attribute of a region of the input im"
+    },
+    {
+      "case_id": "gta_137",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "Choose only one dish in Salad and one dish in Sandwich, which combination can be no more than 10.9 yuan in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on t"
+    },
+    {
+      "case_id": "gta_138",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "If I wanted to order the two lowest priced dishes, how many dollars would it cost in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the input image.\n\nImage"
+    },
+    {
+      "case_id": "gta_0",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the input image.\n- CountGivenOb"
+    },
+    {
+      "case_id": "gta_3",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descriptio"
+    },
+    {
+      "case_id": "gta_173",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "prompt": "Calculate the values of this expression.\n\nYou have access to the following tools:\n- Solver(command:text) -> text: This tool can execute Python code to solve math equations. The code should include a function named 'solut"
+    },
+    {
+      "case_id": "gta_41",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "prompt": "This is a digital password lock. I forgot part of the password but I remember all four numbers add up to one and the first number is one. Which is the third button I should press?\n\nYou have access to the following tools:"
+    },
+    {
+      "case_id": "gta_2",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "prompt": "How many cups of water do the people in the photo need to consume in a day?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief description of the input im"
+    }
+  ],
+  "recent_rejected_plans": [],
+  "mastery_profiles": {}
+}

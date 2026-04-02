@@ -1,0 +1,102 @@
+[
+  {
+    "run_id": "round_20260401_062548_707545",
+    "reason": "Rejected candidate because score delta was -0.0392",
+    "target_family": "gta_perception+operation+logic",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "baseline_score": 0.6274509803921569,
+    "candidate_score": 0.5882352941176471,
+    "coverage_contract": {
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Read small localized nutrition information or food label text from an image, identify the relevant nutrient value and unit basis, then apply arithmetic scaling or intake-target calculations to answer a counting question.",
+      "supported_variations": [
+        "Extract per-serving, per-100g, or per-volume nutrient values from package labels and scale them to a stated quantity",
+        "Use the visually identified food item together with externally specified reference nutrition targets or nutrient-content sources to compute required grams or total nutrient intake"
+      ],
+      "unsupported_variations": [
+        "Cases requiring unsupported external web browsing or unverifiable source retrieval beyond the provided prompt context"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode a specific product, fruit, nutrient, or label layout",
+        "Do not rely on fixed image coordinates or one-off crop regions",
+        "Do not assume the nutrition basis is always per 100g or always per bottle",
+        "Do not assume English-only text or a single standardized nutrition table format"
+      ],
+      "primitive_category": "localized_text_zoom",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "Failures concentrate on missing support for reading small localized label text, while the downstream reasoning is stable arithmetic over extracted nutrition values, making a reusable zoom/read primitive plus a lightweight reasoning skill broadly applicable across the cluster."
+    }
+  },
+  {
+    "run_id": "round_20260401_061506_816763",
+    "reason": "Rejected candidate because score delta was 0.0000",
+    "target_family": "gta_perception+operation+logic",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "baseline_score": 0.6274509803921569,
+    "candidate_score": 0.6274509803921569,
+    "coverage_contract": {
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Read nutrition-related values from localized package text or depicted food labels, then perform unit-based arithmetic to answer counting or intake questions.",
+      "supported_variations": [
+        "Extracting per-serving or per-volume nutrition values from small localized text and scaling to a stated quantity",
+        "Using visually identified food type plus externally provided reference values to compute required grams or nutrient totals"
+      ],
+      "unsupported_variations": [
+        "Cases requiring domain-specific medical judgment, personalized dietary advice beyond straightforward reference-based calculation, or unsupported external web lookup without provided values"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode a specific beverage, fruit, or nutrient type",
+        "Do not assume fixed label layout, text position, or one-off coordinates",
+        "Do not assume values are always per 100g, per serving, or per bottle without reading the visual/text evidence"
+      ],
+      "primitive_category": "localized_text_zoom",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_skill",
+      "why_this_should_generalize": "Failures are driven mainly by not extracting small localized visual text before doing simple arithmetic; a reusable perception-plus-calculation skill can cover multiple nutrition counting variants without overfitting to one product."
+    }
+  },
+  {
+    "run_id": "round_20260401_060424_813068",
+    "reason": "Rejected candidate because score delta was -0.0392",
+    "target_family": "gta_perception",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "baseline_score": 0.6274509803921569,
+    "candidate_score": 0.5882352941176471,
+    "coverage_contract": {
+      "target_family": "gta_perception",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Image questions require extracting localized visual details, especially small or region-specific text/attributes, but failures come from not invoking any focused perception step.",
+      "supported_variations": [
+        "Reading event/team names or other localized text from a photo region before answering a free-form question",
+        "Inspecting a specific object or region to describe an attribute, mood, count, or other visible property"
+      ],
+      "unsupported_variations": [
+        "Tasks needing external world knowledge beyond what is visually present in the image"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode a specific sports event, team names, or object category from one example",
+        "Do not rely on fixed coordinates, fixed crop locations, or one-off image layouts",
+        "Do not assume the answer is always text; first determine whether the question targets text, count, or visual attributes"
+      ],
+      "primitive_category": "generic_visual_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_skill",
+      "why_this_should_generalize": "The dominant failure mode is procedural—failing to focus on the relevant image region or use available perception tools—so a reusable skill for targeted region inspection and tool selection should improve many family variants."
+    }
+  }
+]

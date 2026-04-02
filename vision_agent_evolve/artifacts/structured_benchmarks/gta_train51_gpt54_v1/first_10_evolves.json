@@ -1,0 +1,59 @@
+[
+  {
+    "ordinal": 1,
+    "case_id": "gta_161",
+    "target_family": "gta_perception",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "attempts": [
+      {
+        "attempt": 1,
+        "decision": "discard",
+        "smoke_passed": true,
+        "baseline_score": 0.6274509803921569,
+        "candidate_score": 0.5882352941176471,
+        "score_delta": -0.039215686274509776,
+        "reason": "Rejected candidate because score delta was -0.0392"
+      }
+    ]
+  },
+  {
+    "ordinal": 2,
+    "case_id": "gta_186",
+    "target_family": "gta_perception+operation+logic",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "attempts": [
+      {
+        "attempt": 1,
+        "decision": "discard",
+        "smoke_passed": true,
+        "baseline_score": 0.6274509803921569,
+        "candidate_score": 0.6274509803921569,
+        "score_delta": 0.0,
+        "reason": "Rejected candidate because score delta was 0.0000"
+      }
+    ]
+  },
+  {
+    "ordinal": 3,
+    "case_id": "gta_186",
+    "target_family": "gta_perception+operation+logic",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "attempts": [
+      {
+        "attempt": 1,
+        "decision": "discard",
+        "smoke_passed": true,
+        "baseline_score": 0.6274509803921569,
+        "candidate_score": 0.5882352941176471,
+        "score_delta": -0.039215686274509776,
+        "reason": "Rejected candidate because score delta was -0.0392"
+      }
+    ]
+  }
+]

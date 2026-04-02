@@ -1,0 +1,736 @@
+{
+  "subset_id": "gta_direct_gpt54_val_full_v1",
+  "split": "val",
+  "total_cases": 121,
+  "datasets": [
+    "gta"
+  ],
+  "cases": [
+    {
+      "case_id": "gta_1",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "1"
+    },
+    {
+      "case_id": "gta_10",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "10"
+    },
+    {
+      "case_id": "gta_100",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "100"
+    },
+    {
+      "case_id": "gta_101",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "101"
+    },
+    {
+      "case_id": "gta_103",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "103"
+    },
+    {
+      "case_id": "gta_104",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "104"
+    },
+    {
+      "case_id": "gta_105",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "105"
+    },
+    {
+      "case_id": "gta_106",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "106"
+    },
+    {
+      "case_id": "gta_107",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "107"
+    },
+    {
+      "case_id": "gta_108",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "108"
+    },
+    {
+      "case_id": "gta_109",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "109"
+    },
+    {
+      "case_id": "gta_11",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "11"
+    },
+    {
+      "case_id": "gta_110",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "110"
+    },
+    {
+      "case_id": "gta_111",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "111"
+    },
+    {
+      "case_id": "gta_112",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "112"
+    },
+    {
+      "case_id": "gta_113",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "113"
+    },
+    {
+      "case_id": "gta_114",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "114"
+    },
+    {
+      "case_id": "gta_115",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "115"
+    },
+    {
+      "case_id": "gta_116",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "116"
+    },
+    {
+      "case_id": "gta_118",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "118"
+    },
+    {
+      "case_id": "gta_121",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "121"
+    },
+    {
+      "case_id": "gta_122",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "122"
+    },
+    {
+      "case_id": "gta_124",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "124"
+    },
+    {
+      "case_id": "gta_125",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "125"
+    },
+    {
+      "case_id": "gta_126",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "126"
+    },
+    {
+      "case_id": "gta_127",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "127"
+    },
+    {
+      "case_id": "gta_128",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "128"
+    },
+    {
+      "case_id": "gta_129",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "129"
+    },
+    {
+      "case_id": "gta_13",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "13"
+    },
+    {
+      "case_id": "gta_130",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "130"
+    },
+    {
+      "case_id": "gta_131",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "131"
+    },
+    {
+      "case_id": "gta_132",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "132"
+    },
+    {
+      "case_id": "gta_133",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "133"
+    },
+    {
+      "case_id": "gta_135",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "135"
+    },
+    {
+      "case_id": "gta_136",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "136"
+    },
+    {
+      "case_id": "gta_159",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "159"
+    },
+    {
+      "case_id": "gta_160",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+creativity",
+      "source_id": "160"
+    },
+    {
+      "case_id": "gta_164",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "164"
+    },
+    {
+      "case_id": "gta_167",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "167"
+    },
+    {
+      "case_id": "gta_168",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "168"
+    },
+    {
+      "case_id": "gta_169",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "169"
+    },
+    {
+      "case_id": "gta_171",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "171"
+    },
+    {
+      "case_id": "gta_172",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "172"
+    },
+    {
+      "case_id": "gta_18",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "18"
+    },
+    {
+      "case_id": "gta_180",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "180"
+    },
+    {
+      "case_id": "gta_182",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "182"
+    },
+    {
+      "case_id": "gta_183",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "183"
+    },
+    {
+      "case_id": "gta_185",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "185"
+    },
+    {
+      "case_id": "gta_187",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "187"
+    },
+    {
+      "case_id": "gta_188",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "188"
+    },
+    {
+      "case_id": "gta_189",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "189"
+    },
+    {
+      "case_id": "gta_19",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "19"
+    },
+    {
+      "case_id": "gta_190",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "190"
+    },
+    {
+      "case_id": "gta_192",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "192"
+    },
+    {
+      "case_id": "gta_193",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "193"
+    },
+    {
+      "case_id": "gta_195",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "195"
+    },
+    {
+      "case_id": "gta_196",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "196"
+    },
+    {
+      "case_id": "gta_197",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "197"
+    },
+    {
+      "case_id": "gta_201",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "201"
+    },
+    {
+      "case_id": "gta_202",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "202"
+    },
+    {
+      "case_id": "gta_203",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "203"
+    },
+    {
+      "case_id": "gta_204",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "204"
+    },
+    {
+      "case_id": "gta_205",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "205"
+    },
+    {
+      "case_id": "gta_206",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "206"
+    },
+    {
+      "case_id": "gta_207",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "207"
+    },
+    {
+      "case_id": "gta_21",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "21"
+    },
+    {
+      "case_id": "gta_211",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "211"
+    },
+    {
+      "case_id": "gta_212",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "212"
+    },
+    {
+      "case_id": "gta_213",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "213"
+    },
+    {
+      "case_id": "gta_216",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "216"
+    },
+    {
+      "case_id": "gta_217",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "217"
+    },
+    {
+      "case_id": "gta_218",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "218"
+    },
+    {
+      "case_id": "gta_219",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "219"
+    },
+    {
+      "case_id": "gta_23",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "23"
+    },
+    {
+      "case_id": "gta_24",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "24"
+    },
+    {
+      "case_id": "gta_25",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "25"
+    },
+    {
+      "case_id": "gta_26",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "26"
+    },
+    {
+      "case_id": "gta_27",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "27"
+    },
+    {
+      "case_id": "gta_28",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "28"
+    },
+    {
+      "case_id": "gta_29",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "29"
+    },
+    {
+      "case_id": "gta_30",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "30"
+    },
+    {
+      "case_id": "gta_31",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "31"
+    },
+    {
+      "case_id": "gta_32",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "32"
+    },
+    {
+      "case_id": "gta_36",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "36"
+    },
+    {
+      "case_id": "gta_38",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "38"
+    },
+    {
+      "case_id": "gta_39",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "39"
+    },
+    {
+      "case_id": "gta_4",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "4"
+    },
+    {
+      "case_id": "gta_40",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "40"
+    },
+    {
+      "case_id": "gta_42",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "42"
+    },
+    {
+      "case_id": "gta_5",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "5"
+    },
+    {
+      "case_id": "gta_50",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "50"
+    },
+    {
+      "case_id": "gta_51",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "51"
+    },
+    {
+      "case_id": "gta_52",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "52"
+    },
+    {
+      "case_id": "gta_56",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "56"
+    },
+    {
+      "case_id": "gta_57",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "57"
+    },
+    {
+      "case_id": "gta_58",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "58"
+    },
+    {
+      "case_id": "gta_59",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "59"
+    },
+    {
+      "case_id": "gta_6",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "6"
+    },
+    {
+      "case_id": "gta_61",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "61"
+    },
+    {
+      "case_id": "gta_62",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "62"
+    },
+    {
+      "case_id": "gta_67",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "67"
+    },
+    {
+      "case_id": "gta_68",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "68"
+    },
+    {
+      "case_id": "gta_69",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "69"
+    },
+    {
+      "case_id": "gta_7",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation",
+      "source_id": "7"
+    },
+    {
+      "case_id": "gta_70",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "70"
+    },
+    {
+      "case_id": "gta_71",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "71"
+    },
+    {
+      "case_id": "gta_72",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "72"
+    },
+    {
+      "case_id": "gta_77",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "77"
+    },
+    {
+      "case_id": "gta_78",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "78"
+    },
+    {
+      "case_id": "gta_8",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "8"
+    },
+    {
+      "case_id": "gta_86",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "86"
+    },
+    {
+      "case_id": "gta_87",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "87"
+    },
+    {
+      "case_id": "gta_89",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "89"
+    },
+    {
+      "case_id": "gta_9",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "9"
+    },
+    {
+      "case_id": "gta_90",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "90"
+    },
+    {
+      "case_id": "gta_91",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "91"
+    },
+    {
+      "case_id": "gta_92",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "92"
+    },
+    {
+      "case_id": "gta_93",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "source_id": "93"
+    },
+    {
+      "case_id": "gta_96",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "source_id": "96"
+    },
+    {
+      "case_id": "gta_98",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "98"
+    },
+    {
+      "case_id": "gta_99",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+logic",
+      "source_id": "99"
+    }
+  ]
+}

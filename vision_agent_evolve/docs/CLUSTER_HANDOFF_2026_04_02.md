@@ -2,6 +2,10 @@
 
 This document captures the current code state and the latest experiment status before the cluster is released.
 
+Current git branch at capture time:
+
+- `main`
+
 ## What Changed
 
 This round focused on restructuring the third stage of evolution from a flat skill rewrite into a `tool mastery` stage.
@@ -23,6 +27,27 @@ Key code changes:
   - healthy records are skipped
   - timeout / empty-answer records are rerun
 - Agent-train checkpointing was added so long subset runs write partial train records instead of losing everything on interruption.
+- GTA benchmark normalization and runtime adaptation were added so GTA can run through the current structured benchmark pipeline.
+- GTA-native preset tools were added under the exact dataset names:
+  - `OCR`
+  - `ImageDescription`
+  - `Calculator`
+  - `GoogleSearch`
+  - `CountGivenObject`
+  - `MathOCR`
+  - `TextToBbox`
+  - `RegionAttributeDescription`
+  - `Solver`
+  - `Plot`
+  - `DrawBox`
+  - `AddText`
+  - `TextToImage`
+  - `ImageStylization`
+- Tool CLI dispatch now supports GTA-style `key=value` arguments instead of only `<image_path>`.
+- Agent prompting and mastery-skill templating were updated so GTA skills emit runnable commands like:
+  - `python -m tools OCR image=<image_path>`
+  - `python -m tools Calculator expression="..."`
+  - `python -m tools GoogleSearch query="..." k=4`
 
 Main files touched during this phase:
 
@@ -34,6 +59,10 @@ Main files touched during this phase:
 - `core/structured_data.py`
 - `tools/builtin_tools.py`
 - `tools/__main__.py`
+- `tools/gta_tools.py`
+- `tools/implementations/shared/gta_utils.py`
+- `tools/preset_types.py`
+- `scripts/prepare_gta.py`
 - `test_structured_benchmark.py`
 - `test_minimal_evolve_loop.py`
 
@@ -98,6 +127,126 @@ Quick takeaways from completed runs:
 - `chartvqa / gpt-5.4` strongly favors `preset_tools_only`.
 - `vstar` remains strong for `qwen`, `doubao`, and `gemini`, but `frozen_inference` is not always above `preset_tools_only`.
 
+## GTA Status
+
+### Code / Data State
+
+GTA is now wired into the current repo flow instead of the old benchmark-specific branch flow.
+
+Important paths:
+
+- Raw GTA root used in this session:
+  - `/root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset`
+- Normalized GTA dataset:
+  - `datasets/structured_multibench/gta/train.jsonl`
+  - `datasets/structured_multibench/gta/val.jsonl`
+  - `datasets/structured_multibench/gta/manifest.json`
+- GTA preset-tool implementation:
+  - `tools/gta_tools.py`
+  - `tools/implementations/shared/gta_utils.py`
+- GTA CLI / agent / mastery wiring:
+  - `tools/__main__.py`
+  - `tools/builtin_tools.py`
+  - `evolution/loop.py`
+  - `evolution/subset_loop.py`
+  - `core/agent.py`
+
+### GTA Results Already Finished
+
+1. Direct GPT-5.4 baseline on val
+
+- Subset id:
+  - `gta_direct_gpt54_val_full_v1`
+- Summary:
+  - `artifacts/structured_benchmarks/gta_direct_gpt54_val_full_v1/summary.json`
+- Result:
+  - `77 / 121 = 0.6364`
+
+2. Pre-adaptation `agent_train_adaptive + frozen_inference`
+
+- Subset id:
+  - `gta_train51_gpt54_v1`
+- Summary:
+  - `artifacts/structured_benchmarks/gta_train51_gpt54_v1/summary.json`
+- Result:
+  - train final `31 / 51 = 0.6078`
+  - frozen val `77 / 121 = 0.6364`
+- Interpretation:
+  - no accepted round
+  - frozen accuracy matched the direct baseline
+  - this was the evidence that GTA needed real runtime tool adaptation rather than only prompt-level tool names
+
+### GTA Verification After Adaptation
+
+Focused checks completed successfully:
+
+- `python -m py_compile` passed for the GTA tool wiring files
+- `python -m tools Calculator 'expression=round(75 / 59 * 100)'` returned `127`
+- `python -m tools DrawBox image=/tmp/gta_tool_smoke.png 'bbox=(4,4,20,20)' annotation=target` returned `STATUS: ok`
+- Tests passed:
+  - `env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest -q test_structured_benchmark.py -k 'execute_gta_calculator_builtin_tool or execute_gta_draw_box_builtin_tool or evolution_loop_tool_snapshot_includes_builtin_tools or gta_agent_prompt_includes_gta_tool_hints or skill_from_mastery_strategy'`
+  - `6 passed`
+  - `env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. python -m pytest -q test_minimal_evolve_loop.py -k 'builtin_tools_catalog_is_nonempty or execute_builtin_tool_writes_artifact'`
+  - `2 passed`
+
+### GTA Re-Run Started But Not Finished
+
+A new run was started after the GTA tool adaptation:
+
+- Subset id:
+  - `gta_preset_tools_gpt54_v1`
+- Intended settings:
+  - `preset_tools_only`
+  - `agent_train_adaptive`
+  - `frozen_inference`
+- Current summary path:
+  - `artifacts/structured_benchmarks/gta_preset_tools_gpt54_v1/summary.json`
+
+Important note:
+
+- The current `summary.json` for `gta_preset_tools_gpt54_v1` is not a final result.
+- It was written during an in-progress run and still shows zeros.
+- During the live rerun, progress output showed the adapted baseline beginning with correct cases (`gta_0`, `gta_102`, `gta_123`, `gta_134`, `gta_137`, `gta_138`, `gta_16`), which is already a different trajectory from the earlier failed GTA setup.
+- Treat `gta_preset_tools_gpt54_v1/summary.json` as partial / stale unless the run is resumed to completion and summary is rebuilt.
+
+### GTA Resume Command
+
+If this needs to be resumed on another machine with the same Alibaba endpoint setup, use:
+
+```bash
+cd /root/vision_agent_evolve/vision_agent_evolve
+export PYTHONPATH=.
+export VLM_API_STYLE="alibaba_chat"
+export VLM_BASE_URL="https://llm-chat-api.alibaba-inc.com/v1/api/chat"
+export VLM_MODEL="gpt-5.4-0305-global"
+export VLM_USER_ID="345245"
+export VLM_ACCESS_KEY="efc8c9ca4ac5b0dd4018bcd3a83d767d"
+export VLM_QUOTA_ID="79b2a6c6-f7c6-4138-aae0-abaa3b1608e5"
+export VLM_APP="llm_application"
+
+python scripts/run_structured_experiment.py \
+  --dataset gta \
+  --raw-data-root /root/vision_agent_evolve/datasets/GTA/opencompass/data/gta_dataset \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id gta_preset_tools_gpt54_v1 \
+  --evolve-split train \
+  --held-out-split val \
+  --train-subset-size 51 \
+  --held-out-limit 121 \
+  --max-planning-rounds 3 \
+  --representatives-per-cluster 2 \
+  --families-per-round-limit 2 \
+  --tool-preference prefer_tools \
+  --settings preset_tools_only agent_train_adaptive frozen_inference
+```
+
+If only the post-adaptation baseline comparison is needed quickly, prioritize:
+
+1. `preset_tools_only`
+2. `frozen_inference`
+
+before spending another full round budget on more evolution.
+
 ## In-Progress Runs At Capture Time
 
 These runs were still active when this handoff was written.
@@ -157,3 +306,10 @@ When resuming on another machine:
    - `preset_tools_only`
    - `frozen_inference`
 4. Then review active skill packages to identify when the mastery router truly improves over tool-only.
+5. For GTA specifically:
+   - ignore the stale zero-valued `gta_preset_tools_gpt54_v1/summary.json`
+   - resume the adapted GTA run
+   - compare:
+     - `gta_direct_gpt54_val_full_v1`
+     - `gta_train51_gpt54_v1`
+     - resumed `gta_preset_tools_gpt54_v1`

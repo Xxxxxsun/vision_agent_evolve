@@ -1,0 +1,641 @@
+{
+  "baseline_summary": {
+    "total_cases": 51,
+    "correct_cases": 32,
+    "primary_score": 0.6274509803921569,
+    "per_dataset_scores": {
+      "gta": 0.6274509803921569
+    },
+    "per_family_scores": {
+      "gta_perception": 0.5238095238095238,
+      "gta_perception+logic": 0.8333333333333334,
+      "gta_perception+operation": 0.7142857142857143,
+      "gta_perception+operation+logic": 0.2
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::short",
+      "total_cases": 7,
+      "case_ids": [
+        "gta_161",
+        "gta_165",
+        "gta_178",
+        "gta_54",
+        "gta_55",
+        "gta_60",
+        "gta_63"
+      ],
+      "representative_case_ids": [
+        "gta_161",
+        "gta_165"
+      ],
+      "summary_lines": [
+        "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=Los Angeles Lakers vs. Phoenix Suns",
+        "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=surprised"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (7/7)"
+      ],
+      "shared_tool_patterns": [
+        "none (7/7)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (6/7)",
+        "counting (1/7)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "cluster_key": "gta::perception+operation+logic::long",
+      "total_cases": 3,
+      "case_ids": [
+        "gta_186",
+        "gta_20",
+        "gta_22"
+      ],
+      "representative_case_ids": [
+        "gta_186",
+        "gta_20"
+      ],
+      "summary_lines": [
+        "case_id=gta_186; prompt=Assume that one bottle contains 500ml drink, how many sugar does these drink contain? Please round your answers to the nearest gram. You can find information in USDA (U.S. Departme; expected=159; answer=About 53 g of sugar per bottle.",
+        "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=About **123 grams** of orange."
+      ],
+      "common_failure_signals": [
+        "no_tool_used (3/3)"
+      ],
+      "shared_tool_patterns": [
+        "none (3/3)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (3/3)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_5",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::single",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "representative_case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "summary_lines": [
+        "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=It was about a debate between Joe Biden and Donald Trump.",
+        "case_id=gta_163; prompt=What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descrip; expected=ingredients of a coconut cake; answer=These ingredients look like they are for baking a coconut ca"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "none (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (2/2)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_7",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "cluster_key": "gta::perception+operation+logic::short",
+      "total_cases": 1,
+      "case_ids": [
+        "gta_198"
+      ],
+      "representative_case_ids": [
+        "gta_198"
+      ],
+      "summary_lines": [
+        "case_id=gta_198; prompt=I want to buy three phones which is in the first rank in this chart, how much should I pay?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calcul; expected=$2697; answer=The chart only shows phone names and size, not prices, so I "
+      ],
+      "common_failure_signals": [
+        "no_tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "none (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "selection (1/1)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_8",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::long",
+      "total_cases": 1,
+      "case_ids": [
+        "gta_0"
+      ],
+      "representative_case_ids": [
+        "gta_0"
+      ],
+      "summary_lines": [
+        "case_id=gta_0; prompt=How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all; expected=12; answer=I need the menu image (Image 2) to read the beer price and c"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "none (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (1/1)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "gta_perception",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 21,
+      "failed_cases": 10,
+      "baseline_score": 0.5238095238095238,
+      "common_question_patterns": [
+        "free_form (21/21)",
+        "perception (21/21)",
+        "counting (9/21)",
+        "generic_question (8/21)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (10/10)"
+      ],
+      "tool_usage_patterns": [
+        "none (21/21)"
+      ],
+      "recent_revision_briefs": [
+        "unknown: Rejected candidate because score delta was -0.0392"
+      ],
+      "recent_coverage_notes": [
+        "pattern=Image questions require extracting localized visual details, especially small or region-specific text/attributes, but failures come from not invoking any focused perception step. | supported=Reading event/team names or other localized text from a photo region before answering a free-form question; Inspecting a specific object or region to describe an attribute, mood, count, or other visible property"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::short",
+          "total_cases": 7,
+          "case_ids": [
+            "gta_161",
+            "gta_165",
+            "gta_178",
+            "gta_54",
+            "gta_55",
+            "gta_60",
+            "gta_63"
+          ],
+          "representative_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (7/7)"
+          ],
+          "shared_tool_patterns": [
+            "none (7/7)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (6/7)",
+            "counting (1/7)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=Los Angeles Lakers vs. Phoenix Suns",
+            "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=surprised"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_5",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::single",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "representative_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "none (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=It was about a debate between Joe Biden and Donald Trump.",
+            "case_id=gta_163; prompt=What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descrip; expected=ingredients of a coconut cake; answer=These ingredients look like they are for baking a coconut ca"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_8",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::long",
+          "total_cases": 1,
+          "case_ids": [
+            "gta_0"
+          ],
+          "representative_case_ids": [
+            "gta_0"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "none (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_0; prompt=How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all; expected=12; answer=I need the menu image (Image 2) to read the beer price and c"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "supported_patterns": [
+            "generic_question (6/7)",
+            "counting (1/7)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_5"
+          ],
+          "target_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "supported_patterns": [
+            "generic_question (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_8"
+          ],
+          "target_case_ids": [
+            "gta_0"
+          ],
+          "supported_patterns": [
+            "counting (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 18,
+      "failed_cases": 3,
+      "baseline_score": 0.8333333333333334,
+      "common_question_patterns": [
+        "free_form (18/18)",
+        "perception+logic (18/18)",
+        "counting (7/18)",
+        "generic_question (7/18)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (3/3)"
+      ],
+      "tool_usage_patterns": [
+        "none (15/18)",
+        "count_support_view (2/18)",
+        "localized_text_zoom (1/18)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 7,
+      "failed_cases": 2,
+      "baseline_score": 0.7142857142857143,
+      "common_question_patterns": [
+        "free_form (7/7)",
+        "perception+operation (7/7)",
+        "counting (3/7)",
+        "direct_lookup (2/7)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "none (7/7)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 5,
+      "failed_cases": 4,
+      "baseline_score": 0.2,
+      "common_question_patterns": [
+        "free_form (5/5)",
+        "perception+operation+logic (5/5)",
+        "counting (4/5)",
+        "selection (1/5)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (4/4)"
+      ],
+      "tool_usage_patterns": [
+        "none (4/5)",
+        "localized_text_zoom (1/5)"
+      ],
+      "recent_revision_briefs": [
+        "unknown: Rejected candidate because score delta was 0.0000"
+      ],
+      "recent_coverage_notes": [
+        "pattern=Read nutrition-related values from localized package text or depicted food labels, then perform unit-based arithmetic to answer counting or intake questions. | supported=Extracting per-serving or per-volume nutrition values from small localized text and scaling to a stated quantity; Using visually identified food type plus externally provided reference values to compute required grams or nutrient totals"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+operation+logic",
+          "cluster_key": "gta::perception+operation+logic::long",
+          "total_cases": 3,
+          "case_ids": [
+            "gta_186",
+            "gta_20",
+            "gta_22"
+          ],
+          "representative_case_ids": [
+            "gta_186",
+            "gta_20"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (3/3)"
+          ],
+          "shared_tool_patterns": [
+            "none (3/3)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (3/3)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_186; prompt=Assume that one bottle contains 500ml drink, how many sugar does these drink contain? Please round your answers to the nearest gram. You can find information in USDA (U.S. Departme; expected=159; answer=About 53 g of sugar per bottle.",
+            "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=About **123 grams** of orange."
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_7",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+operation+logic",
+          "cluster_key": "gta::perception+operation+logic::short",
+          "total_cases": 1,
+          "case_ids": [
+            "gta_198"
+          ],
+          "representative_case_ids": [
+            "gta_198"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "none (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "selection (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_198; prompt=I want to buy three phones which is in the first rank in this chart, how much should I pay?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calcul; expected=$2697; answer=The chart only shows phone names and size, not prices, so I "
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+operation+logic.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "gta_186",
+            "gta_20"
+          ],
+          "supported_patterns": [
+            "counting (3/3)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+operation+logic.",
+          "target_cluster_ids": [
+            "cluster_7"
+          ],
+          "target_case_ids": [
+            "gta_198"
+          ],
+          "supported_patterns": [
+            "selection (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "gta_161",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the in"
+    },
+    {
+      "case_id": "gta_165",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe the attribute of a region of the input im"
+    },
+    {
+      "case_id": "gta_186",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "Assume that one bottle contains 500ml drink, how many sugar does these drink contain? Please round your answers to the nearest gram. You can find information in USDA (U.S. Department of Agriculture).\n\nYou have access to "
+    },
+    {
+      "case_id": "gta_20",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n\nYou have access to the following tools:"
+    },
+    {
+      "case_id": "gta_162",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descr"
+    },
+    {
+      "case_id": "gta_163",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief description of the input image.\n\nImages provide"
+    },
+    {
+      "case_id": "gta_198",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I want to buy three phones which is in the first rank in this chart, how much should I pay?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A calculator tool. The input must be a single Py"
+    },
+    {
+      "case_id": "gta_0",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "How much should I pay for the beer on the table according to the price on the menu?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the input image.\n- CountGivenOb"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260401_061506_816763",
+      "reason": "Rejected candidate because score delta was 0.0000",
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "baseline_score": 0.6274509803921569,
+      "candidate_score": 0.6274509803921569,
+      "coverage_contract": {
+        "target_family": "gta_perception+operation+logic",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Read nutrition-related values from localized package text or depicted food labels, then perform unit-based arithmetic to answer counting or intake questions.",
+        "supported_variations": [
+          "Extracting per-serving or per-volume nutrition values from small localized text and scaling to a stated quantity",
+          "Using visually identified food type plus externally provided reference values to compute required grams or nutrient totals"
+        ],
+        "unsupported_variations": [
+          "Cases requiring domain-specific medical judgment, personalized dietary advice beyond straightforward reference-based calculation, or unsupported external web lookup without provided values"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode a specific beverage, fruit, or nutrient type",
+          "Do not assume fixed label layout, text position, or one-off coordinates",
+          "Do not assume values are always per 100g, per serving, or per bottle without reading the visual/text evidence"
+        ],
+        "primitive_category": "localized_text_zoom",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_skill",
+        "why_this_should_generalize": "Failures are driven mainly by not extracting small localized visual text before doing simple arithmetic; a reusable perception-plus-calculation skill can cover multiple nutrition counting variants without overfitting to one product."
+      }
+    },
+    {
+      "run_id": "round_20260401_060424_813068",
+      "reason": "Rejected candidate because score delta was -0.0392",
+      "target_family": "gta_perception",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "baseline_score": 0.6274509803921569,
+      "candidate_score": 0.5882352941176471,
+      "coverage_contract": {
+        "target_family": "gta_perception",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Image questions require extracting localized visual details, especially small or region-specific text/attributes, but failures come from not invoking any focused perception step.",
+        "supported_variations": [
+          "Reading event/team names or other localized text from a photo region before answering a free-form question",
+          "Inspecting a specific object or region to describe an attribute, mood, count, or other visible property"
+        ],
+        "unsupported_variations": [
+          "Tasks needing external world knowledge beyond what is visually present in the image"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode a specific sports event, team names, or object category from one example",
+          "Do not rely on fixed coordinates, fixed crop locations, or one-off image layouts",
+          "Do not assume the answer is always text; first determine whether the question targets text, count, or visual attributes"
+        ],
+        "primitive_category": "generic_visual_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_skill",
+        "why_this_should_generalize": "The dominant failure mode is procedural—failing to focus on the relevant image region or use available perception tools—so a reusable skill for targeted region inspection and tool selection should improve many family variants."
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}
