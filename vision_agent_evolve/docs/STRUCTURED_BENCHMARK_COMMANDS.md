@@ -27,6 +27,8 @@ export VLM_MODEL="..."
 
 For strict GTA-aligned formal runs, use the dedicated workflow in [GTA_OFFICIAL_EXPERIMENT.md](/root/vision_agent_evolve/vision_agent_evolve/docs/GTA_OFFICIAL_EXPERIMENT.md).
 
+If the run will happen on a separate GPU instance, use [GTA_GPU_INSTANCE_RUNBOOK.md](/root/vision_agent_evolve/vision_agent_evolve/docs/GTA_GPU_INSTANCE_RUNBOOK.md) as the operational checklist.
+
 Quick entry points:
 
 ```bash

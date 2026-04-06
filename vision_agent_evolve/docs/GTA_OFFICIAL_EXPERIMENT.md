@@ -2,6 +2,8 @@
 
 This document describes the strict GTA-aligned formal experiment path.
 
+For a practical machine migration guide, see [GTA_GPU_INSTANCE_RUNBOOK.md](/root/vision_agent_evolve/vision_agent_evolve/docs/GTA_GPU_INSTANCE_RUNBOOK.md).
+
 ## Goal
 
 Use the official GTA tool deployment path instead of the local approximation layer:
