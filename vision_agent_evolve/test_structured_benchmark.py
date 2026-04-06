@@ -4,8 +4,10 @@ import json
 import os
 import tempfile
 import unittest
+import base64
 from io import BytesIO
 from pathlib import Path
+from unittest import mock
 
 from PIL import Image
 
@@ -22,6 +24,7 @@ from core.structured_data import (
     normalize_vstar_dataset,
     score_textvqa_answer,
 )
+from core.agent import AgentConfig, ReActAgent
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
 from evolution.benchmark_adapters import GTAAdapter, ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
 from evolution.loop import EvolutionLoop
@@ -369,9 +372,9 @@ class TestStructuredRunner(StructuredBenchmarkRunner):
     def _make_online_loop(self, capability_mode="persistent_tools"):
         return self._online_loop
 
-    def _make_subset_loop(self, cases=None):
+    def _make_subset_loop(self, cases=None, capability_mode="persistent_tools"):
         if self._subset_loop is None:
-            return super()._make_subset_loop(cases)
+            return super()._make_subset_loop(cases, capability_mode=capability_mode)
         return self._subset_loop
 
     def _make_frozen_loop(self, snapshot_name: str | None = None, subset_id: str | None = None, capability_mode="persistent_tools"):
@@ -1672,6 +1675,85 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertIn("ARTIFACTS:", output)
             self.assertTrue((root / "artifacts" / "gta_draw_box_output.png").exists())
 
+    def test_execute_gta_ocr_can_use_official_tool_server(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps("official ocr output").encode("utf-8")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_path = root / "sample.png"
+            Image.new("RGB", (24, 24), color=(255, 255, 255)).save(image_path)
+            old_mode = os.environ.get("VISION_AGENT_GTA_TOOL_MODE")
+            old_server = os.environ.get("VISION_AGENT_GTA_TOOL_SERVER")
+            os.environ["VISION_AGENT_GTA_TOOL_MODE"] = "official_server"
+            os.environ["VISION_AGENT_GTA_TOOL_SERVER"] = "http://official-tool-server"
+            try:
+                with mock.patch("tools.implementations.shared.gta_official_bridge.request.urlopen", return_value=FakeResponse()):
+                    output = execute_builtin_tool("OCR", f"image={image_path}")
+            finally:
+                if old_mode is None:
+                    os.environ.pop("VISION_AGENT_GTA_TOOL_MODE", None)
+                else:
+                    os.environ["VISION_AGENT_GTA_TOOL_MODE"] = old_mode
+                if old_server is None:
+                    os.environ.pop("VISION_AGENT_GTA_TOOL_SERVER", None)
+                else:
+                    os.environ["VISION_AGENT_GTA_TOOL_SERVER"] = old_server
+
+        self.assertIn("STATUS: ok", output)
+        self.assertIn("official ocr output", output)
+
+    def test_execute_gta_add_text_can_decode_official_server_image_output(self):
+        png_bytes = BytesIO()
+        Image.new("RGB", (12, 12), color=(10, 20, 30)).save(png_bytes, format="PNG")
+        payload = base64.b64encode(png_bytes.getvalue()).decode("utf-8")
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return json.dumps(payload).encode("utf-8")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image_path = root / "sample.png"
+            Image.new("RGB", (24, 24), color=(255, 255, 255)).save(image_path)
+            cwd = Path.cwd()
+            old_mode = os.environ.get("VISION_AGENT_GTA_TOOL_MODE")
+            old_server = os.environ.get("VISION_AGENT_GTA_TOOL_SERVER")
+            os.environ["VISION_AGENT_GTA_TOOL_MODE"] = "official_server"
+            os.environ["VISION_AGENT_GTA_TOOL_SERVER"] = "http://official-tool-server"
+            try:
+                os.chdir(root)
+                with mock.patch("tools.implementations.shared.gta_official_bridge.request.urlopen", return_value=FakeResponse()):
+                    output = execute_builtin_tool("AddText", f"image={image_path}", "text=hi", "position=mt")
+            finally:
+                os.chdir(cwd)
+                if old_mode is None:
+                    os.environ.pop("VISION_AGENT_GTA_TOOL_MODE", None)
+                else:
+                    os.environ["VISION_AGENT_GTA_TOOL_MODE"] = old_mode
+                if old_server is None:
+                    os.environ.pop("VISION_AGENT_GTA_TOOL_SERVER", None)
+                else:
+                    os.environ["VISION_AGENT_GTA_TOOL_SERVER"] = old_server
+
+            artifacts = [path for path in (root / "artifacts").glob("gta_official_addtext_*.png")]
+
+        self.assertIn("STATUS: ok", output)
+        self.assertTrue(artifacts)
+
     def test_loop_records_failed_direction_only_for_actual_failed_evolve_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -2494,6 +2576,63 @@ class StructuredBenchmarkTests(unittest.TestCase):
             self.assertIn("localized_text_zoom", snapshot.available_tools)
             self.assertIn("chart_value_overlay", snapshot.available_tools)
 
+    def test_gta_same_tool_mode_filters_to_case_tools_and_hides_learned_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            learned_dir = root / "learned"
+            subset_dir = learned_dir / "gta_same_tool_v1"
+            (subset_dir / "tools").mkdir(parents=True, exist_ok=True)
+            (subset_dir / "tools" / "focus_chart.py").write_text("def run(*args, **kwargs):\n    return 'ok'\n", encoding="utf-8")
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=learned_dir,
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                subset_id="gta_same_tool_v1",
+                capability_mode="skill_only_same_tools",
+            )
+            case = TaskCase(
+                case_id="g1",
+                problem_id="gta_perception",
+                prompt="Read the price.",
+                gold_answer="12",
+                image_path="img.png",
+                metadata={"dataset_name": "gta", "capability_family": "gta_perception", "gt_tools": ["OCR", "Calculator"]},
+            )
+
+            snapshot = loop._tool_availability_snapshot(case=case)
+            agent = loop._create_agent(case, include_learned_skills=False)
+
+            self.assertEqual(snapshot.available_tools, ["Calculator", "OCR"])
+            self.assertEqual(agent.config.allowed_tool_names, ["Calculator", "OCR"])
+            self.assertTrue(agent.config.require_python_tool_command)
+            self.assertNotIn("focus_chart", agent.system_prompt)
+            self.assertNotIn("ImageDescription", agent.system_prompt)
+
+    def test_gta_same_tool_mode_agent_blocks_non_tool_and_non_whitelisted_commands(self):
+        agent = ReActAgent(
+            client=DummyClient(),
+            config=AgentConfig(
+                work_dir=Path(tempfile.mkdtemp()),
+                allowed_tool_names=["OCR"],
+                require_python_tool_command=True,
+            ),
+            tool_definitions="Use: python -m tools <tool_name> [args]",
+        )
+
+        self.assertIn("only allows tool invocations", agent._run_bash("echo hi"))
+        self.assertIn("not allowed for this task", agent._run_bash('python -m tools Calculator expression="1+1"'))
+
+    def test_same_tool_frozen_setting_name_variants(self):
+        self.assertEqual(
+            StructuredBenchmarkRunner._frozen_setting_name("skill_only_same_tools", force_skill=False, use_skill=True),
+            "skill_only_frozen_inference",
+        )
+        self.assertEqual(
+            StructuredBenchmarkRunner._frozen_setting_name("skill_only_same_tools", force_skill=False, use_skill=False),
+            "same_tool_preset_tools_only",
+        )
+
     def test_subset_summary_tracks_multiple_dataset_scores(self):
         rows = [
             StructuredCaseRecord(
@@ -2574,6 +2713,9 @@ class StructuredBenchmarkTests(unittest.TestCase):
         )
         self.assertEqual(_normalize_settings(["frozen_transfer"]), ["frozen_inference"])
         self.assertEqual(_normalize_settings(["preset_tools_only"]), ["preset_tools_only"])
+        self.assertEqual(_normalize_settings(["skill_only_train_adaptive"]), ["skill_only_train_adaptive"])
+        self.assertEqual(_normalize_settings(["same_tool_preset_tools_only"]), ["same_tool_preset_tools_only"])
+        self.assertEqual(_normalize_settings(["skill_only_frozen_inference"]), ["skill_only_frozen_inference"])
         self.assertEqual(_normalize_settings(["scratch_skill_train_adaptive"]), ["scratch_skill_train_adaptive"])
 
     def test_skill_from_mastery_strategy_builds_branching_sop(self):

@@ -59,11 +59,15 @@ class SubsetEvaluator:
         skills_dir: Path,
         vlm_client: VLMClient,
         capability_mode: str = "persistent_tools",
+        fixed_builtin_tools: list[str] | None = None,
+        disable_generated_tools: bool = False,
     ):
         self.adapters = adapters
         self.skills_dir = skills_dir
         self.vlm_client = vlm_client
         self.capability_mode = capability_mode
+        self.fixed_builtin_tools = list(fixed_builtin_tools or [])
+        self.disable_generated_tools = disable_generated_tools
 
     def evaluate(
         self,
@@ -293,6 +297,8 @@ class SubsetEvaluator:
             subset_id=None,
             answer_checker=self._check_answer,
             capability_mode=self.capability_mode,
+            fixed_builtin_tools=self.fixed_builtin_tools,
+            disable_generated_tools=self.disable_generated_tools,
         )
         skill = loop.store.get_skill(case.capability_family())
         capability_snapshot = loop._tool_availability_snapshot()
@@ -533,11 +539,15 @@ class SubsetPlanner:
         generator: Generator,
         skills_dir: Path,
         tool_preference: str = "balanced",
+        fixed_builtin_tools: list[str] | None = None,
+        disable_generated_tools: bool = False,
     ):
         self.client = client
         self.generator = generator
         self.skills_dir = skills_dir
         self.tool_preference = tool_preference
+        self.fixed_builtin_tools = list(fixed_builtin_tools or [])
+        self.disable_generated_tools = disable_generated_tools
 
     def plan_bundle(self, digest: TrainingSetDigest) -> dict[str, Any]:
         if not digest.failure_clusters:
@@ -607,6 +617,8 @@ class SubsetPlanner:
             vlm_client=self.client,
             max_attempts=1,
             subset_id=None,
+            fixed_builtin_tools=self.fixed_builtin_tools,
+            disable_generated_tools=self.disable_generated_tools,
         )
         chain_context = temp_loop.validator.build_chain_context(
             case,
@@ -882,6 +894,8 @@ class SubsetEvolutionLoop:
         families_per_round_limit: int = 3,
         tool_preference: str = "balanced",
         capability_mode: str = "persistent_tools",
+        fixed_builtin_tools: list[str] | None = None,
+        disable_generated_tools: bool = False,
         checkpoint_callback: Callable[[list[TrainSetEvalRecord], list[TrainSetEvalRecord], list[CandidateEvalResult], str], None] | None = None,
     ):
         self.subset_id = subset_id
@@ -894,18 +908,29 @@ class SubsetEvolutionLoop:
         self.families_per_round_limit = families_per_round_limit
         self.tool_preference = tool_preference
         self.capability_mode = capability_mode
+        self.fixed_builtin_tools = list(fixed_builtin_tools or [])
+        self.disable_generated_tools = disable_generated_tools
         self.checkpoint_callback = checkpoint_callback
 
         self.subset_root = learned_root / subset_id
         self.active_dir = self.subset_root / "active"
         self.active_store = CapabilityStore(self.active_dir)
         self.generator = Generator(vlm_client)
-        self.evaluator = SubsetEvaluator(adapters, skills_dir, vlm_client, capability_mode=capability_mode)
+        self.evaluator = SubsetEvaluator(
+            adapters,
+            skills_dir,
+            vlm_client,
+            capability_mode=capability_mode,
+            fixed_builtin_tools=self.fixed_builtin_tools,
+            disable_generated_tools=self.disable_generated_tools,
+        )
         self.planner = SubsetPlanner(
             vlm_client,
             self.generator,
             skills_dir,
             tool_preference=tool_preference,
+            fixed_builtin_tools=self.fixed_builtin_tools,
+            disable_generated_tools=self.disable_generated_tools,
         )
 
     def run(self, cases: list[TaskCase]) -> SubsetEvolutionRunReport:

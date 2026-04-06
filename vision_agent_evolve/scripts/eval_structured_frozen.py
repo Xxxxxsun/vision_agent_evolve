@@ -27,7 +27,7 @@ def main() -> None:
     parser.add_argument("--snapshot-name", default="")
     parser.add_argument(
         "--capability-mode",
-        choices=["persistent_tools", "scratch_code_skill"],
+        choices=["persistent_tools", "scratch_code_skill", "skill_only_same_tools"],
         default="persistent_tools",
         help="Which frozen capability mode to evaluate.",
     )
@@ -42,6 +42,17 @@ def main() -> None:
         help="Evaluate with built-in/persistent tools available but without loading evolved family skills.",
     )
     parser.add_argument("--enable-readability-judge", action="store_true")
+    parser.add_argument(
+        "--fixed-tool-names",
+        nargs="+",
+        default=[],
+        help="Optional allowlist of preset builtin tool names for same-tool comparisons.",
+    )
+    parser.add_argument(
+        "--disable-generated-tools",
+        action="store_true",
+        help="Forbid loading generated tools and use only the fixed preset tool pool.",
+    )
     args = parser.parse_args()
 
     config = StructuredExperimentConfig(
@@ -53,6 +64,8 @@ def main() -> None:
         held_out_split=args.held_out_split,
         held_out_limit=args.held_out_limit,
         readability_judge_enabled=args.enable_readability_judge,
+        fixed_tool_names=args.fixed_tool_names,
+        disable_generated_tools=args.disable_generated_tools,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     records = runner.run_frozen_inference(

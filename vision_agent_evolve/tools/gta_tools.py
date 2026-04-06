@@ -19,11 +19,15 @@ from tools.implementations.shared.gta_utils import (
     safe_eval_expression,
     vlm_image_text,
 )
+from tools.implementations.shared.gta_official_bridge import maybe_run_official_gta_tool
 from tools.preset_types import BuiltinToolSpec
 
 
 def gta_ocr(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("OCR", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     text = vlm_image_text(
         image,
@@ -37,6 +41,9 @@ def gta_ocr(*args, **kwargs) -> ToolResult:
 
 def gta_image_description(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("ImageDescription", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     text = vlm_image_text(
         image,
@@ -49,6 +56,9 @@ def gta_image_description(*args, **kwargs) -> ToolResult:
 
 def gta_count_given_object(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("CountGivenObject", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     target = required_arg(params, "text")
     text = vlm_image_text(
@@ -62,6 +72,9 @@ def gta_count_given_object(*args, **kwargs) -> ToolResult:
 
 def gta_text_to_bbox(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("TextToBbox", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     target = required_arg(params, "text")
     top1 = parse_bool(optional_arg(params, "top1", "true"), default=True)
@@ -78,6 +91,9 @@ def gta_text_to_bbox(*args, **kwargs) -> ToolResult:
 
 def gta_region_attribute_description(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("RegionAttributeDescription", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     bbox = required_arg(params, "bbox")
     attribute = required_arg(params, "attribute")
@@ -93,6 +109,9 @@ def gta_region_attribute_description(*args, **kwargs) -> ToolResult:
 
 def gta_math_ocr(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("MathOCR", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     text = vlm_image_text(
         image,
@@ -105,24 +124,36 @@ def gta_math_ocr(*args, **kwargs) -> ToolResult:
 
 def gta_calculator(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("Calculator", params)
+    if official is not None:
+        return official
     expression = required_arg(params, "expression")
     return ToolResult(status="ok", answer=safe_eval_expression(expression))
 
 
 def gta_solver(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("Solver", params)
+    if official is not None:
+        return official
     command = required_arg(params, "command")
     return ToolResult(status="ok", answer=run_solver_code(command))
 
 
 def gta_plot(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("Plot", params)
+    if official is not None:
+        return official
     command = required_arg(params, "command")
     return run_plot_code(command)
 
 
 def gta_draw_box(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("DrawBox", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     bbox = required_arg(params, "bbox")
     annotation = optional_arg(params, "annotation")
@@ -131,6 +162,9 @@ def gta_draw_box(*args, **kwargs) -> ToolResult:
 
 def gta_add_text(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("AddText", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     text = required_arg(params, "text")
     position = required_arg(params, "position")
@@ -140,6 +174,9 @@ def gta_add_text(*args, **kwargs) -> ToolResult:
 
 def gta_google_search(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("GoogleSearch", params)
+    if official is not None:
+        return official
     query = required_arg(params, "query")
     k = parse_int(optional_arg(params, "k", "5"), default=5)
     return ToolResult(status="ok", answer=duckduckgo_search(query, k=max(1, min(k, 10))))
@@ -147,12 +184,18 @@ def gta_google_search(*args, **kwargs) -> ToolResult:
 
 def gta_text_to_image(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("TextToImage", params)
+    if official is not None:
+        return official
     keywords = required_arg(params, "keywords")
     return create_text_image(f"Generated from keywords:\n{keywords}", "gta_text_to_image_output.png")
 
 
 def gta_image_stylization(*args, **kwargs) -> ToolResult:
     params = parse_tool_args(args, kwargs)
+    official = maybe_run_official_gta_tool("ImageStylization", params)
+    if official is not None:
+        return official
     image = required_arg(params, "image")
     instruction = required_arg(params, "instruction")
     return create_text_image(f"Stylization instruction:\n{instruction}", "gta_image_stylization_output.png", source_image=image)

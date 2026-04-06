@@ -55,6 +55,8 @@ class AgentConfig:
     require_bash_action_before_complete: bool = False
     required_image_artifact_before_complete: bool = False
     learned_dir: Path | None = None
+    allowed_tool_names: list[str] | None = None
+    require_python_tool_command: bool = False
 
 
 class ReActAgent:
@@ -224,6 +226,9 @@ class ReActAgent:
     def _run_bash(self, command: str) -> str:
         """Execute bash command and return output."""
         try:
+            command_error = self._validate_command(command)
+            if command_error:
+                return command_error
             env = os.environ.copy()
             env["VISION_AGENT_PROJECT_ROOT"] = str(self.project_root)
             env["VISION_AGENT_WORK_DIR"] = str(self.work_dir)
@@ -245,6 +250,38 @@ class ReActAgent:
             return "Error: Command timeout (60s)"
         except Exception as e:
             return f"Error: {e}"
+
+    def _validate_command(self, command: str) -> str | None:
+        """Validate whether a shell command respects runtime tool restrictions."""
+        stripped = str(command).strip()
+        if not stripped:
+            return "Error: empty bash command."
+
+        if self.config.require_python_tool_command and not re.search(r"^\s*python(?:3)?\s+-m\s+tools(?:\s|$)", stripped):
+            return (
+                "Error: this task only allows tool invocations via "
+                "'python -m tools <tool_name> ...'."
+            )
+
+        allowed_tools = self.config.allowed_tool_names
+        if not allowed_tools:
+            return None
+
+        match = re.search(r"^\s*python(?:3)?\s+-m\s+tools\s+([A-Za-z0-9_]+)(?:\s|$)", stripped)
+        if match is None:
+            return (
+                "Error: this task only allows approved tool commands via "
+                "'python -m tools <tool_name> ...'."
+            )
+
+        tool_name = match.group(1)
+        if tool_name not in set(allowed_tools):
+            allowed_text = ", ".join(allowed_tools)
+            return (
+                f"Error: tool '{tool_name}' is not allowed for this task. "
+                f"Allowed tools: {allowed_text}"
+            )
+        return None
 
     def _uses_required_tool(self, command: str) -> bool:
         """Check whether a bash command invokes the required learned tool."""

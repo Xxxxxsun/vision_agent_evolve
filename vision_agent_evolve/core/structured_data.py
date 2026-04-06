@@ -13,7 +13,7 @@ from typing import Any, Iterable
 
 from PIL import Image
 
-from .types import TaskCase
+from .types import MultiTurnTaskCase, MultiTurnTaskTurn, TaskCase
 
 
 def load_json_objects(path: Path) -> list[dict[str, Any]]:
@@ -234,6 +234,44 @@ def normalize_mathvista_dataset(
     )
 
 
+def normalize_refocus_tablevqa_dataset(
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    train_size: int = 200,
+    val_size: int = 500,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Normalize ReFOCUS-style TableVQA data into shared JSONL files."""
+    dataset_root = normalized_data_root / "refocus_tablevqa"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+    assets_root = normalized_data_root / "_assets" / "refocus_tablevqa"
+    source_files = _discover_data_files(
+        raw_data_root,
+        include_tokens=["tablevqa", "table_vqa", "refocus", "table", "wtq", "fintabnet", "tabfact"],
+    )
+    if not source_files:
+        raise FileNotFoundError(f"Could not find ReFOCUS/TableVQA files under {raw_data_root}")
+
+    rows = _load_rows_from_files(source_files)
+    if limit:
+        rows = rows[:limit]
+    rows = _extract_semantic_records(rows)
+    records = [
+        _normalize_refocus_tablevqa_record(item, raw_data_root, assets_root, index)
+        for index, item in enumerate(rows, start=1)
+    ]
+    return _write_pseudo_split_dataset(
+        dataset_name="refocus_tablevqa",
+        raw_data_root=raw_data_root,
+        dataset_root=dataset_root,
+        records=records,
+        source_files=source_files,
+        train_size=train_size,
+        val_size=val_size,
+        source_split="refocus_tablevqa",
+    )
+
+
 def normalize_textvqa_dataset(
     raw_data_root: Path,
     normalized_data_root: Path,
@@ -346,6 +384,102 @@ def normalize_gta_dataset(
     manifest_path = dataset_root / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
+
+
+def normalize_visualtoolbench_dataset(
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Normalize local VisualToolBench exports into JSONL files.
+
+    Expected input is a JSON/JSONL export that preserves the benchmark schema and
+    stores local image paths or image descriptors with a local ``path``/``src``.
+    """
+    dataset_root = normalized_data_root / "visualtoolbench"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+
+    source_file = _discover_visualtoolbench_source(raw_data_root)
+    if source_file is None:
+        raise FileNotFoundError(
+            f"Could not find a VisualToolBench JSON/JSONL export under {raw_data_root}"
+        )
+
+    rows = _load_visualtoolbench_rows(source_file)
+    if limit:
+        rows = rows[:limit]
+
+    records = [
+        _normalize_visualtoolbench_record(item, raw_data_root, normalized_data_root, index)
+        for index, item in enumerate(rows, start=1)
+    ]
+    records = [record for record in records if record is not None]
+
+    output_file = dataset_root / "test.jsonl"
+    _write_jsonl(output_file, records)
+    manifest = {
+        "dataset": "visualtoolbench",
+        "raw_data_root": str(raw_data_root),
+        "normalized_data_root": str(dataset_root),
+        "splits": {
+            "test": {
+                "count": len(records),
+                "source_file": str(source_file),
+                "output_file": str(output_file),
+            }
+        },
+    }
+    manifest_path = dataset_root / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def load_visualtoolbench_cases(
+    normalized_data_root: Path,
+    split: str = "test",
+    limit: int = 0,
+) -> list[MultiTurnTaskCase]:
+    """Load normalized VisualToolBench cases from JSONL."""
+    dataset_root = normalized_data_root / "visualtoolbench"
+    split_file = dataset_root / f"{split}.jsonl"
+    if not split_file.exists():
+        raise FileNotFoundError(f"Normalized split not found: {split_file}")
+
+    cases: list[MultiTurnTaskCase] = []
+    for index, item in enumerate(load_json_objects(split_file), start=1):
+        turns_raw = item.get("turns", [])
+        turns: list[MultiTurnTaskTurn] = []
+        for turn in turns_raw:
+            if not isinstance(turn, dict):
+                continue
+            turns.append(
+                MultiTurnTaskTurn(
+                    prompt=str(turn.get("prompt", "")),
+                    gold_answer=str(turn.get("gold_answer", "")),
+                    image_paths=[str(path) for path in turn.get("image_paths", []) if str(path).strip()],
+                    rubric_payload=str(turn.get("rubric_payload", "")),
+                    reference_tool_trajectory=str(turn.get("reference_tool_trajectory", "")),
+                    metadata=dict(turn.get("metadata") or {}),
+                )
+            )
+
+        if not turns:
+            continue
+
+        cases.append(
+            MultiTurnTaskCase(
+                case_id=str(item.get("id", f"visualtoolbench_{index}")),
+                turncase=str(item.get("turncase", "single-turn")),
+                prompt_category=str(item.get("prompt_category", "")),
+                eval_focus=str(item.get("eval_focus", "")),
+                turns=turns,
+                metadata=dict(item.get("metadata") or {}),
+            )
+        )
+        if limit and len(cases) >= limit:
+            break
+
+    return cases
 
 
 def check_chartqa_answer(actual: str, expected: str, prompt: str = "") -> bool:
@@ -492,6 +626,7 @@ def _normalize_chartqa_record(
     annotation_file: Path,
     fallback_index: int,
 ) -> dict[str, Any]:
+    raw_metadata = _coerce_record_metadata(item.get("metadata"))
     question = str(
         item.get("question")
         or item.get("query")
@@ -519,14 +654,20 @@ def _normalize_chartqa_record(
 
     question_type = str(
         item.get("question_type")
+        or raw_metadata.get("question_type")
         or item.get("qa_type")
         or _infer_question_type(question)
     )
     answer_type = str(
         item.get("answer_type")
+        or raw_metadata.get("answer_type")
         or item.get("label_type")
         or _infer_answer_type(answer)
     )
+    chart_type = str(item.get("source") or item.get("type") or raw_metadata.get("type") or "").strip()
+    x_values_bbox = item.get("x_values_bbox", raw_metadata.get("x_values_bbox"))
+    y_values_bbox = item.get("y_values_bbox", raw_metadata.get("y_values_bbox"))
+    figure_bbox = item.get("figure_bbox", raw_metadata.get("figure_bbox"))
 
     return {
         "id": source_id,
@@ -543,6 +684,10 @@ def _normalize_chartqa_record(
             "answer_type": answer_type,
             "image_width": width,
             "image_height": height,
+            "chart_type": chart_type,
+            "figure_bbox": figure_bbox,
+            "x_values_bbox": x_values_bbox if isinstance(x_values_bbox, dict) else {},
+            "y_values_bbox": y_values_bbox if isinstance(y_values_bbox, dict) else {},
         },
     }
 
@@ -891,6 +1036,153 @@ def _looks_like_record_mapping(row: dict[str, Any]) -> bool:
     return bool(sample_keys & semantic_markers)
 
 
+def _discover_visualtoolbench_source(raw_data_root: Path) -> Path | None:
+    preferred_names = [
+        "test.parquet",
+        "visualtoolbench.jsonl",
+        "visualtoolbench.json",
+        "test.jsonl",
+        "test.json",
+    ]
+    for name in preferred_names:
+        candidate = raw_data_root / name
+        if candidate.exists():
+            return candidate
+    matches = _discover_data_files(raw_data_root, include_tokens=["visualtoolbench", "test"])
+    return matches[0] if matches else None
+
+
+def _normalize_visualtoolbench_record(
+    item: dict[str, Any],
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    fallback_index: int,
+) -> dict[str, Any] | None:
+    turn_prompts = [str(value) for value in item.get("turn_prompts", [])]
+    turn_answers = [str(value) for value in item.get("turn_golden_answers", [])]
+    rubrics_by_turn = [str(value) for value in item.get("rubrics_by_turn", [])]
+    tool_trajectories = [str(value) for value in item.get("turn_tool_trajectories", [])]
+    images_by_turn = item.get("images_by_turn", [])
+
+    if not turn_prompts:
+        prompt = str(item.get("prompt", item.get("question", ""))).strip()
+        if prompt:
+            turn_prompts = [prompt]
+    if not turn_prompts:
+        return None
+
+    num_turns = max(
+        len(turn_prompts),
+        len(turn_answers),
+        len(rubrics_by_turn),
+        len(tool_trajectories),
+        len(images_by_turn) if isinstance(images_by_turn, list) else 0,
+        int(item.get("num_turns", 0) or 0),
+    )
+    turns: list[dict[str, Any]] = []
+    for index in range(num_turns):
+        prompt = turn_prompts[index] if index < len(turn_prompts) else ""
+        if not prompt.strip():
+            continue
+        turns.append(
+            {
+                "prompt": prompt,
+                "gold_answer": turn_answers[index] if index < len(turn_answers) else "",
+                "rubric_payload": rubrics_by_turn[index] if index < len(rubrics_by_turn) else "",
+                "reference_tool_trajectory": tool_trajectories[index] if index < len(tool_trajectories) else "",
+                "image_paths": _resolve_visualtoolbench_turn_images(
+                    images_by_turn[index] if index < len(images_by_turn) else [],
+                    raw_data_root,
+                    normalized_data_root,
+                    item_id=str(item.get("id", f"visualtoolbench_{fallback_index}")),
+                    turn_index=index,
+                ),
+                "metadata": {
+                    "turn_index": index,
+                },
+            }
+        )
+
+    if not turns:
+        return None
+
+    return {
+        "id": str(item.get("id", f"visualtoolbench_{fallback_index}")),
+        "turncase": str(item.get("turncase", "single-turn")),
+        "prompt_category": str(item.get("prompt_category", "")),
+        "eval_focus": str(item.get("eval_focus", "")),
+        "turns": turns,
+        "metadata": {
+            "dataset_name": "visualtoolbench",
+            "num_turns": len(turns),
+            "num_images": int(item.get("num_images", 0) or 0),
+        },
+    }
+
+
+def _load_visualtoolbench_rows(path: Path) -> list[dict[str, Any]]:
+    if path.suffix.lower() == ".parquet":
+        return _load_parquet_rows(path)
+    return load_json_objects(path)
+
+
+def _resolve_visualtoolbench_turn_images(
+    value: Any,
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    item_id: str,
+    turn_index: int,
+) -> list[str]:
+    if not isinstance(value, list):
+        return []
+
+    resolved: list[str] = []
+    assets_root = normalized_data_root / "_assets" / "visualtoolbench" / item_id / f"turn_{turn_index + 1}"
+    assets_root.mkdir(parents=True, exist_ok=True)
+
+    for image_index, item in enumerate(value, start=1):
+        if isinstance(item, dict):
+            image_bytes = item.get("bytes")
+            if isinstance(image_bytes, (bytes, bytearray)) and image_bytes:
+                suffix = _guess_image_suffix(image_bytes)
+                output_path = assets_root / f"image_{image_index}{suffix}"
+                if not output_path.exists():
+                    output_path.write_bytes(bytes(image_bytes))
+                resolved.append(str(output_path.resolve()))
+                continue
+
+            path_value = ""
+            for key in ("path", "src", "file_name", "filename"):
+                candidate = str(item.get(key, "")).strip()
+                if candidate:
+                    path_value = candidate
+                    break
+        else:
+            path_value = str(item).strip() if isinstance(item, str) else ""
+
+        if not path_value:
+            continue
+        path = Path(path_value)
+        if not path.is_absolute():
+            path = (raw_data_root / path).resolve()
+        if path.exists():
+            resolved.append(str(path))
+    return resolved
+
+
+def _guess_image_suffix(image_bytes: bytes | bytearray) -> str:
+    header = bytes(image_bytes[:12])
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if header.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if header.startswith(b"GIF87a") or header.startswith(b"GIF89a"):
+        return ".gif"
+    if header[0:4] == b"RIFF" and header[8:12] == b"WEBP":
+        return ".webp"
+    return ".png"
+
+
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
@@ -1059,6 +1351,54 @@ def _normalize_mathvista_record(
     }
 
 
+def _normalize_refocus_tablevqa_record(
+    item: dict[str, Any],
+    raw_data_root: Path,
+    assets_root: Path,
+    fallback_index: int,
+) -> dict[str, Any]:
+    raw_metadata = _coerce_record_metadata(item.get("metadata"))
+    source_id = _string_field(item, ["id", "qid", "question_id", "sample_id", "uid"], f"refocus_tablevqa_{fallback_index}")
+    prompt = _string_field(item, ["question", "prompt", "query", "text"], "")
+    source = _slugify(_string_field(item, ["source", "dataset", "domain", "task"], "tablevqa"))
+    question_type = _slugify(_string_field(item, ["question_type", "task_type", "type"], _infer_question_type(prompt)))
+    answer = str(item.get("answer", item.get("label", item.get("gold_answer", item.get("target", ""))))).strip()
+    answer_type = _slugify(_string_field(item, ["answer_type", "response_type"], _infer_answer_type(answer)))
+    image_path = _materialize_image(item, raw_data_root, assets_root / "train_val", source_id)
+    columns_bbox = item.get("columns_bbox", raw_metadata.get("columns_bbox"))
+    row_starters_bbox = (
+        item.get("rows_bbox")
+        or item.get("row_starters")
+        or raw_metadata.get("rows_bbox")
+        or raw_metadata.get("row_starters")
+    )
+    figure_bbox = item.get("figure_bbox", raw_metadata.get("figure_bbox"))
+
+    table_title = _string_field(item, ["title", "table_title", "caption"], "")
+    if table_title and table_title.lower() not in prompt.lower():
+        prompt = f"{prompt}\n\nTable title: {table_title}".strip()
+
+    return {
+        "id": source_id,
+        "problem_id": "refocus_tablevqa",
+        "prompt": prompt,
+        "answer": answer,
+        "image_path": str(image_path),
+        "metadata": {
+            "dataset_name": "refocus_tablevqa",
+            "source_id": source_id,
+            "capability_family": f"refocus_tablevqa_{source}_{question_type}",
+            "source": source,
+            "question_type": question_type,
+            "answer_type": answer_type,
+            "metric_type": "accuracy",
+            "figure_bbox": figure_bbox,
+            "columns_bbox": columns_bbox if isinstance(columns_bbox, dict) else {},
+            "row_starters": row_starters_bbox if isinstance(row_starters_bbox, dict) else {},
+        },
+    }
+
+
 def _normalize_textvqa_record(
     item: dict[str, Any],
     raw_data_root: Path,
@@ -1132,6 +1472,22 @@ def _extract_choices(item: dict[str, Any]) -> dict[str, str]:
             if text:
                 result[label] = text
         return result
+    return {}
+
+
+def _coerce_record_metadata(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return dict(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return {}
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, dict):
+            return parsed
     return {}
 
 

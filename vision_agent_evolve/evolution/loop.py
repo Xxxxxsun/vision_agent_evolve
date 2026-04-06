@@ -31,6 +31,8 @@ class EvolutionLoop:
         subset_id: str | None = None,
         answer_checker: Callable[[str, TaskCase], bool] | None = None,
         capability_mode: str = "persistent_tools",
+        fixed_builtin_tools: list[str] | None = None,
+        disable_generated_tools: bool = False,
     ):
         self.work_dir = work_dir
         self.skills_dir = skills_dir
@@ -39,6 +41,8 @@ class EvolutionLoop:
         self.subset_id = subset_id
         self.answer_checker = answer_checker
         self.capability_mode = capability_mode
+        self.fixed_builtin_tools = list(fixed_builtin_tools or [])
+        self.disable_generated_tools = disable_generated_tools
 
         # Subset-specific learned directory
         if subset_id:
@@ -437,6 +441,7 @@ class EvolutionLoop:
         case: TaskCase,
         task_skill_override: Skill | None = None,
         include_learned_skills: bool = True,
+        include_learned_tools: bool = True,
         required_tool_name: str | None = None,
         required_skill_name: str | None = None,
         require_bash_action_before_complete: bool = False,
@@ -445,7 +450,10 @@ class EvolutionLoop:
         phase: str = "solve",
     ) -> ReActAgent:
         """Create agent with current capabilities."""
-        capability_snapshot = self._tool_availability_snapshot()
+        capability_snapshot = self._tool_availability_snapshot(
+            include_learned_tools=include_learned_tools,
+            case=case,
+        )
         all_skills = []
         if task_skill_override is not None:
             all_skills.append(task_skill_override)
@@ -499,6 +507,8 @@ class EvolutionLoop:
             require_bash_action_before_complete=require_bash_action_before_complete,
             required_image_artifact_before_complete=required_image_artifact_before_complete,
             learned_dir=self.learned_dir,
+            allowed_tool_names=self._case_allowed_tool_names(case, capability_snapshot),
+            require_python_tool_command=self._requires_strict_tool_commands(case),
         )
         agent = ReActAgent(
             client=self.vlm_client,
@@ -544,12 +554,67 @@ class EvolutionLoop:
                 "- For names, brands, words, letters, or numbers, return only the target span, not a sentence about it."
             )
 
+        if dataset_name == "chartqa" or family.startswith("chartqa"):
+            x_values_bbox = case.metadata.get("x_values_bbox") if isinstance(case.metadata.get("x_values_bbox"), dict) else {}
+            y_values_bbox = case.metadata.get("y_values_bbox") if isinstance(case.metadata.get("y_values_bbox"), dict) else {}
+            x_labels = list(x_values_bbox.keys())[:12]
+            y_labels = list(y_values_bbox.keys())[:12]
+            if x_values_bbox or y_values_bbox:
+                return (
+                    "Task-specific instructions for same-tool ChartQA comparisons:\n"
+                    f"- Available x-axis labels from metadata: {x_labels}\n"
+                    f"- Available y-axis labels from metadata: {y_labels}\n"
+                    "- The VTool-style chart tools expect JSON arguments.\n"
+                    "- For x-axis tools, pass a JSON list of selected labels and a JSON object for `x_values_bbox`.\n"
+                    "- For y-axis tools, pass a JSON list of selected labels and a JSON object for `y_values_bbox`.\n"
+                    "- Example:\n"
+                    "  python -m tools focus_on_x_values_with_highlight <image_path> '[\"2019\"]' '<x_values_bbox_json>'\n"
+                    "- Prefer these tools only when narrowing the visual field will improve the final answer."
+                )
+
+        if dataset_name == "refocus_tablevqa" or family.startswith("refocus_tablevqa"):
+            columns_bbox = case.metadata.get("columns_bbox") if isinstance(case.metadata.get("columns_bbox"), dict) else {}
+            row_starters = case.metadata.get("row_starters") if isinstance(case.metadata.get("row_starters"), dict) else {}
+            column_labels = list(columns_bbox.keys())[:12]
+            row_labels = list(row_starters.keys())[:12]
+            if columns_bbox or row_starters:
+                return (
+                    "Task-specific instructions for same-tool TableVQA comparisons:\n"
+                    f"- Available column labels from metadata: {column_labels}\n"
+                    f"- Available row labels from metadata: {row_labels}\n"
+                    "- The VTool-style table tools expect JSON arguments.\n"
+                    "- For column tools, pass a JSON list of selected columns and a JSON object for `columns_bbox`.\n"
+                    "- For row tools, pass a JSON list of selected rows and a JSON object for `row_starters`.\n"
+                    "- Example:\n"
+                    "  python -m tools focus_on_columns_with_mask <image_path> '[\"Year\",\"Score\"]' '<columns_bbox_json>'\n"
+                    "- Prefer these tools only when narrowing the table visually will improve the final answer."
+                )
+
         return ""
 
-    def _tool_availability_snapshot(self) -> ToolAvailabilitySnapshot:
+    def _tool_availability_snapshot(
+        self,
+        include_learned_tools: bool = True,
+        case: TaskCase | None = None,
+    ) -> ToolAvailabilitySnapshot:
         """Build the fail-closed tool inventory for the current subset."""
+        if self.capability_mode == "skill_only_same_tools":
+            include_learned_tools = False
         snapshot = ToolAvailabilitySnapshot()
-        snapshot.available_tools.extend(tool.name for tool in list_builtin_tools())
+        builtin_names = [tool.name for tool in list_builtin_tools()]
+        if self.fixed_builtin_tools:
+            allowed = set(self.fixed_builtin_tools)
+            builtin_names = [name for name in builtin_names if name in allowed]
+        snapshot.available_tools.extend(builtin_names)
+        if case is not None and self._requires_strict_tool_commands(case):
+            allowed = self._allowed_gta_tool_names(case)
+            snapshot.available_tools = [tool for tool in snapshot.available_tools if tool in allowed]
+
+        if not include_learned_tools:
+            return snapshot
+
+        if self.disable_generated_tools:
+            return snapshot
 
         tools_dir = self.learned_dir / "tools"
         if not tools_dir.exists():
@@ -571,6 +636,30 @@ class EvolutionLoop:
             snapshot.manifest_only_tools.append(tool_name)
 
         return snapshot
+
+    def _case_allowed_tool_names(
+        self,
+        case: TaskCase,
+        snapshot: ToolAvailabilitySnapshot,
+    ) -> list[str] | None:
+        if not self._requires_strict_tool_commands(case):
+            return None
+        return list(snapshot.available_tools)
+
+    def _requires_strict_tool_commands(self, case: TaskCase) -> bool:
+        dataset_name = case.dataset_name().strip().lower()
+        return self.capability_mode == "skill_only_same_tools" and dataset_name == "gta"
+
+    @staticmethod
+    def _allowed_gta_tool_names(case: TaskCase) -> set[str]:
+        raw_tools = case.metadata.get("gt_tools")
+        if isinstance(raw_tools, list):
+            return {
+                str(tool).strip()
+                for tool in raw_tools
+                if str(tool).strip()
+            }
+        return set()
 
     def _skill_uses_only_available_tools(self, skill_content: str, snapshot: ToolAvailabilitySnapshot) -> bool:
         """Fail closed when a skill references tools that are not executable in this subset."""
@@ -780,6 +869,35 @@ Reply with only one word: CORRECT or INCORRECT"""
 
     def _normalize_analysis_for_mode(self, analysis):
         """Coerce analyzer actions into ones supported by the current capability mode."""
+        if self.disable_generated_tools and analysis.next_action in {"generate_tool", "generate_both"}:
+            analysis.next_action = "generate_skill"
+            if not analysis.skill_update_note:
+                analysis.skill_update_note = (
+                    analysis.tool_goal
+                    or analysis.missing_step
+                    or "Improve the solver policy using the fixed tool pool only."
+                )
+            if not analysis.differentiation_note:
+                analysis.differentiation_note = (
+                    "Comparison mode disables new tool generation and converts tool requests into strategy updates."
+                )
+            return analysis
+
+        if self.capability_mode == "skill_only_same_tools":
+            if analysis.next_action in {"generate_tool", "generate_both", "generate_code_skill"}:
+                analysis.next_action = "generate_skill"
+                if not analysis.skill_update_note:
+                    analysis.skill_update_note = (
+                        analysis.missing_step
+                        or analysis.tool_goal
+                        or "Improve tool selection and ordering without adding new tools."
+                    )
+                if not analysis.differentiation_note:
+                    analysis.differentiation_note = (
+                        "Same-tool mode only allows SOP updates with the existing approved tool set."
+                    )
+            return analysis
+
         if self.capability_mode != "scratch_code_skill":
             return analysis
 

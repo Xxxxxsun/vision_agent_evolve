@@ -294,6 +294,29 @@ class TextVQAAdapter(GenericJsonlAdapter):
         return check_textvqa_case_answer(answer, case)
 
 
+class ReFocusTableVQAAdapter(GenericJsonlAdapter):
+    """ReFOCUS/TableVQA answer checking."""
+
+    def __init__(self) -> None:
+        super().__init__(dataset_name="refocus_tablevqa")
+
+    def score_answer(self, answer: str, case: TaskCase) -> float:
+        actual = _normalize_text(answer)
+        expected = _normalize_text(case.gold_answer)
+        if not actual or not expected:
+            return 0.0
+        if actual == expected:
+            return 1.0
+
+        actual_number = _parse_number(actual)
+        expected_number = _parse_number(expected)
+        if actual_number is not None and expected_number is not None:
+            tolerance = 1e-6
+            return 1.0 if abs(actual_number - expected_number) <= tolerance else 0.0
+
+        return 1.0 if re.search(rf"(?<![a-z0-9]){re.escape(expected)}(?![a-z0-9])", actual) else 0.0
+
+
 class GTAAdapter(GenericJsonlAdapter):
     """GTA-specific answer checking with whitelist/blacklist support."""
 
@@ -355,6 +378,9 @@ def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) ->
         "v*": VStarAdapter(),
         "hrbench": HRBenchAdapter(),
         "mathvista": MathVistaAdapter(client=client),
+        "refocus_tablevqa": ReFocusTableVQAAdapter(),
+        "tablevqa": ReFocusTableVQAAdapter(),
+        "refocus": ReFocusTableVQAAdapter(),
         "textvqa": TextVQAAdapter(),
     }
     if normalized in registry:
@@ -364,7 +390,7 @@ def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) ->
 
 def available_benchmark_datasets() -> list[str]:
     """Return the known dataset names for CLI choices/help."""
-    return ["chartqa", "gta", "hrbench", "mathvista", "textvqa", "vstar"]
+    return ["chartqa", "gta", "hrbench", "mathvista", "refocus_tablevqa", "textvqa", "vstar"]
 
 
 def _normalize_text(value: str) -> str:

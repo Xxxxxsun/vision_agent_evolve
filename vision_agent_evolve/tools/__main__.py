@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from tools.builtin_tools import execute_builtin_tool, list_builtin_tools
 from tools.dynamic_loader import discover_learned_tools, execute_learned_tool
+from tools.visualtoolbench_tools import execute_visualtoolbench_tool
 
 
 def _discover_all_learned_tools(learned_dir: Path) -> dict[str, Path]:
@@ -33,6 +34,14 @@ def main():
     """Main CLI dispatcher with dynamic learned tool support."""
     project_root = Path(__file__).parents[1]
     builtin_tools = {tool.name: tool for tool in list_builtin_tools()}
+    visualtoolbench_tools = {
+        "python_image_processing",
+        "python_interpreter",
+        "web_search",
+        "browser_get_page_text",
+        "historical_weather",
+        "calculator",
+    }
     scoped_learned_dir = os.environ.get("VISION_AGENT_LEARNED_DIR", "").strip()
     if scoped_learned_dir:
         learned_dir = Path(scoped_learned_dir)
@@ -64,6 +73,14 @@ def main():
         print(execute_builtin_tool(tool_name, *sys.argv[2:]))
         return
 
+    if tool_name in visualtoolbench_tools:
+        parsed_args = _parse_key_value_args(sys.argv[2:])
+        image_arg = parsed_args.pop("images", "")
+        image_paths = [part for part in image_arg.split(",") if part.strip()]
+        workspace_dir = Path(parsed_args.pop("workspace_dir", "artifacts/visualtoolbench_cli"))
+        print(execute_visualtoolbench_tool(tool_name, parsed_args, workspace_dir, image_paths))
+        return
+
     if tool_name in learned_tools:
         # Execute learned tool
         tool_path = learned_tools[tool_name]
@@ -76,11 +93,25 @@ def main():
     print("Available built-in tools:")
     for name in sorted(builtin_tools.keys()):
         print(f"  {name}")
+    print("Available VisualToolBench tools:")
+    for name in sorted(visualtoolbench_tools):
+        print(f"  {name}")
     if learned_tools:
         print("Available learned tools:")
         for name in sorted(learned_tools.keys()):
             print(f"  {name}")
     sys.exit(1)
+
+
+def _parse_key_value_args(args: list[str]) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    for index, arg in enumerate(args):
+        if "=" in arg:
+            key, value = arg.split("=", 1)
+            parsed[key.strip()] = value.strip()
+        else:
+            parsed[f"arg{index}"] = arg
+    return parsed
 
 
 if __name__ == "__main__":

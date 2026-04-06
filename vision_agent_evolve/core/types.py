@@ -44,6 +44,34 @@ class TaskCase:
 
 
 @dataclass
+class MultiTurnTaskTurn:
+    """One turn in a multi-turn visual benchmark case."""
+
+    prompt: str
+    gold_answer: str
+    image_paths: list[str] = field(default_factory=list)
+    rubric_payload: str = ""
+    reference_tool_trajectory: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class MultiTurnTaskCase:
+    """A benchmark case with one or more conversational turns."""
+
+    case_id: str
+    turncase: str
+    prompt_category: str
+    eval_focus: str
+    turns: list[MultiTurnTaskTurn]
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def num_turns(self) -> int:
+        return len(self.turns)
+
+
+@dataclass
 class Message:
     """Chat message."""
     role: Literal["system", "user", "assistant"]

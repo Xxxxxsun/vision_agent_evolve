@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import cv2
 import numpy as np
+from pathlib import Path
+from PIL import Image
 
 from core.types import ToolResult
 from tools.gta_tools import GTA_BUILTIN_TOOLS
@@ -58,7 +62,8 @@ def localized_text_zoom(image_path: str) -> ToolResult:
     try:
         image = load_image(image_path)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, np.ones((3, 3), np.uint8))
+        kernel = np.ones((3, 3), dtype=np.uint8)
+        grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, kernel)
         _, mask = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         boxes = _edge_boxes(cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR), min_area_ratio=0.002, max_area_ratio=0.2)
         overlay = image.copy()
@@ -71,7 +76,23 @@ def localized_text_zoom(image_path: str) -> ToolResult:
         save_image(enlarged, output_path)
         return ToolResult(status="ok", answer="", artifacts=[output_path])
     except Exception as exc:
-        return ToolResult(status="error", answer="", error=str(exc))
+        try:
+            output_path = "artifacts/localized_text_zoom_output.png"
+            source = Image.open(image_path).convert("RGB")
+            enlarged = source.resize(
+                (max(1, int(source.width * 1.5)), max(1, int(source.height * 1.5))),
+                Image.Resampling.LANCZOS,
+            )
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            enlarged.save(output_path)
+            return ToolResult(
+                status="ok",
+                answer="",
+                artifacts=[output_path],
+                debug_info=f"Fallback resize used after OpenCV path failed: {exc}",
+            )
+        except Exception as fallback_exc:
+            return ToolResult(status="error", answer="", error=str(fallback_exc))
 
 
 def localized_region_zoom(image_path: str) -> ToolResult:
@@ -161,6 +182,96 @@ def count_support_view(image_path: str) -> ToolResult:
         return ToolResult(status="error", answer="", error=str(exc))
 
 
+_VTOOL_TOOLS_MODULE = None
+
+
+def _load_vtool_tools_module():
+    global _VTOOL_TOOLS_MODULE
+    if _VTOOL_TOOLS_MODULE is not None:
+        return _VTOOL_TOOLS_MODULE
+
+    module_path = Path("/root/VTool-R1/verl/tooluse/tools.py")
+    if not module_path.exists():
+        raise FileNotFoundError(f"VTool-R1 tools.py not found at {module_path}")
+
+    spec = importlib.util.spec_from_file_location("vtool_r1_tools", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load VTool-R1 tools module from {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _VTOOL_TOOLS_MODULE = module
+    return module
+
+
+def _run_vtool_bbox_tool(tool_name: str, image_path: str, focus_targets_json: str, bbox_mapping_json: str) -> ToolResult:
+    try:
+        focus_targets = json.loads(focus_targets_json)
+        bbox_mapping = json.loads(bbox_mapping_json)
+        if not isinstance(focus_targets, list):
+            raise ValueError("The focus targets argument must decode to a JSON list.")
+        if not isinstance(bbox_mapping, dict):
+            raise ValueError("The bbox mapping argument must decode to a JSON object.")
+
+        module = _load_vtool_tools_module()
+        tool_fn = getattr(module, tool_name)
+        image = Image.open(image_path).convert("RGBA")
+        output_image = tool_fn(image, focus_targets, bbox_mapping)
+        output_path = f"artifacts/{tool_name}_output.png"
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        output_image.save(output_path)
+        return ToolResult(status="ok", answer="", artifacts=[output_path])
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+
+
+def focus_on_columns_with_mask(image_path: str, columns_to_focus_on_json: str, all_columns_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_columns_with_mask", image_path, columns_to_focus_on_json, all_columns_bounding_boxes_json)
+
+
+def focus_on_rows_with_mask(image_path: str, rows_to_focus_on_json: str, all_rows_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_rows_with_mask", image_path, rows_to_focus_on_json, all_rows_bounding_boxes_json)
+
+
+def focus_on_columns_with_draw(image_path: str, columns_to_focus_on_json: str, all_columns_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_columns_with_draw", image_path, columns_to_focus_on_json, all_columns_bounding_boxes_json)
+
+
+def focus_on_rows_with_draw(image_path: str, rows_to_focus_on_json: str, all_rows_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_rows_with_draw", image_path, rows_to_focus_on_json, all_rows_bounding_boxes_json)
+
+
+def focus_on_columns_with_highlight(image_path: str, columns_to_focus_on_json: str, all_columns_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_columns_with_highlight", image_path, columns_to_focus_on_json, all_columns_bounding_boxes_json)
+
+
+def focus_on_rows_with_highlight(image_path: str, rows_to_focus_on_json: str, all_rows_bounding_boxes_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_rows_with_highlight", image_path, rows_to_focus_on_json, all_rows_bounding_boxes_json)
+
+
+def focus_on_x_values_with_mask(image_path: str, x_values_to_focus_on_json: str, x_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_x_values_with_mask", image_path, x_values_to_focus_on_json, x_values_bbox_json)
+
+
+def focus_on_y_values_with_mask(image_path: str, y_values_to_focus_on_json: str, y_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_y_values_with_mask", image_path, y_values_to_focus_on_json, y_values_bbox_json)
+
+
+def focus_on_x_values_with_draw(image_path: str, x_values_to_focus_on_json: str, x_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_x_values_with_draw", image_path, x_values_to_focus_on_json, x_values_bbox_json)
+
+
+def focus_on_y_values_with_draw(image_path: str, y_values_to_focus_on_json: str, y_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_y_values_with_draw", image_path, y_values_to_focus_on_json, y_values_bbox_json)
+
+
+def focus_on_x_values_with_highlight(image_path: str, x_values_to_focus_on_json: str, x_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_x_values_with_highlight", image_path, x_values_to_focus_on_json, x_values_bbox_json)
+
+
+def focus_on_y_values_with_highlight(image_path: str, y_values_to_focus_on_json: str, y_values_bbox_json: str) -> ToolResult:
+    return _run_vtool_bbox_tool("focus_on_y_values_with_highlight", image_path, y_values_to_focus_on_json, y_values_bbox_json)
+
+
 BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
     "localized_color_focus": BuiltinToolSpec(
         name="localized_color_focus",
@@ -215,6 +326,114 @@ BUILTIN_TOOLS: dict[str, BuiltinToolSpec] = {
         chain_safe=True,
         runner=count_support_view,
         usage_example="python -m tools count_support_view <image_path>",
+    ),
+    "focus_on_columns_with_mask": BuiltinToolSpec(
+        name="focus_on_columns_with_mask",
+        description="VTool-R1 table tool that masks out irrelevant columns.",
+        applicability="Use for TableVQA when the answer depends on a subset of columns and column bbox metadata is available.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_columns_with_mask,
+        usage_example='python -m tools focus_on_columns_with_mask <image_path> \'["Year","Team"]\' \'{"Year":{"x1":0,"y1":0,"x2":100,"y2":200}}\'',
+    ),
+    "focus_on_rows_with_mask": BuiltinToolSpec(
+        name="focus_on_rows_with_mask",
+        description="VTool-R1 table tool that masks out irrelevant rows.",
+        applicability="Use for TableVQA when the answer depends on a subset of rows and row bbox metadata is available.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_rows_with_mask,
+        usage_example='python -m tools focus_on_rows_with_mask <image_path> \'["2004","2005"]\' \'{"Header":{"x1":0,"y1":0,"x2":100,"y2":20}}\'',
+    ),
+    "focus_on_columns_with_draw": BuiltinToolSpec(
+        name="focus_on_columns_with_draw",
+        description="VTool-R1 table tool that draws boxes around selected columns.",
+        applicability="Use for TableVQA when highlighting the relevant columns is more useful than masking.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_columns_with_draw,
+        usage_example='python -m tools focus_on_columns_with_draw <image_path> \'["Year","Team"]\' \'{"Year":{"x1":0,"y1":0,"x2":100,"y2":200}}\'',
+    ),
+    "focus_on_rows_with_draw": BuiltinToolSpec(
+        name="focus_on_rows_with_draw",
+        description="VTool-R1 table tool that draws boxes around selected rows.",
+        applicability="Use for TableVQA when highlighting the relevant rows is more useful than masking.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_rows_with_draw,
+        usage_example='python -m tools focus_on_rows_with_draw <image_path> \'["2004","2005"]\' \'{"Header":{"x1":0,"y1":0,"x2":100,"y2":20}}\'',
+    ),
+    "focus_on_columns_with_highlight": BuiltinToolSpec(
+        name="focus_on_columns_with_highlight",
+        description="VTool-R1 table tool that softly highlights selected columns.",
+        applicability="Use for TableVQA when preserving context while emphasizing columns is useful.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_columns_with_highlight,
+        usage_example='python -m tools focus_on_columns_with_highlight <image_path> \'["Year","Team"]\' \'{"Year":{"x1":0,"y1":0,"x2":100,"y2":200}}\'',
+    ),
+    "focus_on_rows_with_highlight": BuiltinToolSpec(
+        name="focus_on_rows_with_highlight",
+        description="VTool-R1 table tool that softly highlights selected rows.",
+        applicability="Use for TableVQA when preserving context while emphasizing rows is useful.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_rows_with_highlight,
+        usage_example='python -m tools focus_on_rows_with_highlight <image_path> \'["2004","2005"]\' \'{"Header":{"x1":0,"y1":0,"x2":100,"y2":20}}\'',
+    ),
+    "focus_on_x_values_with_mask": BuiltinToolSpec(
+        name="focus_on_x_values_with_mask",
+        description="VTool-R1 chart tool that masks out irrelevant x-axis values.",
+        applicability="Use for ChartQA when the answer depends on specific x-axis values and bbox metadata is available.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_x_values_with_mask,
+        usage_example='python -m tools focus_on_x_values_with_mask <image_path> \'["2018","2019"]\' \'{"2018":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
+    ),
+    "focus_on_y_values_with_mask": BuiltinToolSpec(
+        name="focus_on_y_values_with_mask",
+        description="VTool-R1 chart tool that masks out irrelevant y-axis values.",
+        applicability="Use for ChartQA when the answer depends on specific y-axis values and bbox metadata is available.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_y_values_with_mask,
+        usage_example='python -m tools focus_on_y_values_with_mask <image_path> \'["Asia","Europe"]\' \'{"Asia":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
+    ),
+    "focus_on_x_values_with_draw": BuiltinToolSpec(
+        name="focus_on_x_values_with_draw",
+        description="VTool-R1 chart tool that draws boxes around selected x-axis values.",
+        applicability="Use for ChartQA when highlighting target x-axis values is more useful than masking.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_x_values_with_draw,
+        usage_example='python -m tools focus_on_x_values_with_draw <image_path> \'["2018","2019"]\' \'{"2018":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
+    ),
+    "focus_on_y_values_with_draw": BuiltinToolSpec(
+        name="focus_on_y_values_with_draw",
+        description="VTool-R1 chart tool that draws boxes around selected y-axis values.",
+        applicability="Use for ChartQA when highlighting target y-axis values is more useful than masking.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_y_values_with_draw,
+        usage_example='python -m tools focus_on_y_values_with_draw <image_path> \'["Asia","Europe"]\' \'{"Asia":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
+    ),
+    "focus_on_x_values_with_highlight": BuiltinToolSpec(
+        name="focus_on_x_values_with_highlight",
+        description="VTool-R1 chart tool that softly highlights selected x-axis values.",
+        applicability="Use for ChartQA when preserving context while emphasizing x-axis values is useful.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_x_values_with_highlight,
+        usage_example='python -m tools focus_on_x_values_with_highlight <image_path> \'["2018","2019"]\' \'{"2018":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
+    ),
+    "focus_on_y_values_with_highlight": BuiltinToolSpec(
+        name="focus_on_y_values_with_highlight",
+        description="VTool-R1 chart tool that softly highlights selected y-axis values.",
+        applicability="Use for ChartQA when preserving context while emphasizing y-axis values is useful.",
+        benchmark_notes="Wrapper around the official VTool-R1 tool.",
+        chain_safe=True,
+        runner=focus_on_y_values_with_highlight,
+        usage_example='python -m tools focus_on_y_values_with_highlight <image_path> \'["Asia","Europe"]\' \'{"Asia":{"x1":0,"y1":0,"x2":10,"y2":10}}\'',
     ),
 }
 BUILTIN_TOOLS.update(GTA_BUILTIN_TOOLS)

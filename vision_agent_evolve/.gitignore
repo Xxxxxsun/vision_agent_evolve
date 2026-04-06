@@ -48,5 +48,7 @@ datasets/mira/images/
 !learned/skills/.gitkeep
 !datasets/mira/images/.gitkeep
 datasets/GTA/
+datasets/visualtoolbench_official/
+.codex/
 opencompass/
 gta_dataset.zip

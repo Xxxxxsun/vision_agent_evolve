@@ -1,0 +1,12 @@
+{
+  "dataset": "visualtoolbench",
+  "raw_data_root": "datasets/visualtoolbench_official",
+  "normalized_data_root": "datasets/structured_multibench/visualtoolbench",
+  "splits": {
+    "test": {
+      "count": 3,
+      "source_file": "datasets/visualtoolbench_official/test.parquet",
+      "output_file": "datasets/structured_multibench/visualtoolbench/test.jsonl"
+    }
+  }
+}

@@ -18,6 +18,37 @@
 
 ---
 
+## Part 0.5: Experimental Structure — Separate the Paper-Wide Story from Fair Comparison Studies
+
+One confusion in the current project is mixing two different goals:
+
+1. **Paper-wide method validation**
+   - Show the framework works beyond a single legacy backbone
+   - Use modern strong models where useful
+   - Support the high-level claim that training-free evolution is broadly useful
+
+2. **Fair head-to-head comparison against prior work**
+   - Match the compared paper's base model
+   - Match its benchmark and metric
+   - Answer a narrow comparability question without changing the comparison axis
+
+These two goals should not be collapsed into one experiment.
+
+### Rule
+
+- If the goal is **compare against VTool-R1**, use a dedicated same-base experiment on `Qwen2.5-VL-7B`.
+- If the goal is **show broader relevance**, add separate experiments on newer or stronger backbones.
+
+This means:
+
+- `Qwen2.5-VL-7B` is the **comparison backbone**, not necessarily the only backbone in the paper.
+- The `VTool-R1` comparison should be treated as a **standalone experiment track**.
+- Newer backbones should be reported in a separate axis later, not mixed into the fairness study.
+
+See `VTOOLR1_COMPARISON_CONTRACT.md` for the decision-complete version of this comparison track.
+
+---
+
 ## Part 1: Benchmark Selection — Driven by Comparability
 
 ### Core Principle
@@ -35,6 +66,8 @@
 | **AutoManual** | NeurIPS 2024 | ALFWorld, SciWorld | GPT-4-turbo, GPT-3.5 |
 
 ### Recommended Benchmark Set
+
+This benchmark list serves the **full paper**. A narrower benchmark subset may be used for a dedicated same-base comparison study.
 
 **Tier 1: MUST HAVE (overlap with VTool-R1 + PixelReasoner)**
 
@@ -68,6 +101,11 @@
 
 ### Key Decision: Which VLM is Our Backbone?
 
+This is really two decisions:
+
+1. Which backbone is used for the **fair comparison axis**
+2. Which backbone(s) are used for the **paper-wide generality axis**
+
 **Option A: Use Qwen2.5-VL-7B** (RECOMMENDED for main experiments)
 - Enables direct head-to-head with VTool-R1, PixelReasoner, V-Thinker
 - All three use this as their base model before RL training
@@ -80,8 +118,8 @@
 
 ### Recommended Setup
 ```
-Primary experiments:   Qwen2.5-VL-7B (served locally via vLLM)
-Secondary experiments: GPT-4o or Gemini-2.0-Flash (API calls)
+Comparison experiments: Qwen2.5-VL-7B (served locally via vLLM)
+Generality experiments: GPT-4o / Gemini / newer strong VLMs
 ```
 
 This gives us TWO comparison axes:

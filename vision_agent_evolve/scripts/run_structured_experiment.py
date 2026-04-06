@@ -41,10 +41,21 @@ def main() -> None:
     parser.add_argument("--save-first-n-evolves", type=int, default=10)
     parser.add_argument("--forced-skill-name", default=None)
     parser.add_argument(
+        "--fixed-tool-names",
+        nargs="+",
+        default=[],
+        help="Optional allowlist of preset builtin tool names for same-tool comparisons.",
+    )
+    parser.add_argument(
+        "--disable-generated-tools",
+        action="store_true",
+        help="Forbid new learned tool generation and use only the fixed preset tool pool.",
+    )
+    parser.add_argument(
         "--settings",
         nargs="+",
         default=["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
-        help="Subset of settings to run. Choices: direct_vlm pure_react agent_train_adaptive preset_tools_only frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
+        help="Subset of settings to run. Choices: direct_vlm pure_react toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
     args = parser.parse_args()
 
@@ -70,6 +81,8 @@ def main() -> None:
         settings=settings,
         save_first_n_evolves=args.save_first_n_evolves,
         forced_skill_name=args.forced_skill_name,
+        fixed_tool_names=args.fixed_tool_names,
+        disable_generated_tools=args.disable_generated_tools,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
@@ -81,7 +94,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
     for setting in raw_settings:
         normalized = setting.strip().lower()
         if normalized == "all":
-            expanded.extend(["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
+            expanded.extend(["direct_vlm", "pure_react", "toolpool_prompt_baseline", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
             continue
         aliases = {
             "self_evolve": "agent_train_adaptive",
@@ -92,9 +105,13 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
         if normalized not in {
             "direct_vlm",
             "pure_react",
+            "toolpool_prompt_baseline",
             "agent_train_adaptive",
+            "skill_only_train_adaptive",
             "preset_tools_only",
+            "same_tool_preset_tools_only",
             "frozen_inference",
+            "skill_only_frozen_inference",
             "frozen_inference_forced_skill",
             "scratch_skill_train_adaptive",
             "scratch_skill_frozen_inference",

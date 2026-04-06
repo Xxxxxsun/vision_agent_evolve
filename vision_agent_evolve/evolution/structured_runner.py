@@ -9,6 +9,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+import os
 
 from core.agent import AgentConfig, ReActAgent
 from core.structured_data import check_chartqa_case_answer, load_normalized_cases
@@ -17,6 +18,7 @@ from core.vlm_client import ModelSettings, VLMClient
 from evolution.benchmark_adapters import BenchmarkAdapter, get_benchmark_adapter
 from evolution.loop import EvolutionLoop
 from evolution.subset_loop import SubsetEvolutionLoop
+from tools.builtin_tools import list_builtin_tools
 
 
 @dataclass
@@ -42,6 +44,8 @@ class StructuredExperimentConfig:
     settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
     save_first_n_evolves: int = 10
     forced_skill_name: str | None = None
+    fixed_tool_names: list[str] = field(default_factory=list)
+    disable_generated_tools: bool = False
 
 
 @dataclass
@@ -251,9 +255,18 @@ class StructuredBenchmarkRunner:
             print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{train_limit}] ===")
             records.extend(self._run_pure_react(evolve_cases))
 
+        if "toolpool_prompt_baseline" in self.config.settings:
+            print(f"\n=== Same-tool prompt baseline on {self.config.evolve_split}[:{train_limit}] ===")
+            records.extend(self._run_toolpool_prompt_baseline(evolve_cases))
+
         if "agent_train_adaptive" in self.config.settings:
             print(f"\n=== Agent adaptive train on {self.config.evolve_split}[:{train_limit}] ===")
             train_records, snapshot_name = self._run_agent_train_adaptive(evolve_cases)
+            records.extend(train_records)
+
+        if "skill_only_train_adaptive" in self.config.settings:
+            print(f"\n=== Skill-only same-tool train on {self.config.evolve_split}[:{train_limit}] ===")
+            train_records, snapshot_name = self._run_skill_only_train_adaptive(evolve_cases)
             records.extend(train_records)
 
         if "scratch_skill_train_adaptive" in self.config.settings:
@@ -279,6 +292,19 @@ class StructuredBenchmarkRunner:
                 )
             )
 
+        if "same_tool_preset_tools_only" in self.config.settings:
+            print(f"\n=== Same-tool preset-only inference on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    capability_mode="skill_only_same_tools",
+                    use_skill=False,
+                )
+            )
+
         if "frozen_inference_forced_skill" in self.config.settings:
             print(f"\n=== Frozen inference with forced skill on {self.config.held_out_split} ===")
             if not snapshot_name:
@@ -288,6 +314,18 @@ class StructuredBenchmarkRunner:
                     snapshot_name=snapshot_name,
                     cases=held_out_cases,
                     force_skill=True,
+                )
+            )
+
+        if "skill_only_frozen_inference" in self.config.settings:
+            print(f"\n=== Skill-only same-tool frozen inference on {self.config.held_out_split} ===")
+            if not snapshot_name:
+                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(
+                self.run_frozen_inference(
+                    snapshot_name=snapshot_name,
+                    cases=held_out_cases,
+                    capability_mode="skill_only_same_tools",
                 )
             )
 
@@ -486,7 +524,32 @@ class StructuredBenchmarkRunner:
 
         return records, report.snapshot_name
 
-    def _make_subset_loop(self, cases: list[TaskCase] | None = None) -> SubsetEvolutionLoop:
+    def _run_skill_only_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
+        subset_loop = self._make_subset_loop(cases, capability_mode="skill_only_same_tools")
+        report = subset_loop.run(cases)
+        self.last_subset_rounds = [asdict(item) for item in report.round_results]
+        records = self._materialize_agent_train_records(
+            cases,
+            report.baseline_records,
+            report.final_records,
+            report.round_results,
+            setting="skill_only_train_adaptive",
+        )
+        self._replace_records_for_setting("skill_only_train_adaptive", self.config.evolve_split, records)
+        for index, record in enumerate(records, start=1):
+            status = "OK" if record.correct else "FAIL"
+            extra = " evolved" if record.evolve_triggered else " no-evolve"
+            print(
+                f"[{index:03d}/{len(cases):03d}] {status}{extra} "
+                f"case={record.case_id} answer={record.answer!r}"
+            )
+        return records, report.snapshot_name
+
+    def _make_subset_loop(
+        self,
+        cases: list[TaskCase] | None = None,
+        capability_mode: str = "persistent_tools",
+    ) -> SubsetEvolutionLoop:
         train_cases = list(cases or [])
         return SubsetEvolutionLoop(
             subset_id=self.config.subset_id,
@@ -499,6 +562,9 @@ class StructuredBenchmarkRunner:
             representatives_per_cluster=self.config.representatives_per_cluster,
             families_per_round_limit=self.config.families_per_round_limit,
             tool_preference=self.config.tool_preference,
+            capability_mode=capability_mode,
+            fixed_builtin_tools=self.config.fixed_tool_names,
+            disable_generated_tools=self.config.disable_generated_tools,
             checkpoint_callback=lambda baseline_records, current_records, round_results, snapshot_name: self._checkpoint_agent_train_adaptive(
                 cases=train_cases,
                 baseline_records=baseline_records,
@@ -648,12 +714,56 @@ class StructuredBenchmarkRunner:
 
     def _create_plain_react_agent(self, case: TaskCase, phase: str) -> ReActAgent:
         work_dir = self.output_dir / "pure_react" / phase / f"case_{case.case_id}"
+        fixed_tools = set(self.config.fixed_tool_names)
+        available_specs = [
+            tool for tool in list_builtin_tools()
+            if not fixed_tools or tool.name in fixed_tools
+        ]
+        if available_specs:
+            tool_lines = [
+                f"  - {tool.name}: {tool.description} | applies when: {tool.applicability} | usage: {tool.usage_example}"
+                for tool in available_specs
+            ]
+            tool_definitions = "Use: python -m tools <tool_name> [args]\n\nAvailable tools:\n" + "\n".join(tool_lines)
+        else:
+            tool_definitions = "Use: python -m tools <tool_name> [args]\n\nNo learned tools available yet."
         return ReActAgent(
             client=self.vlm_client,
             config=AgentConfig(max_turns=20, work_dir=work_dir),
-            tool_definitions="Use: python -m tools <tool_name> [args]\n\nNo learned tools available yet.",
+            tool_definitions=tool_definitions,
             extra_instructions="",
         )
+
+    def _run_toolpool_prompt_baseline(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
+        records: list[StructuredCaseRecord] = []
+        for index, case in enumerate(cases, start=1):
+            loop = self._make_online_loop(capability_mode="skill_only_same_tools")
+            try:
+                result, chain_trace = self._run_with_learned_capabilities(
+                    loop,
+                    case,
+                    phase=f"toolpool_prompt_baseline_{index}",
+                    capability_mode="skill_only_same_tools",
+                    use_skill=False,
+                )
+            except Exception as exc:
+                result = self._runtime_failure_result(case, exc)
+                chain_trace = []
+            record = self._record_from_agent_result(
+                setting="toolpool_prompt_baseline",
+                split=self.config.evolve_split,
+                case=case,
+                result=result,
+                correct=self._check_answer(result.final_answer, case),
+                chain_trace=chain_trace,
+            )
+            self._append_record(record)
+            records.append(record)
+            print(
+                f"[{index:03d}/{len(cases):03d}] "
+                f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
+            )
+        return records
 
     def _run_with_learned_capabilities(
         self,
@@ -670,6 +780,8 @@ class StructuredBenchmarkRunner:
         create_agent_signature = inspect.signature(loop._create_agent)
         if "include_learned_skills" in create_agent_signature.parameters:
             create_agent_kwargs["include_learned_skills"] = use_skill
+        if "include_learned_tools" in create_agent_signature.parameters:
+            create_agent_kwargs["include_learned_tools"] = bool(use_skill and capability_mode != "skill_only_same_tools")
         if "required_skill_name" in create_agent_signature.parameters:
             create_agent_kwargs["required_skill_name"] = required_skill_name
         if "require_bash_action_before_complete" in create_agent_signature.parameters:
@@ -719,6 +831,8 @@ class StructuredBenchmarkRunner:
             subset_id=self.config.subset_id,
             answer_checker=self._check_answer,
             capability_mode=capability_mode,
+            fixed_builtin_tools=self.config.fixed_tool_names,
+            disable_generated_tools=self.config.disable_generated_tools,
         )
 
     def _make_frozen_loop(
@@ -746,6 +860,8 @@ class StructuredBenchmarkRunner:
                 subset_id=None,
                 answer_checker=self._check_answer,
                 capability_mode=capability_mode,
+                fixed_builtin_tools=self.config.fixed_tool_names,
+                disable_generated_tools=self.config.disable_generated_tools,
             )
 
         active_dir = self.learned_root / (subset_id or self.config.subset_id) / "active"
@@ -760,6 +876,8 @@ class StructuredBenchmarkRunner:
             subset_id=resolved_subset_id,
             answer_checker=self._check_answer,
             capability_mode=capability_mode,
+            fixed_builtin_tools=self.config.fixed_tool_names,
+            disable_generated_tools=self.config.disable_generated_tools,
         )
 
     def _forced_skill_name(self, case: TaskCase) -> str | None:
@@ -776,6 +894,8 @@ class StructuredBenchmarkRunner:
 
     @staticmethod
     def _frozen_setting_name(capability_mode: str, force_skill: bool, use_skill: bool = True) -> str:
+        if capability_mode == "skill_only_same_tools":
+            return "same_tool_preset_tools_only" if not use_skill else "skill_only_frozen_inference"
         if capability_mode == "scratch_code_skill":
             return "scratch_skill_frozen_forced" if force_skill else "scratch_skill_frozen_inference"
         if not use_skill:
@@ -825,6 +945,7 @@ class StructuredBenchmarkRunner:
         baseline_records: list[TrainSetEvalRecord],
         final_records: list[TrainSetEvalRecord],
         round_results: list[CandidateEvalResult],
+        setting: str = "agent_train_adaptive",
     ) -> list[StructuredCaseRecord]:
         baseline_map = {row.case_id: row for row in baseline_records}
         final_map = {row.case_id: row for row in final_records}
@@ -835,7 +956,7 @@ class StructuredBenchmarkRunner:
             final = final_map[case.case_id]
             tool_names = _merge_tool_names(list(final.tool_names), list(final.chain_trace))
             record = StructuredCaseRecord(
-                setting="agent_train_adaptive",
+                setting=setting,
                 split=self.config.evolve_split,
                 case_id=case.case_id,
                 problem_id=case.problem_id,
@@ -871,6 +992,9 @@ class StructuredBenchmarkRunner:
 
     def _write_summary(self, records: list[StructuredCaseRecord], snapshot_name: str) -> dict[str, Any]:
         settings_summary = _aggregate_records(records)
+        vlm_base_url = os.environ.get("VLM_BASE_URL", "").strip() or os.environ.get("OPENAI_BASE_URL", "").strip()
+        vlm_model = os.environ.get("VLM_MODEL", "").strip() or os.environ.get("OPENAI_MODEL", "").strip()
+        vlm_api_style = os.environ.get("VLM_API_STYLE", "").strip()
         summary = {
             "config": {
                 "dataset": self.config.dataset,
@@ -890,6 +1014,26 @@ class StructuredBenchmarkRunner:
                 "tool_preference": self.config.tool_preference,
                 "readability_judge_enabled": self.config.readability_judge_enabled,
                 "forced_skill_name": self.config.forced_skill_name,
+                "fixed_tool_names": list(self.config.fixed_tool_names),
+                "disable_generated_tools": self.config.disable_generated_tools,
+                "vlm_base_url": vlm_base_url,
+                "vlm_model": vlm_model,
+                "vlm_api_style": vlm_api_style,
+                "vlm_api_key_present": bool(os.environ.get("VLM_API_KEY") or os.environ.get("OPENAI_API_KEY")),
+                "vlm_user_id_present": bool(os.environ.get("VLM_USER_ID")),
+                "vlm_access_key_present": bool(os.environ.get("VLM_ACCESS_KEY")),
+                "vlm_quota_id_present": bool(os.environ.get("VLM_QUOTA_ID")),
+                "uses_alibaba_chat_api": (
+                    vlm_api_style.lower() == "alibaba_chat"
+                    or "llm-chat-api.alibaba-inc.com" in vlm_base_url.lower()
+                ),
+                "gta_tool_mode": os.environ.get("VISION_AGENT_GTA_TOOL_MODE", ""),
+                "gta_tool_server": os.environ.get("VISION_AGENT_GTA_TOOL_SERVER", ""),
+                "gta_official_repo": os.environ.get("VISION_AGENT_GTA_OFFICIAL_REPO", ""),
+                "gta_device": os.environ.get("VISION_AGENT_GTA_DEVICE", ""),
+                "serper_api_key_present": bool(os.environ.get("SERPER_API_KEY")),
+                "mathpix_app_id_present": bool(os.environ.get("MATHPIX_APP_ID")),
+                "mathpix_app_key_present": bool(os.environ.get("MATHPIX_APP_KEY")),
             },
             "snapshot_name": snapshot_name,
             "records_path": str(self.records_path),
@@ -897,8 +1041,12 @@ class StructuredBenchmarkRunner:
             "settings": settings_summary,
             "full_agent_accuracy": settings_summary.get("agent_train_adaptive", {}).get("full_agent_accuracy", 0.0),
             "post_evolve_recovery_accuracy": settings_summary.get("agent_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
+            "skill_only_full_agent_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("full_agent_accuracy", 0.0),
+            "skill_only_post_evolve_recovery_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
             "preset_tools_only_accuracy": settings_summary.get("preset_tools_only", {}).get("accuracy", 0.0),
+            "same_tool_preset_tools_only_accuracy": settings_summary.get("same_tool_preset_tools_only", {}).get("accuracy", 0.0),
             "frozen_inference_accuracy": settings_summary.get("frozen_inference", {}).get("accuracy", 0.0),
+            "skill_only_frozen_inference_accuracy": settings_summary.get("skill_only_frozen_inference", {}).get("accuracy", 0.0),
             "forced_skill_frozen_accuracy": settings_summary.get("frozen_inference_forced_skill", {}).get("accuracy", 0.0),
             "scratch_skill_full_agent_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("full_agent_accuracy", 0.0),
             "scratch_skill_post_evolve_recovery_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),

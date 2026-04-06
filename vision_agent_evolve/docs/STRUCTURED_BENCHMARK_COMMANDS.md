@@ -23,6 +23,24 @@ export VLM_API_KEY="..."
 export VLM_MODEL="..."
 ```
 
+## GTA Official Formal Run
+
+For strict GTA-aligned formal runs, use the dedicated workflow in [GTA_OFFICIAL_EXPERIMENT.md](/root/vision_agent_evolve/vision_agent_evolve/docs/GTA_OFFICIAL_EXPERIMENT.md).
+
+Quick entry points:
+
+```bash
+python scripts/check_gta_official_setup.py --mode server --server-url "$VISION_AGENT_GTA_TOOL_SERVER" --repo-root "$VISION_AGENT_GTA_OFFICIAL_REPO" --require-keys
+```
+
+```bash
+bash scripts/start_gta_official_tool_server.sh
+```
+
+```bash
+bash scripts/run_gta_official_formal.sh gta_official_formal_v1
+```
+
 ## 1. ChartQA
 
 ### 1.1 Evolve on train subset and evaluate on val
