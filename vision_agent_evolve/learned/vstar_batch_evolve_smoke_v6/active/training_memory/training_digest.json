@@ -1,0 +1,179 @@
+{
+  "baseline_summary": {
+    "total_cases": 3,
+    "correct_cases": 1,
+    "primary_score": 0.3333333333333333,
+    "per_dataset_scores": {
+      "vstar": 0.3333333333333333
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.3333333333333333
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 2,
+      "case_ids": [
+        "100",
+        "108"
+      ],
+      "representative_case_ids": [
+        "100"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "none (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "color (2/2)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 3,
+      "failed_cases": 2,
+      "baseline_score": 0.3333333333333333,
+      "common_question_patterns": [
+        "direct_lookup (3/3)",
+        "multiple_choice (3/3)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "none (3/3)"
+      ],
+      "recent_revision_briefs": [
+        "case_specific_logic: Tool proposal references the current case id and looks case-specific | rewrite=Replace case-specific thresholds or coordinates with relative or image-derived logic.; State applicability conditions for a family-level visual pattern."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Direct multiple-choice visual attribute lookup where the answer depends on identifying the color of a localized object mentioned in the question. | supported=Questions asking for the color of a specified object or clothing item in an image; Multiple-choice direct attribute questions where the target object is visually localized by noun phrase"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 2,
+          "case_ids": [
+            "100",
+            "108"
+          ],
+          "representative_case_ids": [
+            "100"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "none (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "color (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100"
+          ],
+          "supported_patterns": [
+            "color (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260407_081834_912050",
+      "reason": "Tool proposal references the current case id and looks case-specific",
+      "failure_type": "case_specific_logic",
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_direct_attributes",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Direct multiple-choice visual attribute lookup where the answer depends on identifying the color of a localized object mentioned in the question.",
+        "supported_variations": [
+          "Questions asking for the color of a specified object or clothing item in an image",
+          "Multiple-choice direct attribute questions where the target object is visually localized by noun phrase"
+        ],
+        "unsupported_variations": [
+          "Questions requiring counting, reading text, relational reasoning, or inferring attributes not directly visible"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode any specific object category such as handbag as the default target",
+          "Do not use fixed image regions or one-off coordinates for where the target object appears",
+          "Do not assume a small preset color answer based on prior case frequency without inspecting the localized object"
+        ],
+        "primitive_category": "localized_color_focus",
+        "tool_validation_scope": "cluster",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "The failures concentrate on a stable, toolable primitive: visually locating a referenced object and inspecting its color, which recurs across direct attribute questions beyond any single image."
+      },
+      "revision_brief": {
+        "failure_type": "case_specific_logic",
+        "reason": "Tool proposal references the current case id and looks case-specific",
+        "evidence": [
+          "Static inspection found image- or case-anchored logic in the tool proposal."
+        ],
+        "rewrite_requirements": [
+          "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+          "State applicability conditions for a family-level visual pattern."
+        ],
+        "banned_patterns": [
+          "current case id",
+          "current image path",
+          "fixed one-image thresholds"
+        ],
+        "retry_action": "revise_tool"
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}

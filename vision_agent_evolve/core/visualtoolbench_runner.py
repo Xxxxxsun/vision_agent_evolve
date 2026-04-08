@@ -34,9 +34,12 @@ Final Answer: <answer>
 ACTION: TASK_COMPLETE
 
 Rules:
-- Use tools when image transformation, external lookup, or calculation is needed.
+- Proactively use tools when image transformation, zooming, cropping, enhancement, external lookup, or calculation is needed.
+- If the answer depends on small text, dense visual evidence, multiple regions, or a transformed view, call tools before answering.
+- For difficult visual tasks, iterate with image-processing tools more than once if needed.
 - Keep tool arguments valid JSON.
 - For python_image_processing and python_interpreter, put the full Python source in the "code" field.
+- Save processed images as transformed_image_i.png and inspect the resulting observation before answering.
 - Wait for the observation after each tool call.
 """
 
@@ -98,30 +101,7 @@ class VisualToolBenchRubricJudge:
                 "exact_match": fallback_correct,
             }
 
-        prompt = (
-            "You are a strict VisualToolBench rubric judge.\n"
-            "Given a task prompt, a reference answer, a model response, and the rubric dictionary, "
-            "judge each rubric independently as YES or NO.\n"
-            "Return JSON only with keys:\n"
-            "{"
-            '"per_rubric":{"rubric_id":{"satisfied":"yes|no","reason":"short"}}'
-            "}\n"
-            "Do not add any extra text."
-        )
-        payload = {
-            "task_prompt": turn.prompt,
-            "gold_answer": turn.gold_answer,
-            "model_response": response,
-            "rubrics": rubrics,
-        }
-        messages = [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-        ]
-        raw, _ = self.client.chat(messages, ModelSettings(temperature=0.0, max_tokens=2000))
-        parsed = _extract_json_object(raw) or {}
-        per_rubric = parsed.get("per_rubric") if isinstance(parsed, dict) else {}
-        result_payload: dict[str, Any] = {"per_rubric": {}, "raw_judge": raw}
+        result_payload: dict[str, Any] = {"per_rubric": {}}
 
         total_weight = 0.0
         earned_weight = 0.0
@@ -129,7 +109,7 @@ class VisualToolBenchRubricJudge:
         for rubric_id, rubric in rubrics.items():
             weight = float(rubric.get("weight", 1) or 1)
             total_weight += weight
-            decision = per_rubric.get(rubric_id, {}) if isinstance(per_rubric, dict) else {}
+            decision = self._judge_single_rubric(turn, response, rubric_id, rubric)
             satisfied = str(decision.get("satisfied", "")).strip().lower() == "yes"
             if satisfied:
                 earned_weight += weight
@@ -145,6 +125,35 @@ class VisualToolBenchRubricJudge:
         if total_weight <= 0:
             return 0.0, False, result_payload
         return earned_weight / total_weight, passed, result_payload
+
+    def _judge_single_rubric(
+        self,
+        turn: MultiTurnTaskTurn,
+        response: str,
+        rubric_id: str,
+        rubric: dict[str, Any],
+    ) -> dict[str, Any]:
+        prompt = (
+            "You are a strict VisualToolBench rubric judge.\n"
+            "Judge exactly one rubric for the model response.\n"
+            "Return JSON only with keys: "
+            '{"satisfied":"yes|no","reason":"short"}'
+        )
+        payload = {
+            "task_prompt": turn.prompt,
+            "gold_answer": turn.gold_answer,
+            "model_response": response,
+            "rubric_id": rubric_id,
+            "rubric": rubric,
+        }
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+        ]
+        raw, _ = self.client.chat(messages, ModelSettings(temperature=0.0, max_tokens=400))
+        parsed = _extract_json_object(raw) or {}
+        parsed["raw_judge"] = raw
+        return parsed
 
     @staticmethod
     def _parse_rubrics(raw_payload: str) -> dict[str, dict[str, Any]]:
@@ -176,14 +185,16 @@ class VisualToolBenchRunner:
         normalized_data_root: Path,
         output_dir: Path,
         client: VLMClient | None = None,
-        max_tool_calls_per_turn: int = 8,
+        judge_client: VLMClient | None = None,
+        max_tool_calls_per_turn: int = 20,
     ):
         self.normalized_data_root = normalized_data_root
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.client = client or VLMClient()
         self.max_tool_calls_per_turn = max_tool_calls_per_turn
-        self.judge = VisualToolBenchRubricJudge(self.client)
+        self.judge_client = judge_client or self.client
+        self.judge = VisualToolBenchRubricJudge(self.judge_client)
 
     def run(self, split: str = "test", limit: int = 0) -> dict[str, Any]:
         cases = load_visualtoolbench_cases(self.normalized_data_root, split=split, limit=limit)
@@ -417,21 +428,21 @@ class VisualToolBenchRunner:
 
 def _extract_action(response: str) -> dict[str, Any] | None:
     match = re.search(r"Action:\s*", response, re.IGNORECASE)
-    if not match:
-        return None
-    tail = response[match.end():].lstrip()
-    json_start = tail.find("{")
+    candidate_text = response[match.end():].lstrip() if match else response.lstrip()
+    json_start = candidate_text.find("{")
     if json_start < 0:
         return None
     try:
-        payload, _ = json.JSONDecoder().raw_decode(tail[json_start:])
+        payload, _ = json.JSONDecoder().raw_decode(candidate_text[json_start:])
     except json.JSONDecodeError:
         return None
     if not isinstance(payload, dict):
         return None
     if "name" not in payload or "arguments" not in payload:
         return None
-    return payload
+    if str(payload.get("name", "")).strip():
+        return payload
+    return None
 
 
 def _extract_final_answer(response: str) -> str:

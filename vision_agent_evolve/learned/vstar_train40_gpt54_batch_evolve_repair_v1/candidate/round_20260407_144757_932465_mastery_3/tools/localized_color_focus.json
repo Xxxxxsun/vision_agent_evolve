@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights visually salient local candidate regions and produces zoomed crops to support downstream color identification of a referenced object or clothing item.",
+  "applicability_conditions": "Use this tool for direct-attribute multiple-choice questions in the vstar_direct_attributes family when the answer depends on the color of a specific visible object, accessory, or clothing region and the main difficulty is localizing the relevant small region first. It is appropriate on raw images or prior artifacts when a person-associated item (for example a handbag, shirt, hat, or similar local region) may be small, off-center, or mixed into cluttered backgrounds, and a generic localized focus view is needed before judging color.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T14:50:34.493853",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

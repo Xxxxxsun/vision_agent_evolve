@@ -1,0 +1,14 @@
+{
+  "name": "saliency_focus_map",
+  "description": "Creates a generic visual focus artifact by highlighting likely object regions and their centers using image-derived saliency and connected components, supporting later relative-position reasoning between two mentioned objects.",
+  "applicability_conditions": "Use for relative-position questions in natural or illustrated scenes when the solver needs a reusable focus artifact before deciding left/right or above/below between two referenced objects. Appropriate when no object-specific detector is available, including raw images or intermediate image artifacts, and especially for the recurring family pattern of binary spatial comparisons between two visible objects.",
+  "usage_example": "python -m tools saliency_focus_map <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-07T06:34:28.292304",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

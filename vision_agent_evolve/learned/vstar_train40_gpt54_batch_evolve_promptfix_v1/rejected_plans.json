@@ -1,0 +1,96 @@
+[
+  {
+    "run_id": "round_20260407_115751_276464",
+    "reason": "Tool did not produce any artifacts",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_relative_position",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Determine whether one depicted object is to the left or right of another object in a single image using localized visual comparison.",
+      "supported_variations": [
+        "Questions asking if object A is on the left or right side of object B",
+        "Different everyday object pairs with the same left-vs-right spatial relation format"
+      ],
+      "unsupported_variations": [
+        "Cases requiring depth, front/behind, or multi-step spatial reasoning beyond simple horizontal relative position"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode specific object categories such as suitcase, river, pillar box, or telephone booth",
+        "Do not rely on fixed image regions or one-off coordinates for where target objects usually appear"
+      ],
+      "primitive_category": "generic_visual_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The family uses a stable question form with repeated failures from not applying any visual localization, so a reusable object-focused visual primitive plus a lightweight skill for horizontal relation judgment should transfer across object pairs."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool did not produce any artifacts",
+      "evidence": [
+        "Error executing learned tool: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'line'\n> Overload resolution failed:\n>  - img is not a numpy array, neither a scalar\n>  - Expected Ptr<cv::UMat> for argument 'img'"
+      ],
+      "rewrite_requirements": [
+        "Save at least one real artifact under artifacts/.",
+        "Return the same artifact path in ToolResult.artifacts."
+      ],
+      "banned_patterns": [
+        "status-only tools",
+        "tools with no artifact output"
+      ],
+      "retry_action": "revise_tool"
+    }
+  },
+  {
+    "run_id": "round_20260407_115233_156300",
+    "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Direct multiple-choice attribute questions about a specific visible entity, with recurring failures concentrated on identifying localized object color or similarly local visual attributes without focused inspection.",
+      "supported_variations": [
+        "Color of a named object or clothing item belonging to a referenced person",
+        "Direct local attribute lookup for a referenced subject/object in multiple-choice form, including simple pose/state when the target entity is clearly identifiable"
+      ],
+      "unsupported_variations": [
+        "Questions requiring multi-step reasoning, counting, OCR, or ambiguous target resolution without a clearly referenced entity"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode any specific object class, person, or answer distribution from the representative images",
+        "Do not rely on fixed image regions, one-off coordinates, or center-biased cropping",
+        "Do not assume the queried attribute is always color or always attached to a woman"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "Failures are clustered around a stable, reusable need: focusing on a referenced local region to read a simple visual attribute, especially color. A localized inspection primitive plus lightweight selection logic should transfer across many direct-attribute cases in this family."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+      "evidence": [
+        "artifacts/localized_color_focus_output.png"
+      ],
+      "rewrite_requirements": [
+        "Write the artifact file before returning.",
+        "Keep ToolResult.artifacts aligned with real relative file paths."
+      ],
+      "banned_patterns": [
+        "nonexistent artifact paths"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a concrete visualization artifact under artifacts/ that highlights salient object-like regions and annotates their horizontal centers to support later left/right relation reasoning. The implementation ensures a real processed image ndarray is always produced for valid image inputs, converts draw targets to numpy arrays before OpenCV rendering, saves the artifact before returning, and uses a fallback visualization artifact if primary region extraction fails.",
+  "applicability_conditions": "Creates a concrete visualization artifact under artifacts/ that highlights salient object-like regions and annotates their horizontal centers to support later left/right relation reasoning. The implementation ensures a real processed image ndarray is always produced for valid image inputs, converts draw targets to numpy arrays before OpenCV rendering, saves the artifact before returning, and uses a fallback visualization artifact if primary region extraction fails.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "relative_position_marker",
+  "created_at": "2026-04-07T14:58:54.776208",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

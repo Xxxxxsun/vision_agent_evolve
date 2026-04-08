@@ -1,0 +1,49 @@
+[
+  {
+    "run_id": "round_20260407_092031_923741",
+    "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Questions ask for the color of a specific referenced object in an image, where success depends on isolating that object and reading its dominant color rather than using global scene cues.",
+      "supported_variations": [
+        "Multiple-choice questions asking the color of a named object like handbag, swim ring, shirt, car, or sign",
+        "Direct attribute lookup where the target object is visible but occupies only a localized region of the image"
+      ],
+      "unsupported_variations": [
+        "Questions requiring fine-grained material, pattern, brand, or text recognition instead of basic localized color identification"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode colors associated with common objects or scenes",
+        "Do not assume the target object is centered, large, or uniquely salient",
+        "Do not use one-off coordinates, boxes, or image-specific crop positions from representative examples"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "Most failures concentrate on direct color queries over localized objects, a stable and highly reusable visual primitive that can support many object-color lookup questions across the family."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+      "evidence": [
+        "artifacts/localized_color_focus_output.png"
+      ],
+      "rewrite_requirements": [
+        "Write the artifact file before returning.",
+        "Keep ToolResult.artifacts aligned with real relative file paths."
+      ],
+      "banned_patterns": [
+        "nonexistent artifact paths"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

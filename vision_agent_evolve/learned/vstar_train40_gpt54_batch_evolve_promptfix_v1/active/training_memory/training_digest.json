@@ -1,0 +1,367 @@
+{
+  "baseline_summary": {
+    "total_cases": 40,
+    "correct_cases": 32,
+    "primary_score": 0.8,
+    "per_dataset_scores": {
+      "vstar": 0.8
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.7391304347826086,
+      "vstar_relative_position": 0.8823529411764706
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 6,
+      "case_ids": [
+        "100",
+        "4",
+        "43",
+        "49",
+        "9",
+        "94"
+      ],
+      "representative_case_ids": [
+        "100",
+        "4"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+        "case_id=4; prompt=What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing; expected=C; answer=A. walking"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (6/6)"
+      ],
+      "shared_tool_patterns": [
+        "none (6/6)"
+      ],
+      "shared_prompt_patterns": [
+        "color (5/6)",
+        "generic_question (1/6)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "cluster_key": "vstar_relative_position::generic::multiple_choice",
+      "total_cases": 2,
+      "case_ids": [
+        "150",
+        "154"
+      ],
+      "representative_case_ids": [
+        "150",
+        "154"
+      ],
+      "summary_lines": [
+        "case_id=150; prompt=Is the suitcase on the left or right side of the river?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=B; answer=A. right",
+        "case_id=154; prompt=Is the pillar box on the left or right side of the telephone booth?\n(A) right.\n(B) left.\n\nChoices:\nA. right.\nB. left.; expected=A; answer=B. left."
+      ],
+      "common_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "none (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (2/2)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 23,
+      "failed_cases": 6,
+      "baseline_score": 0.7391304347826086,
+      "common_question_patterns": [
+        "multiple_choice (23/23)",
+        "direct_lookup (22/23)",
+        "generic_question (1/23)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (6/6)"
+      ],
+      "tool_usage_patterns": [
+        "none (23/23)"
+      ],
+      "recent_revision_briefs": [
+        "no_artifact: Tool reported missing artifacts: artifacts/localized_color_focus_output.png | rewrite=Write the artifact file before returning.; Keep ToolResult.artifacts aligned with real relative file paths."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Direct multiple-choice attribute questions about a specific visible entity, with recurring failures concentrated on identifying localized object color or similarly local visual attributes without focused inspection. | supported=Color of a named object or clothing item belonging to a referenced person; Direct local attribute lookup for a referenced subject/object in multiple-choice form, including simple pose/state when the target entity is clearly identifiable"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 6,
+          "case_ids": [
+            "100",
+            "4",
+            "43",
+            "49",
+            "9",
+            "94"
+          ],
+          "representative_case_ids": [
+            "100",
+            "4"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (6/6)"
+          ],
+          "shared_tool_patterns": [
+            "none (6/6)"
+          ],
+          "shared_prompt_patterns": [
+            "color (5/6)",
+            "generic_question (1/6)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+            "case_id=4; prompt=What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing; expected=C; answer=A. walking"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100",
+            "4"
+          ],
+          "supported_patterns": [
+            "color (5/6)",
+            "generic_question (1/6)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "vstar_relative_position",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 17,
+      "failed_cases": 2,
+      "baseline_score": 0.8823529411764706,
+      "common_question_patterns": [
+        "generic_question (17/17)",
+        "multiple_choice (17/17)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "none (17/17)"
+      ],
+      "recent_revision_briefs": [
+        "no_artifact: Tool did not produce any artifacts | rewrite=Save at least one real artifact under artifacts/.; Return the same artifact path in ToolResult.artifacts."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Determine whether one depicted object is to the left or right of another object in a single image using localized visual comparison. | supported=Questions asking if object A is on the left or right side of object B; Different everyday object pairs with the same left-vs-right spatial relation format"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_relative_position",
+          "cluster_key": "vstar_relative_position::generic::multiple_choice",
+          "total_cases": 2,
+          "case_ids": [
+            "150",
+            "154"
+          ],
+          "representative_case_ids": [
+            "150",
+            "154"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "none (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=150; prompt=Is the suitcase on the left or right side of the river?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=B; answer=A. right",
+            "case_id=154; prompt=Is the pillar box on the left or right side of the telephone booth?\n(A) right.\n(B) left.\n\nChoices:\nA. right.\nB. left.; expected=A; answer=B. left."
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for vstar_relative_position.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "150",
+            "154"
+          ],
+          "supported_patterns": [
+            "generic_question (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    },
+    {
+      "case_id": "4",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing"
+    },
+    {
+      "case_id": "150",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the suitcase on the left or right side of the river?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left"
+    },
+    {
+      "case_id": "154",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the pillar box on the left or right side of the telephone booth?\n(A) right.\n(B) left.\n\nChoices:\nA. right.\nB. left."
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260407_115751_276464",
+      "reason": "Tool did not produce any artifacts",
+      "failure_type": "no_artifact",
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_relative_position",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Determine whether one depicted object is to the left or right of another object in a single image using localized visual comparison.",
+        "supported_variations": [
+          "Questions asking if object A is on the left or right side of object B",
+          "Different everyday object pairs with the same left-vs-right spatial relation format"
+        ],
+        "unsupported_variations": [
+          "Cases requiring depth, front/behind, or multi-step spatial reasoning beyond simple horizontal relative position"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode specific object categories such as suitcase, river, pillar box, or telephone booth",
+          "Do not rely on fixed image regions or one-off coordinates for where target objects usually appear"
+        ],
+        "primitive_category": "generic_visual_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "The family uses a stable question form with repeated failures from not applying any visual localization, so a reusable object-focused visual primitive plus a lightweight skill for horizontal relation judgment should transfer across object pairs."
+      },
+      "revision_brief": {
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "Error executing learned tool: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'line'\n> Overload resolution failed:\n>  - img is not a numpy array, neither a scalar\n>  - Expected Ptr<cv::UMat> for argument 'img'"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ],
+        "banned_patterns": [
+          "status-only tools",
+          "tools with no artifact output"
+        ],
+        "retry_action": "revise_tool"
+      }
+    },
+    {
+      "run_id": "round_20260407_115233_156300",
+      "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+      "failure_type": "no_artifact",
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_direct_attributes",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Direct multiple-choice attribute questions about a specific visible entity, with recurring failures concentrated on identifying localized object color or similarly local visual attributes without focused inspection.",
+        "supported_variations": [
+          "Color of a named object or clothing item belonging to a referenced person",
+          "Direct local attribute lookup for a referenced subject/object in multiple-choice form, including simple pose/state when the target entity is clearly identifiable"
+        ],
+        "unsupported_variations": [
+          "Questions requiring multi-step reasoning, counting, OCR, or ambiguous target resolution without a clearly referenced entity"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode any specific object class, person, or answer distribution from the representative images",
+          "Do not rely on fixed image regions, one-off coordinates, or center-biased cropping",
+          "Do not assume the queried attribute is always color or always attached to a woman"
+        ],
+        "primitive_category": "localized_color_focus",
+        "tool_validation_scope": "cluster",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "Failures are clustered around a stable, reusable need: focusing on a referenced local region to read a simple visual attribute, especially color. A localized inspection primitive plus lightweight selection logic should transfer across many direct-attribute cases in this family."
+      },
+      "revision_brief": {
+        "failure_type": "no_artifact",
+        "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+        "evidence": [
+          "artifacts/localized_color_focus_output.png"
+        ],
+        "rewrite_requirements": [
+          "Write the artifact file before returning.",
+          "Keep ToolResult.artifacts aligned with real relative file paths."
+        ],
+        "banned_patterns": [
+          "nonexistent artifact paths"
+        ],
+        "retry_action": "revise_tool"
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}

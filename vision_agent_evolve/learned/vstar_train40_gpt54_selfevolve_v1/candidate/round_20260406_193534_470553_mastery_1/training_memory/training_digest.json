@@ -1,0 +1,328 @@
+{
+  "baseline_summary": {
+    "total_cases": 40,
+    "correct_cases": 26,
+    "primary_score": 0.65,
+    "per_dataset_scores": {
+      "vstar": 0.65
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.6521739130434783,
+      "vstar_relative_position": 0.6470588235294118
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 8,
+      "case_ids": [
+        "108",
+        "4",
+        "49",
+        "65",
+        "81",
+        "9",
+        "93",
+        "94"
+      ],
+      "representative_case_ids": [
+        "108",
+        "4"
+      ],
+      "summary_lines": [
+        "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue",
+        "case_id=4; prompt=What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing; expected=C; answer=D. standing"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (7/8)",
+        "tool_used (1/8)"
+      ],
+      "shared_tool_patterns": [
+        "none (7/8)",
+        "TextToBbox (1/8)"
+      ],
+      "shared_prompt_patterns": [
+        "color (7/8)",
+        "generic_question (1/8)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "cluster_key": "vstar_relative_position::generic::multiple_choice",
+      "total_cases": 6,
+      "case_ids": [
+        "122",
+        "149",
+        "150",
+        "154",
+        "169",
+        "177"
+      ],
+      "representative_case_ids": [
+        "122",
+        "149"
+      ],
+      "summary_lines": [
+        "case_id=122; prompt=Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below; expected=B; answer=A. above",
+        "case_id=149; prompt=Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=B; answer=A. left"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (5/6)",
+        "tool_used (1/6)"
+      ],
+      "shared_tool_patterns": [
+        "none (5/6)",
+        "relative_position_marker (1/6)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (6/6)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 23,
+      "failed_cases": 8,
+      "baseline_score": 0.6521739130434783,
+      "common_question_patterns": [
+        "multiple_choice (23/23)",
+        "direct_lookup (22/23)",
+        "generic_question (1/23)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (7/8)",
+        "tool_used (1/8)"
+      ],
+      "tool_usage_patterns": [
+        "none (17/23)",
+        "localized_color_focus (3/23)",
+        "TextToBbox (2/23)"
+      ],
+      "recent_revision_briefs": [
+        "unknown: Rejected candidate because score delta was -0.1250"
+      ],
+      "recent_coverage_notes": [
+        "pattern=Answer multiple-choice questions by identifying a directly queried visible attribute of a specific object or person, with frequent need to inspect localized color regions. | supported=color of a named object or clothing item; pose or simple state of a referenced person when the target entity is clearly identifiable"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 8,
+          "case_ids": [
+            "108",
+            "4",
+            "49",
+            "65",
+            "81",
+            "9",
+            "93",
+            "94"
+          ],
+          "representative_case_ids": [
+            "108",
+            "4"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (7/8)",
+            "tool_used (1/8)"
+          ],
+          "shared_tool_patterns": [
+            "none (7/8)",
+            "TextToBbox (1/8)"
+          ],
+          "shared_prompt_patterns": [
+            "color (7/8)",
+            "generic_question (1/8)"
+          ],
+          "example_case_summaries": [
+            "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue",
+            "case_id=4; prompt=What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing; expected=C; answer=D. standing"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "108",
+            "4"
+          ],
+          "supported_patterns": [
+            "color (7/8)",
+            "generic_question (1/8)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "vstar_relative_position",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 17,
+      "failed_cases": 6,
+      "baseline_score": 0.6470588235294118,
+      "common_question_patterns": [
+        "generic_question (17/17)",
+        "multiple_choice (17/17)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (5/6)",
+        "tool_used (1/6)"
+      ],
+      "tool_usage_patterns": [
+        "none (13/17)",
+        "relative_position_marker (2/17)",
+        "ImageDescription (1/17)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_relative_position",
+          "cluster_key": "vstar_relative_position::generic::multiple_choice",
+          "total_cases": 6,
+          "case_ids": [
+            "122",
+            "149",
+            "150",
+            "154",
+            "169",
+            "177"
+          ],
+          "representative_case_ids": [
+            "122",
+            "149"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (5/6)",
+            "tool_used (1/6)"
+          ],
+          "shared_tool_patterns": [
+            "none (5/6)",
+            "relative_position_marker (1/6)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (6/6)"
+          ],
+          "example_case_summaries": [
+            "case_id=122; prompt=Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below; expected=B; answer=A. above",
+            "case_id=149; prompt=Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=B; answer=A. left"
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for vstar_relative_position.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "122",
+            "149"
+          ],
+          "supported_patterns": [
+            "generic_question (6/6)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "108",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange"
+    },
+    {
+      "case_id": "4",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the pose of the woman with yellow backpack?\n(A) walking\n(B) running\n(C) squatting\n(D) standing\n\nChoices:\nA. walking\nB. running\nC. squatting\nD. standing"
+    },
+    {
+      "case_id": "122",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below"
+    },
+    {
+      "case_id": "149",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260406_192422_222651",
+      "reason": "Rejected candidate because score delta was -0.1250",
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "baseline_score": 0.65,
+      "candidate_score": 0.525,
+      "coverage_contract": {
+        "target_family": "vstar_direct_attributes",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Answer multiple-choice questions by identifying a directly queried visible attribute of a specific object or person, with frequent need to inspect localized color regions.",
+        "supported_variations": [
+          "color of a named object or clothing item",
+          "pose or simple state of a referenced person when the target entity is clearly identifiable"
+        ],
+        "unsupported_variations": [
+          "questions requiring counting, reading text, fine-grained relational reasoning, or multi-step disambiguation among many similar candidates"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "do not hardcode any specific object class, person, or image layout from representative examples",
+          "do not rely on fixed coordinates, fixed crop regions, or fixed color priors for the answer",
+          "do not assume the referenced entity is always centered, large, or uniquely salient without verification"
+        ],
+        "primitive_category": "localized_color_focus",
+        "tool_validation_scope": "cluster",
+        "recommended_action": "generate_skill",
+        "why_this_should_generalize": "The failures mostly reflect missing targeted visual attention for direct attribute lookup, especially localized color inspection, which is a stable cluster-level behavior that can be improved with a reusable reasoning skill without needing a dedicated tool."
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}

@@ -1,0 +1,458 @@
+{
+  "baseline_summary": {
+    "total_cases": 10,
+    "correct_cases": 3,
+    "primary_score": 0.3,
+    "per_dataset_scores": {
+      "chartqa": 0.3
+    },
+    "per_family_scores": {
+      "chartqa": 0.3
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "cluster_key": "chartqa::computed_numeric::numeric::tool",
+      "total_cases": 4,
+      "case_ids": [
+        "train_00035547003867",
+        "train_00097754005965",
+        "train_00349887008643",
+        "train_00784700010464"
+      ],
+      "representative_case_ids": [
+        "train_00035547003867",
+        "train_00097754005965"
+      ],
+      "summary_lines": [
+        "case_id=train_00035547003867; prompt=What is the difference in the value of largest bar and smallest bar?; expected=52.24; answer=",
+        "case_id=train_00097754005965; prompt=What is the difference of longest bar and smallest bar?; expected=0.611; answer=The difference between the longest bar (Armenia) and the sma"
+      ],
+      "common_failure_signals": [
+        "tool_used (4/4)"
+      ],
+      "shared_tool_patterns": [
+        "Calculator (2/4)",
+        "OCR (1/4)",
+        "OCR -> chart_value_overlay (1/4)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (4/4)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "cluster_key": "chartqa::computed_numeric::boolean::tool",
+      "total_cases": 1,
+      "case_ids": [
+        "train_00006834003065"
+      ],
+      "representative_case_ids": [
+        "train_00006834003065"
+      ],
+      "summary_lines": [
+        "case_id=train_00006834003065; prompt=Does the difference of largest two bar is exactly double the value of  2nd smallest bar?; expected=No; answer="
+      ],
+      "common_failure_signals": [
+        "tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "chart_value_overlay -> OCR (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (1/1)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_3",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "cluster_key": "chartqa::generic::numeric::tool",
+      "total_cases": 1,
+      "case_ids": [
+        "train_00916448003743"
+      ],
+      "representative_case_ids": [
+        "train_00916448003743"
+      ],
+      "summary_lines": [
+        "case_id=train_00916448003743; prompt=What is the total add up value of Uruguay and Guatemala?; expected=51.92; answer="
+      ],
+      "common_failure_signals": [
+        "tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "chart_value_overlay -> OCR (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (1/1)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_4",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "cluster_key": "chartqa::generic::string::tool",
+      "total_cases": 1,
+      "case_ids": [
+        "train_00309421021808"
+      ],
+      "representative_case_ids": [
+        "train_00309421021808"
+      ],
+      "summary_lines": [
+        "case_id=train_00309421021808; prompt=Which two places are mention the graph?; expected=[Finland, Spain]; answer="
+      ],
+      "common_failure_signals": [
+        "tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "OCR (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "selection (1/1)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "chartqa",
+      "dataset_names": [
+        "chartqa"
+      ],
+      "total_cases": 10,
+      "failed_cases": 7,
+      "baseline_score": 0.3,
+      "common_question_patterns": [
+        "computed_numeric (6/10)",
+        "numeric (6/10)",
+        "direct_lookup (5/10)",
+        "generic (4/10)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (7/7)"
+      ],
+      "tool_usage_patterns": [
+        "Calculator (2/10)",
+        "OCR (2/10)",
+        "OCR -> Calculator (2/10)"
+      ],
+      "recent_revision_briefs": [
+        "no_artifact: Tool did not produce any artifacts | rewrite=Save at least one real artifact under artifacts/.; Return the same artifact path in ToolResult.artifacts."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Computing differences between chart values (e.g., largest vs. smallest bar) | supported=Questions asking for differences between chart elements (e.g., bars, lines); Charts with numerical values overlaid or extractable via OCR"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "chartqa",
+          "capability_family": "chartqa",
+          "cluster_key": "chartqa::computed_numeric::numeric::tool",
+          "total_cases": 4,
+          "case_ids": [
+            "train_00035547003867",
+            "train_00097754005965",
+            "train_00349887008643",
+            "train_00784700010464"
+          ],
+          "representative_case_ids": [
+            "train_00035547003867",
+            "train_00097754005965"
+          ],
+          "common_failure_signals": [
+            "tool_used (4/4)"
+          ],
+          "shared_tool_patterns": [
+            "Calculator (2/4)",
+            "OCR (1/4)",
+            "OCR -> chart_value_overlay (1/4)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (4/4)"
+          ],
+          "example_case_summaries": [
+            "case_id=train_00035547003867; prompt=What is the difference in the value of largest bar and smallest bar?; expected=52.24; answer=",
+            "case_id=train_00097754005965; prompt=What is the difference of longest bar and smallest bar?; expected=0.611; answer=The difference between the longest bar (Armenia) and the sma"
+          ],
+          "primitive_category": "chart_value_overlay",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "chartqa",
+          "capability_family": "chartqa",
+          "cluster_key": "chartqa::computed_numeric::boolean::tool",
+          "total_cases": 1,
+          "case_ids": [
+            "train_00006834003065"
+          ],
+          "representative_case_ids": [
+            "train_00006834003065"
+          ],
+          "common_failure_signals": [
+            "tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "chart_value_overlay -> OCR (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=train_00006834003065; prompt=Does the difference of largest two bar is exactly double the value of  2nd smallest bar?; expected=No; answer="
+          ],
+          "primitive_category": "chart_value_overlay",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_3",
+          "dataset_name": "chartqa",
+          "capability_family": "chartqa",
+          "cluster_key": "chartqa::generic::numeric::tool",
+          "total_cases": 1,
+          "case_ids": [
+            "train_00916448003743"
+          ],
+          "representative_case_ids": [
+            "train_00916448003743"
+          ],
+          "common_failure_signals": [
+            "tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "chart_value_overlay -> OCR (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=train_00916448003743; prompt=What is the total add up value of Uruguay and Guatemala?; expected=51.92; answer="
+          ],
+          "primitive_category": "chart_value_overlay",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_4",
+          "dataset_name": "chartqa",
+          "capability_family": "chartqa",
+          "cluster_key": "chartqa::generic::string::tool",
+          "total_cases": 1,
+          "case_ids": [
+            "train_00309421021808"
+          ],
+          "representative_case_ids": [
+            "train_00309421021808"
+          ],
+          "common_failure_signals": [
+            "tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "OCR (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "selection (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=train_00309421021808; prompt=Which two places are mention the graph?; expected=[Finland, Spain]; answer="
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "chart_value_overlay",
+          "summary": "Need a reusable chart_value_overlay primitive for chartqa.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "train_00035547003867",
+            "train_00097754005965"
+          ],
+          "supported_patterns": [
+            "generic_question (4/4)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "chart_value_overlay",
+          "summary": "Need a reusable chart_value_overlay primitive for chartqa.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "train_00006834003065"
+          ],
+          "supported_patterns": [
+            "generic_question (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "chart_value_overlay",
+          "summary": "Need a reusable chart_value_overlay primitive for chartqa.",
+          "target_cluster_ids": [
+            "cluster_3"
+          ],
+          "target_case_ids": [
+            "train_00916448003743"
+          ],
+          "supported_patterns": [
+            "generic_question (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for chartqa.",
+          "target_cluster_ids": [
+            "cluster_4"
+          ],
+          "target_case_ids": [
+            "train_00309421021808"
+          ],
+          "supported_patterns": [
+            "selection (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "train_00035547003867",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "prompt": "What is the difference in the value of largest bar and smallest bar?"
+    },
+    {
+      "case_id": "train_00097754005965",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "prompt": "What is the difference of longest bar and smallest bar?"
+    },
+    {
+      "case_id": "train_00006834003065",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "prompt": "Does the difference of largest two bar is exactly double the value of  2nd smallest bar?"
+    },
+    {
+      "case_id": "train_00916448003743",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "prompt": "What is the total add up value of Uruguay and Guatemala?"
+    },
+    {
+      "case_id": "train_00309421021808",
+      "dataset_name": "chartqa",
+      "capability_family": "chartqa",
+      "prompt": "Which two places are mention the graph?"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260408_094800_247809",
+      "reason": "Tool did not produce any artifacts",
+      "failure_type": "no_artifact",
+      "target_family": "chartqa",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "coverage_contract": {
+        "target_family": "chartqa",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Computing differences between chart values (e.g., largest vs. smallest bar)",
+        "supported_variations": [
+          "Questions asking for differences between chart elements (e.g., bars, lines)",
+          "Charts with numerical values overlaid or extractable via OCR"
+        ],
+        "unsupported_variations": [
+          "Charts without numerical values or OCR-extractable data",
+          "Questions requiring non-numeric reasoning (e.g., qualitative comparisons)"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Hardcoding specific chart images or coordinates",
+          "Assuming a fixed chart type or layout"
+        ],
+        "primitive_category": "chart_value_overlay",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_tool",
+        "why_this_should_generalize": "The pattern involves a common chart analysis task (value comparison) that can be generalized across various chart types and questions."
+      },
+      "revision_brief": {
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "{'status': 'error', 'answer': \"Error processing image: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\\n> Overload resolution failed:\\n>  - img is not a numpy array, neither a scalar\\n>  - Expected Ptr<cv::UMat> for argum"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ],
+        "banned_patterns": [
+          "status-only tools",
+          "tools with no artifact output"
+        ],
+        "retry_action": "revise_tool"
+      },
+      "repair_history": [
+        {
+          "attempt": 1,
+          "failure_type": "no_artifact",
+          "reason": "Tool did not produce any artifacts",
+          "evidence": [
+            "Error executing learned tool: No module named 'pytesseract'"
+          ],
+          "rewrite_requirements": [
+            "Save at least one real artifact under artifacts/.",
+            "Return the same artifact path in ToolResult.artifacts."
+          ]
+        },
+        {
+          "attempt": 2,
+          "failure_type": "no_artifact",
+          "reason": "Tool did not produce any artifacts",
+          "evidence": [
+            "Error executing learned tool: Cannot find tool class in <module 'chart_value_overlay' from '/root/vision_agent_evolve/vision_agent_evolve/learned/vtoolr1_qwen25vl_chart_full_evolve_small_replan_v1/candidate/round_20260408_094800_247809/tool"
+          ],
+          "rewrite_requirements": [
+            "Save at least one real artifact under artifacts/.",
+            "Return the same artifact path in ToolResult.artifacts."
+          ]
+        },
+        {
+          "attempt": 3,
+          "failure_type": "no_artifact",
+          "reason": "Tool did not produce any artifacts",
+          "evidence": [
+            "{'status': 'error', 'answer': \"Error processing image: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\\n> Overload resolution failed:\\n>  - img is not a numpy array, neither a scalar\\n>  - Expected Ptr<cv::UMat> for argum"
+          ],
+          "rewrite_requirements": [
+            "Save at least one real artifact under artifacts/.",
+            "Return the same artifact path in ToolResult.artifacts."
+          ]
+        }
+      ]
+    }
+  ],
+  "mastery_profiles": {}
+}

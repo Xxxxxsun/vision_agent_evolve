@@ -1,0 +1,12 @@
+{
+  "dataset": "tirbench",
+  "raw_data_root": "datasets/tirbench_official",
+  "normalized_data_root": "datasets/structured_multibench/tirbench",
+  "splits": {
+    "test": {
+      "count": 1215,
+      "source_file": "datasets/tirbench_official/TIR-Bench.json",
+      "output_file": "datasets/structured_multibench/tirbench/test.jsonl"
+    }
+  }
+}

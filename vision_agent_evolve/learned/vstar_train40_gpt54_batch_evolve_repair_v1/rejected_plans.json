@@ -1,0 +1,13 @@
+[
+  {
+    "run_id": "batch_20260407_145919_718717",
+    "reason": "Rejected batch because score delta was 0.0000 or family regression exceeded limit",
+    "target_family": "vstar_batch",
+    "target_cluster_ids": [
+      "cluster_1",
+      "cluster_2"
+    ],
+    "baseline_score": 0.8,
+    "candidate_score": 0.8
+  }
+]

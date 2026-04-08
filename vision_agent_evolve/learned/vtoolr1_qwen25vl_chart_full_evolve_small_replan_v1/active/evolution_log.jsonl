@@ -1,0 +1,2 @@
+{"type": "candidate_stage", "run_id": "round_20260408_095051_249303", "target_family": "chartqa", "tool_count": 1, "skill_count": 1}
+{"type": "candidate_activate", "run_id": "round_20260408_095051_249303", "snapshot_name": "vtoolr1_qwen25vl_chart_full_evolve_small_replan_v1_round_2_accepted"}

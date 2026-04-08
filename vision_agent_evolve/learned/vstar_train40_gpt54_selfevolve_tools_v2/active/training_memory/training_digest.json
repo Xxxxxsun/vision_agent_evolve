@@ -1,0 +1,455 @@
+{
+  "baseline_summary": {
+    "total_cases": 40,
+    "correct_cases": 25,
+    "primary_score": 0.625,
+    "per_dataset_scores": {
+      "vstar": 0.625
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.6086956521739131,
+      "vstar_relative_position": 0.6470588235294118
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 9,
+      "case_ids": [
+        "100",
+        "108",
+        "4",
+        "65",
+        "74",
+        "81",
+        "9",
+        "93",
+        "94"
+      ],
+      "representative_case_ids": [
+        "100",
+        "108"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+        "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (7/9)",
+        "tool_used (2/9)"
+      ],
+      "shared_tool_patterns": [
+        "none (7/9)",
+        "TextToBbox (1/9)",
+        "localized_color_focus (1/9)"
+      ],
+      "shared_prompt_patterns": [
+        "color (8/9)",
+        "generic_question (1/9)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "cluster_key": "vstar_relative_position::generic::multiple_choice",
+      "total_cases": 6,
+      "case_ids": [
+        "118",
+        "127",
+        "130",
+        "149",
+        "154",
+        "177"
+      ],
+      "representative_case_ids": [
+        "118",
+        "127"
+      ],
+      "summary_lines": [
+        "case_id=118; prompt=Is the motorcycle on the left or right side of the dog?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=A; answer=B. right",
+        "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (4/6)",
+        "tool_used (2/6)"
+      ],
+      "shared_tool_patterns": [
+        "none (4/6)",
+        "relative_position_marker (2/6)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (6/6)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 23,
+      "failed_cases": 9,
+      "baseline_score": 0.6086956521739131,
+      "common_question_patterns": [
+        "multiple_choice (23/23)",
+        "direct_lookup (22/23)",
+        "generic_question (1/23)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (7/9)",
+        "tool_used (2/9)"
+      ],
+      "tool_usage_patterns": [
+        "none (16/23)",
+        "localized_color_focus (5/23)",
+        "ImageDescription (1/23)"
+      ],
+      "recent_revision_briefs": [
+        "case_specific_logic: Tool code contains too many numeric literals and looks overfit to one example | rewrite=Replace case-specific thresholds or coordinates with relative or image-derived logic.; State applicability conditions for a family-level visual pattern."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Multiple-choice visual attribute questions that ask for the color of a specific object, where success depends on isolating the referenced object and inspecting its local color rather than reasoning globally. | supported=Color identification for a named foreground object in a natural image; Color lookup when the target object is small or requires localized visual focus"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 9,
+          "case_ids": [
+            "100",
+            "108",
+            "4",
+            "65",
+            "74",
+            "81",
+            "9",
+            "93",
+            "94"
+          ],
+          "representative_case_ids": [
+            "100",
+            "108"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (7/9)",
+            "tool_used (2/9)"
+          ],
+          "shared_tool_patterns": [
+            "none (7/9)",
+            "TextToBbox (1/9)",
+            "localized_color_focus (1/9)"
+          ],
+          "shared_prompt_patterns": [
+            "color (8/9)",
+            "generic_question (1/9)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+            "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100",
+            "108"
+          ],
+          "supported_patterns": [
+            "color (8/9)",
+            "generic_question (1/9)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "vstar_relative_position",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 17,
+      "failed_cases": 6,
+      "baseline_score": 0.6470588235294118,
+      "common_question_patterns": [
+        "generic_question (17/17)",
+        "multiple_choice (17/17)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (4/6)",
+        "tool_used (2/6)"
+      ],
+      "tool_usage_patterns": [
+        "none (13/17)",
+        "relative_position_marker (3/17)",
+        "ImageDescription (1/17)"
+      ],
+      "recent_revision_briefs": [
+        "case_specific_logic: Tool code contains too many numeric literals and looks overfit to one example | rewrite=Replace case-specific thresholds or coordinates with relative or image-derived logic.; State applicability conditions for a family-level visual pattern.",
+        "case_specific_logic: Tool code contains too many numeric literals and looks overfit to one example | rewrite=Replace case-specific thresholds or coordinates with relative or image-derived logic.; State applicability conditions for a family-level visual pattern."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Determine whether one referenced object is spatially left/right or above/below another object in a generic scene image. | supported=left vs right relation between two named objects; above vs below relation between two named objects",
+        "pattern=Determine the relative spatial position of one depicted object with respect to another in generic image scenes, typically answering left/right or above/below multiple-choice questions. | supported=left vs right relation between two identified objects; above vs below relation between two identified objects across varied natural or illustrated scenes"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_relative_position",
+          "cluster_key": "vstar_relative_position::generic::multiple_choice",
+          "total_cases": 6,
+          "case_ids": [
+            "118",
+            "127",
+            "130",
+            "149",
+            "154",
+            "177"
+          ],
+          "representative_case_ids": [
+            "118",
+            "127"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (4/6)",
+            "tool_used (2/6)"
+          ],
+          "shared_tool_patterns": [
+            "none (4/6)",
+            "relative_position_marker (2/6)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (6/6)"
+          ],
+          "example_case_summaries": [
+            "case_id=118; prompt=Is the motorcycle on the left or right side of the dog?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=A; answer=B. right",
+            "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left"
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for vstar_relative_position.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "118",
+            "127"
+          ],
+          "supported_patterns": [
+            "generic_question (6/6)"
+          ],
+          "blocked_by": [
+            "repeated_case_specific_logic"
+          ],
+          "recommended_action": "generate_skill"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    },
+    {
+      "case_id": "108",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange"
+    },
+    {
+      "case_id": "118",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the motorcycle on the left or right side of the dog?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right"
+    },
+    {
+      "case_id": "127",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260407_063633_602184",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "failure_type": "case_specific_logic",
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_relative_position",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Determine whether one referenced object is spatially left/right or above/below another object in a generic scene image.",
+        "supported_variations": [
+          "left vs right relation between two named objects",
+          "above vs below relation between two named objects"
+        ],
+        "unsupported_variations": [
+          "depth, distance, overlap, containment, or directional motion relations not reducible to 2D relative position between two identifiable objects"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "do not hardcode object locations for any representative image",
+          "do not use fixed pixel thresholds or numeric coordinates tied to one scene",
+          "do not assume the target objects always appear in canonical positions or sizes",
+          "do not answer from choice ordering or prompt priors without image grounding"
+        ],
+        "primitive_category": "generic_visual_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "The family repeatedly asks the same low-level visual reasoning operation: identify two referenced objects and compare their 2D positions. A reusable visual focus tool plus lightweight decision skill can cover both left/right and above/below across varied scenes without case-specific logic."
+      },
+      "revision_brief": {
+        "failure_type": "case_specific_logic",
+        "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+        "evidence": [
+          "Static inspection found image- or case-anchored logic in the tool proposal."
+        ],
+        "rewrite_requirements": [
+          "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+          "State applicability conditions for a family-level visual pattern."
+        ],
+        "banned_patterns": [
+          "current case id",
+          "current image path",
+          "fixed one-image thresholds"
+        ],
+        "retry_action": "revise_tool"
+      }
+    },
+    {
+      "run_id": "round_20260407_063113_687164",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "failure_type": "case_specific_logic",
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_relative_position",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Determine the relative spatial position of one depicted object with respect to another in generic image scenes, typically answering left/right or above/below multiple-choice questions.",
+        "supported_variations": [
+          "left vs right relation between two identified objects",
+          "above vs below relation between two identified objects across varied natural or illustrated scenes"
+        ],
+        "unsupported_variations": [
+          "depth, occlusion, or front/behind judgments requiring 3D scene inference"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "do not hardcode any specific object pair such as bell-clock or seesaw-vehicle",
+          "do not assume fixed image layouts, canonical object locations, or one-off coordinates from representative cases",
+          "do not rely on dataset-specific answer priors like vehicles usually being below playground objects"
+        ],
+        "primitive_category": "generic_visual_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_tool",
+        "why_this_should_generalize": "The family uses a stable question form and repeatedly needs focused localization of two referenced objects before comparing their positions, so a reusable generic visual focus primitive should improve performance across many cases."
+      },
+      "revision_brief": {
+        "failure_type": "case_specific_logic",
+        "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+        "evidence": [
+          "Static inspection found image- or case-anchored logic in the tool proposal."
+        ],
+        "rewrite_requirements": [
+          "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+          "State applicability conditions for a family-level visual pattern."
+        ],
+        "banned_patterns": [
+          "current case id",
+          "current image path",
+          "fixed one-image thresholds"
+        ],
+        "retry_action": "revise_tool"
+      }
+    },
+    {
+      "run_id": "round_20260407_062427_211548",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "failure_type": "case_specific_logic",
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_direct_attributes",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Multiple-choice visual attribute questions that ask for the color of a specific object, where success depends on isolating the referenced object and inspecting its local color rather than reasoning globally.",
+        "supported_variations": [
+          "Color identification for a named foreground object in a natural image",
+          "Color lookup when the target object is small or requires localized visual focus"
+        ],
+        "unsupported_variations": [
+          "Questions requiring object detection plus relational reasoning, counting, reading text, or non-color attributes"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode handbag, swim ring, or any specific object category",
+          "Do not assume fixed image regions, centers, or one-off coordinates for the target object",
+          "Do not rely on answer-choice priors such as common clothing or accessory colors"
+        ],
+        "primitive_category": "localized_color_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_tool",
+        "why_this_should_generalize": "The failures are concentrated in a stable, high-toolability subproblem: localized color extraction for a referenced object. A reusable focus-and-inspect tool can support many direct-attribute cases across the family without depending on case-specific content."
+      },
+      "revision_brief": {
+        "failure_type": "case_specific_logic",
+        "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+        "evidence": [
+          "Static inspection found image- or case-anchored logic in the tool proposal."
+        ],
+        "rewrite_requirements": [
+          "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+          "State applicability conditions for a family-level visual pattern."
+        ],
+        "banned_patterns": [
+          "current case id",
+          "current image path",
+          "fixed one-image thresholds"
+        ],
+        "retry_action": "revise_tool"
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}

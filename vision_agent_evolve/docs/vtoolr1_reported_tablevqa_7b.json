@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.717,
+  "source": "VTool-R1 ICLR 2026 paper, Table 1, Qwen2.5-VL-7B Table Split, VTool-R1 row",
+  "context": {
+    "pure_run": 0.647,
+    "tool_use": 0.411,
+    "vtool_r1": 0.717
+  }
+}

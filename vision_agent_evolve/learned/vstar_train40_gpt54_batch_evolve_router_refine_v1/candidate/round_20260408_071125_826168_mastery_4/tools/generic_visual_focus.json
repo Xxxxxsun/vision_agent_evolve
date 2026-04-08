@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a family-generic saliency-and-structure focus artifact that highlights prominent foreground objects and preserves horizontal layout for later left/right comparison.",
+  "applicability_conditions": "Use when a vstar_relative_position question asks whether one named object is to the left or right of another clearly visible object in a natural image, and no object-specific detector is available. This is especially appropriate for generic multiple-choice prompts and for either raw images or intermediate artifacts where preserving scene layout while emphasizing visually prominent object regions will help later localized comparison across varied object categories.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-08T07:13:35.473180",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

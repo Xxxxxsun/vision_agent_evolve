@@ -13,7 +13,7 @@ from typing import Any, Iterable
 
 from PIL import Image
 
-from .types import MultiTurnTaskCase, MultiTurnTaskTurn, TaskCase
+from .types import MultiTurnTaskCase, MultiTurnTaskTurn, TaskCase, TirBenchCase
 
 
 def load_json_objects(path: Path) -> list[dict[str, Any]]:
@@ -117,6 +117,8 @@ def load_normalized_cases(
         metadata.setdefault("split", split)
         metadata.setdefault("source_id", str(item.get("id", f"{dataset}_{split}_{index}")))
         metadata.setdefault("capability_family", str(item.get("problem_id", dataset)))
+        if str(metadata.get("answer_type", "")).strip().lower() == "multiple_choice" and not metadata.get("choices"):
+            metadata["choices"] = infer_choices_from_prompt(str(item.get("prompt", item.get("question", ""))))
         case = TaskCase(
             case_id=str(item.get("id", f"{dataset}_{split}_{index}")),
             problem_id=str(item.get("problem_id", dataset)),
@@ -479,6 +481,74 @@ def load_visualtoolbench_cases(
         if limit and len(cases) >= limit:
             break
 
+    return cases
+
+
+def normalize_tirbench_dataset(
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Normalize an official TIR-Bench export into JSONL files."""
+    dataset_root = normalized_data_root / "tirbench"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+
+    source_file = _discover_tirbench_source(raw_data_root)
+    rows = load_json_objects(source_file)
+    if limit:
+        rows = rows[:limit]
+
+    records = [
+        _normalize_tirbench_record(item, raw_data_root)
+        for item in rows
+        if isinstance(item, dict)
+    ]
+    output_file = dataset_root / "test.jsonl"
+    _write_jsonl(output_file, records)
+
+    manifest = {
+        "dataset": "tirbench",
+        "raw_data_root": str(raw_data_root),
+        "normalized_data_root": str(dataset_root),
+        "splits": {
+            "test": {
+                "count": len(records),
+                "source_file": str(source_file),
+                "output_file": str(output_file),
+            }
+        },
+    }
+    (dataset_root / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return manifest
+
+
+def load_tirbench_cases(
+    normalized_data_root: Path,
+    split: str = "test",
+    limit: int = 0,
+) -> list[TirBenchCase]:
+    """Load normalized TIR-Bench cases from JSONL."""
+    split_file = normalized_data_root / "tirbench" / f"{split}.jsonl"
+    if not split_file.exists():
+        raise FileNotFoundError(f"Normalized split not found: {split_file}")
+
+    cases: list[TirBenchCase] = []
+    for index, item in enumerate(load_json_objects(split_file), start=1):
+        cases.append(
+            TirBenchCase(
+                case_id=str(item.get("id", f"tirbench_{index}")),
+                task=str(item.get("task", "")),
+                prompt=str(item.get("prompt", "")),
+                gold_answer=str(item.get("answer", "")),
+                image_paths=[str(path) for path in item.get("image_paths", []) if str(path).strip()],
+                metadata=dict(item.get("metadata") or {}),
+            )
+        )
+        if limit and len(cases) >= limit:
+            break
     return cases
 
 
@@ -1052,6 +1122,52 @@ def _discover_visualtoolbench_source(raw_data_root: Path) -> Path | None:
     return matches[0] if matches else None
 
 
+def _discover_tirbench_source(raw_data_root: Path) -> Path:
+    preferred_names = [
+        "TIR-Bench.json",
+        "tirbench.json",
+        "test.json",
+        "test.jsonl",
+    ]
+    for name in preferred_names:
+        candidate = raw_data_root / name
+        if candidate.exists():
+            return candidate
+    matches = _discover_data_files(raw_data_root, include_tokens=["tir", "bench"])
+    if matches:
+        return matches[0]
+    raise FileNotFoundError(f"Could not find a TIR-Bench JSON export under {raw_data_root}")
+
+
+def _normalize_tirbench_record(item: dict[str, Any], raw_data_root: Path) -> dict[str, Any]:
+    image_paths: list[str] = []
+    for key in ("image_1", "image_2"):
+        value = item.get(key)
+        if not value:
+            continue
+        path = Path(str(value))
+        if not path.is_absolute():
+            path = raw_data_root / path
+        image_paths.append(str(path.resolve()))
+
+    metadata = dict(item.get("meta_data") or item.get("metadata") or {})
+    metadata.update(
+        {
+            "dataset_name": "tirbench",
+            "source_image_1": item.get("image_1"),
+            "source_image_2": item.get("image_2"),
+        }
+    )
+    return {
+        "id": str(item.get("id", "")),
+        "task": str(item.get("task", item.get("category", ""))),
+        "prompt": str(item.get("prompt", "")),
+        "answer": str(item.get("answer", "")),
+        "image_paths": image_paths,
+        "metadata": metadata,
+    }
+
+
 def _normalize_visualtoolbench_record(
     item: dict[str, Any],
     raw_data_root: Path,
@@ -1258,7 +1374,7 @@ def _normalize_vstar_record(
     source_id = _string_field(item, ["id", "question_id", "sample_id", "uid"], f"vstar_{fallback_index}")
     prompt = _string_field(item, ["question", "prompt", "query", "text"], "")
     category = _slugify(_string_field(item, ["category", "task", "type"], "generic"))
-    choices = _extract_choices(item)
+    choices = _extract_choices(item) or infer_choices_from_prompt(prompt)
     answer = _normalize_choice_gold(item.get("answer", item.get("label", "")), choices)
     image_path = _materialize_image(item, raw_data_root, assets_root / "train_val", source_id)
 
@@ -1289,7 +1405,7 @@ def _normalize_hrbench_record(
     prompt = _string_field(item, ["question", "prompt", "query", "text"], "")
     category = _slugify(_string_field(item, ["category", "task", "type"], "generic"))
     cycle_category = _slugify(_string_field(item, ["cycle_category", "cycle", "cycle_type"], "generic"))
-    choices = _extract_choices(item)
+    choices = _extract_choices(item) or infer_choices_from_prompt(prompt)
     answer = _normalize_choice_gold(item.get("answer", item.get("label", "")), choices)
     image_path = _materialize_image(item, raw_data_root, assets_root / "train_val", source_id)
 
@@ -1535,6 +1651,21 @@ def _append_choices_to_prompt(prompt: str, choices: dict[str, str]) -> str:
     lines = [prompt.strip(), "", "Choices:"]
     lines.extend(f"{label}. {text}" for label, text in sorted(choices.items()))
     return "\n".join(lines).strip()
+
+
+def infer_choices_from_prompt(prompt: str) -> dict[str, str]:
+    text = str(prompt)
+    choices: dict[str, str] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        match = re.match(r"^\(?([A-D])\)?[\.\:\)]?\s+(.+?)\s*$", stripped, flags=re.IGNORECASE)
+        if not match:
+            continue
+        label = match.group(1).upper()
+        choice_text = match.group(2).strip()
+        if choice_text:
+            choices[label] = choice_text
+    return dict(sorted(choices.items()))
 
 
 def _normalize_choice_gold(value: Any, choices: dict[str, str]) -> str:

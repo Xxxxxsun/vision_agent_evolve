@@ -1,0 +1,51 @@
+[
+  {
+    "run_id": "round_20260407_081834_912050",
+    "reason": "Tool proposal references the current case id and looks case-specific",
+    "failure_type": "case_specific_logic",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Direct multiple-choice visual attribute lookup where the answer depends on identifying the color of a localized object mentioned in the question.",
+      "supported_variations": [
+        "Questions asking for the color of a specified object or clothing item in an image",
+        "Multiple-choice direct attribute questions where the target object is visually localized by noun phrase"
+      ],
+      "unsupported_variations": [
+        "Questions requiring counting, reading text, relational reasoning, or inferring attributes not directly visible"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode any specific object category such as handbag as the default target",
+        "Do not use fixed image regions or one-off coordinates for where the target object appears",
+        "Do not assume a small preset color answer based on prior case frequency without inspecting the localized object"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The failures concentrate on a stable, toolable primitive: visually locating a referenced object and inspecting its color, which recurs across direct attribute questions beyond any single image."
+    },
+    "revision_brief": {
+      "failure_type": "case_specific_logic",
+      "reason": "Tool proposal references the current case id and looks case-specific",
+      "evidence": [
+        "Static inspection found image- or case-anchored logic in the tool proposal."
+      ],
+      "rewrite_requirements": [
+        "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+        "State applicability conditions for a family-level visual pattern."
+      ],
+      "banned_patterns": [
+        "current case id",
+        "current image path",
+        "fixed one-image thresholds"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

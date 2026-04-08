@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Generates a contrast-boosted candidate-region overlay and zoom strip to help inspect the color of small localized objects or accessories without answering the question directly.",
+  "applicability_conditions": "Use when the task is a direct visual attribute lookup about the color of a specific named object, especially when the object is small, localized, or easy to miss in the full image. This tool is appropriate both on raw images and on intermediate artifacts from prior steps, and is useful for recurring family cases involving accessories or compact objects whose color must be judged from a focused local view rather than the full scene.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T08:06:27.626311",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

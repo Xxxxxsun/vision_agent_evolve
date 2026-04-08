@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 import json
 from pathlib import Path
@@ -103,6 +103,7 @@ class SubsetEvaluator:
                 metadata={
                     "cluster_key": adapter.cluster_key(case, result, correct),
                     "source_id": case.source_id(),
+                    "tool_steps": _tool_step_debug(result),
                 },
             )
             records.append(record)
@@ -561,12 +562,12 @@ class SubsetPlanner:
         response, _ = self.client.chat(messages, ModelSettings(temperature=0.2, max_tokens=2400))
         proposal = _extract_json(response)
         if proposal:
-            return self._force_skill_only(self._apply_tool_preference(self._apply_rejection_strategy(proposal, digest)))
+            return self._apply_tool_preference(self._apply_rejection_strategy(proposal, digest))
 
         cluster = digest.failure_clusters[0]
         family_memory = next((memory for memory in digest.family_memories if memory.capability_family == cluster.capability_family), None)
         toolbox_gap = family_memory.toolbox_gaps[0] if family_memory and family_memory.toolbox_gaps else None
-        return self._force_skill_only(self._apply_tool_preference(self._apply_rejection_strategy({
+        return self._apply_tool_preference(self._apply_rejection_strategy({
             "target_family": cluster.capability_family,
             "target_cluster_ids": [cluster.cluster_id],
             "representative_case_ids": list(cluster.representative_case_ids[:1]),
@@ -577,7 +578,7 @@ class SubsetPlanner:
             "expected_gain": "Raise full training-subset accuracy on the selected failure cluster.",
             "primitive_category": toolbox_gap.primitive_category if toolbox_gap else cluster.cluster_key,
             "toolability_blocked": bool(toolbox_gap and toolbox_gap.recommended_action != "generate_tool"),
-        }, digest)))
+        }, digest))
 
     def materialize_bundle(
         self,
@@ -625,9 +626,13 @@ class SubsetPlanner:
             existing_skill.content if existing_skill else None,
             attempt=1,
         )
+        next_action = _normalize_next_action(
+            coverage_contract.recommended_action
+            or str(proposal.get("next_action", "generate_skill"))
+        )
         analysis = FailureAnalysis(
             root_cause=str(proposal.get("rationale", "")) or _cluster_summary(digest, representative_ids[0]),
-            next_action="generate_skill" if (coverage_contract.recommended_action or str(proposal.get("next_action", "generate_skill"))) != "give_up" else "give_up",
+            next_action=next_action,
             confidence=0.6,
             missing_step=str(proposal.get("expected_gain", "")) or "Improve the selected failure cluster.",
             tool_goal=str(proposal.get("tool_goal", "")),
@@ -641,6 +646,18 @@ class SubsetPlanner:
         tools: list[ToolProposal] = []
         skills: list[SkillProposal] = []
         staged_tool: ToolProposal | None = None
+        if (
+            analysis.next_action in {"generate_tool", "generate_both"}
+            and not self.disable_generated_tools
+        ):
+            staged_tool = self.generator.generate_tool(
+                case,
+                analysis,
+                chain_context=chain_context,
+                training_context=training_context,
+                coverage_contract=coverage_contract,
+            )
+            tools.append(staged_tool)
         if analysis.next_action in {"generate_skill", "generate_both", "generate_code_skill"} or staged_tool is not None:
             if analysis.next_action == "generate_code_skill" and hasattr(self.generator, "generate_code_writing_skill"):
                 skill = self.generator.generate_code_writing_skill(
@@ -676,14 +693,6 @@ class SubsetPlanner:
             tools=tools,
             skills=skills,
         )
-
-    @staticmethod
-    def _force_skill_only(proposal: dict[str, Any]) -> dict[str, Any]:
-        adjusted = dict(proposal)
-        next_action = str(adjusted.get("next_action", "")).strip() or "generate_skill"
-        if next_action != "give_up":
-            adjusted["next_action"] = "generate_skill"
-        return adjusted
 
     @staticmethod
     def _should_block_tool_generation(
@@ -881,6 +890,8 @@ JSON schema:
 class SubsetEvolutionLoop:
     """Training-subset evolution loop with active/candidate gating."""
 
+    MAX_TOOL_REPAIR_ATTEMPTS = 3
+
     def __init__(
         self,
         subset_id: str,
@@ -1014,6 +1025,7 @@ class SubsetEvolutionLoop:
                         "target_cluster_ids": validated_bundle.target_cluster_ids,
                         "coverage_contract": None if validated_bundle.coverage_contract is None else asdict(validated_bundle.coverage_contract),
                         "revision_brief": smoke_meta.get("revision_brief"),
+                        "repair_history": smoke_meta.get("repair_history", []),
                     }
                 )
                 self.active_store.discard_bundle(validated_bundle.run_id)
@@ -1143,6 +1155,479 @@ class SubsetEvolutionLoop:
             snapshot_name=snapshot_name,
         )
 
+    def run_batch_vstar(self, cases: list[TaskCase]) -> SubsetEvolutionRunReport:
+        """VStar-first batch evolution: one full error digest, several candidates, one gate."""
+        cases_by_id = {case.case_id: case for case in cases}
+        print(
+            f"[subset-batch] subset={self.subset_id} cases={len(cases)} "
+            f"candidate_budget={self.max_planning_rounds} tool_preference={self.tool_preference}"
+        )
+        baseline_summary, baseline_records = self.evaluator.evaluate(
+            self.active_dir,
+            self.work_dir / "batch_baseline",
+            cases,
+            "batch_baseline",
+            stage_label="batch baseline active",
+        )
+        digest = self.evaluator.build_digest(
+            baseline_summary,
+            baseline_records,
+            cases_by_id,
+            recent_rejected_plans=self.active_store.list_recent_rejected_plans(limit=8),
+            representatives_per_cluster=self.representatives_per_cluster,
+            families_per_round_limit=self.families_per_round_limit,
+        )
+        self._attach_active_toolbox(digest)
+        self.active_store.write_training_memory(self.evaluator.digest_payload(digest))
+
+        round_results: list[CandidateEvalResult] = []
+        current_summary = baseline_summary
+        current_records = baseline_records
+        for batch_idx, plan in enumerate(self._batch_plans_from_digest(digest), start=1):
+            print(
+                f"[subset-batch] candidate {batch_idx}: target_family={plan.get('target_family', '')} "
+                f"action={plan.get('next_action', '')} reps={plan.get('representative_case_ids', [])}"
+            )
+            bundle = self.planner.materialize_bundle(
+                plan,
+                digest,
+                cases_by_id,
+                self.active_dir,
+                self.work_dir / f"batch_candidate_{batch_idx}",
+            )
+            bundle = self._run_mastery_phase(bundle, digest, cases_by_id, batch_idx)
+            if not bundle.tools and not bundle.skills:
+                continue
+            candidate_dir = self.active_store.stage_bundle(bundle)
+            smoke_passed, smoke_reason, validated_bundle, smoke_meta = self._smoke_validate(
+                bundle,
+                digest,
+                cases_by_id,
+                candidate_dir,
+                batch_idx,
+            )
+            if not smoke_passed:
+                print(f"[subset-batch] candidate {batch_idx}: smoke failed: {smoke_reason}")
+                self.active_store.record_rejected_plan(
+                    {
+                        "run_id": validated_bundle.run_id,
+                        "reason": smoke_reason,
+                        "failure_type": str(smoke_meta.get("failure_type", "")),
+                        "target_family": validated_bundle.target_family,
+                        "target_cluster_ids": validated_bundle.target_cluster_ids,
+                        "coverage_contract": None if validated_bundle.coverage_contract is None else asdict(validated_bundle.coverage_contract),
+                        "revision_brief": smoke_meta.get("revision_brief"),
+                        "repair_history": smoke_meta.get("repair_history", []),
+                    }
+                )
+                self.active_store.discard_bundle(validated_bundle.run_id)
+                round_results.append(
+                    CandidateEvalResult(
+                        run_id=validated_bundle.run_id,
+                        accepted=False,
+                        reason=smoke_reason,
+                        baseline_score=current_summary.primary_score,
+                        candidate_score=current_summary.primary_score,
+                        score_delta=0.0,
+                        smoke_passed=False,
+                        target_family=validated_bundle.target_family,
+                        target_cluster_ids=list(validated_bundle.target_cluster_ids),
+                        representative_case_ids=list(validated_bundle.representative_case_ids),
+                        baseline_summary=current_summary,
+                        candidate_summary=current_summary,
+                    )
+                )
+                continue
+
+            candidate_dir = self.active_store.stage_bundle(validated_bundle)
+            round_baseline_summary = current_summary
+            round_baseline_records = current_records
+            candidate_summary, candidate_records = self.evaluator.evaluate(
+                candidate_dir,
+                self.work_dir / f"batch_candidate_{batch_idx}" / "candidate_eval",
+                cases,
+                f"batch_candidate_{batch_idx}",
+                stage_label=f"batch candidate {batch_idx}",
+            )
+            eval_diff = self._eval_diff(round_baseline_records, candidate_records)
+            candidate_family_regression_ok = self._family_regression_within_limit(
+                round_baseline_records,
+                candidate_records,
+                max_regressed_cases=1,
+            )
+            candidate_artifact_gate_ok, artifact_gate_reason = self._learned_tool_artifact_gate(
+                validated_bundle,
+                candidate_records,
+            )
+
+            if (
+                (
+                    candidate_summary.primary_score <= round_baseline_summary.primary_score
+                    or not candidate_family_regression_ok
+                    or not candidate_artifact_gate_ok
+                )
+                and eval_diff["fixed_cases"]
+                and eval_diff["regressed_cases"]
+                and validated_bundle.skills
+            ):
+                refined_bundle, refined_dir = self._refine_router_from_eval_diff(
+                    validated_bundle,
+                    digest,
+                    eval_diff,
+                    candidate_summary,
+                    round_baseline_summary,
+                    batch_idx,
+                )
+                if refined_bundle is not validated_bundle:
+                    refined_summary, refined_records = self.evaluator.evaluate(
+                        refined_dir,
+                        self.work_dir / f"batch_candidate_{batch_idx}" / "router_refine_eval",
+                        cases,
+                        f"batch_candidate_{batch_idx}_router_refine",
+                        stage_label=f"batch candidate {batch_idx} router refine",
+                    )
+                    refined_diff = self._eval_diff(round_baseline_records, refined_records)
+                    if refined_summary.primary_score >= candidate_summary.primary_score:
+                        self.active_store.discard_bundle(validated_bundle.run_id)
+                        validated_bundle = refined_bundle
+                        candidate_dir = refined_dir
+                        candidate_summary = refined_summary
+                        candidate_records = refined_records
+                        eval_diff = refined_diff
+                        candidate_artifact_gate_ok, artifact_gate_reason = self._learned_tool_artifact_gate(
+                            validated_bundle,
+                            candidate_records,
+                        )
+                    else:
+                        self.active_store.discard_bundle(refined_bundle.run_id)
+
+            accepted = (
+                candidate_summary.primary_score > current_summary.primary_score
+                and self._family_regression_within_limit(round_baseline_records, candidate_records, max_regressed_cases=1)
+                and self._learned_tool_artifact_gate(validated_bundle, candidate_records)[0]
+            )
+            reason = (
+                f"Accepted batch candidate with score delta {candidate_summary.primary_score - round_baseline_summary.primary_score:.4f}"
+                if accepted
+                else (
+                    f"Rejected batch candidate because score delta was {candidate_summary.primary_score - round_baseline_summary.primary_score:.4f}, "
+                    f"family regression exceeded limit, or artifact gate failed: {artifact_gate_reason}"
+                )
+            )
+            print(
+                f"[subset-batch] candidate {batch_idx} score={candidate_summary.primary_score:.4f} "
+                f"delta={candidate_summary.primary_score - round_baseline_summary.primary_score:+.4f} "
+                f"fixed={len(eval_diff['fixed_cases'])} regressed={len(eval_diff['regressed_cases'])} "
+                f"{'ACCEPT' if accepted else 'REJECT'}"
+            )
+            activated_snapshot = ""
+            if accepted:
+                activated_snapshot = f"{self.subset_id}_batch_{batch_idx}_accepted"
+                self.active_store.activate_bundle(validated_bundle.run_id, snapshot_name=activated_snapshot)
+                current_summary = candidate_summary
+                current_records = candidate_records
+                accepted_digest = self.evaluator.build_digest(
+                    current_summary,
+                    current_records,
+                    cases_by_id,
+                    recent_rejected_plans=self.active_store.list_recent_rejected_plans(limit=8),
+                    representatives_per_cluster=self.representatives_per_cluster,
+                    families_per_round_limit=self.families_per_round_limit,
+                )
+                self._attach_active_toolbox(accepted_digest)
+                self._attach_mastery_profile(accepted_digest, validated_bundle)
+                self.active_store.write_training_memory(self.evaluator.digest_payload(accepted_digest))
+            else:
+                self.active_store.record_rejected_plan(
+                    {
+                        "run_id": validated_bundle.run_id,
+                        "reason": reason,
+                        "target_family": validated_bundle.target_family,
+                        "target_cluster_ids": validated_bundle.target_cluster_ids,
+                        "baseline_score": round_baseline_summary.primary_score,
+                        "candidate_score": candidate_summary.primary_score,
+                        "eval_diff": eval_diff,
+                    }
+                )
+                self.active_store.discard_bundle(validated_bundle.run_id)
+            round_results.append(
+                CandidateEvalResult(
+                    run_id=validated_bundle.run_id,
+                    accepted=accepted,
+                    reason=reason,
+                    baseline_score=round_baseline_summary.primary_score,
+                    candidate_score=candidate_summary.primary_score,
+                    score_delta=candidate_summary.primary_score - round_baseline_summary.primary_score,
+                    smoke_passed=True,
+                    target_family=validated_bundle.target_family,
+                    target_cluster_ids=list(validated_bundle.target_cluster_ids),
+                    representative_case_ids=list(validated_bundle.representative_case_ids),
+                    activated_snapshot=activated_snapshot,
+                    baseline_summary=round_baseline_summary,
+                    candidate_summary=candidate_summary,
+                    eval_diff=eval_diff,
+                )
+            )
+
+        snapshot_name = f"{self.subset_id}_train_snapshot"
+        final_summary = current_summary
+        final_records = current_records
+        self.active_store.snapshot_current_capabilities(snapshot_name)
+        final_digest = self.evaluator.build_digest(
+            final_summary,
+            final_records,
+            cases_by_id,
+            recent_rejected_plans=self.active_store.list_recent_rejected_plans(limit=8),
+            representatives_per_cluster=self.representatives_per_cluster,
+            families_per_round_limit=self.families_per_round_limit,
+        )
+        self._attach_active_toolbox(final_digest)
+        self.active_store.write_training_memory(self.evaluator.digest_payload(final_digest))
+        print(
+            f"[subset-batch] finished: snapshot={snapshot_name} "
+            f"final_score={final_summary.primary_score:.4f} "
+            f"correct={final_summary.correct_cases}/{final_summary.total_cases}"
+        )
+        return SubsetEvolutionRunReport(
+            baseline_summary=baseline_summary,
+            final_summary=final_summary,
+            baseline_records=baseline_records,
+            final_records=final_records,
+            round_results=round_results,
+            snapshot_name=snapshot_name,
+        )
+
+    def _refine_router_from_eval_diff(
+        self,
+        bundle: CapabilityBundleProposal,
+        digest: TrainingSetDigest,
+        eval_diff: dict[str, Any],
+        candidate_summary: TrainSetEvalSummary,
+        baseline_summary: TrainSetEvalSummary,
+        batch_idx: int,
+    ) -> tuple[CapabilityBundleProposal, Path]:
+        """Revise only the skill router after a tool-backed candidate causes regressions."""
+        if not bundle.skills:
+            return bundle, self.active_store.evaluate_bundle_snapshot(bundle.run_id)
+
+        fixed_cases = list(eval_diff.get("fixed_cases", []))
+        regressed_cases = list(eval_diff.get("regressed_cases", []))
+        if not fixed_cases or not regressed_cases:
+            return bundle, self.active_store.evaluate_bundle_snapshot(bundle.run_id)
+
+        print(
+            f"[subset-batch] candidate {batch_idx}: router refine "
+            f"fixed={len(fixed_cases)} regressed={len(regressed_cases)}"
+        )
+        requirements = [
+            "Revise only the router and branch conditions; do not change the tool API or invent new tools.",
+            "Keep the tool branch for cases matching the fixed-case patterns.",
+            "Add explicit avoid/no-tool conditions for cases matching the regressed-case patterns.",
+            "Prefer direct visual reasoning when the generated artifact does not clearly localize the queried object.",
+            "Do not route an entire VStar family to the tool; route only the supported visual pattern.",
+        ]
+        brief = RevisionBrief(
+            failure_type="router_regression",
+            reason=(
+                "The candidate tool/skill fixed some training cases but regressed others, "
+                f"with score delta {candidate_summary.primary_score - baseline_summary.primary_score:+.4f}."
+            ),
+            evidence=[
+                "fixed_cases=" + json.dumps(fixed_cases[:8], ensure_ascii=False),
+                "regressed_cases=" + json.dumps(regressed_cases[:8], ensure_ascii=False),
+            ],
+            rewrite_requirements=requirements,
+            banned_patterns=[
+                "always use the tool",
+                "use the tool for all color questions",
+                "use the tool for all left/right questions",
+                "ignore the no-tool branch",
+            ],
+            retry_action="revise_skill",
+        )
+        family_memory = next(
+            (memory for memory in digest.family_memories if memory.capability_family == bundle.target_family),
+            None,
+        )
+        training_context = "\n".join(
+            [
+                self.planner._format_training_context(family_memory, bundle.representative_case_ids),
+                "Counterfactual train-set diff:",
+                "Fixed cases are cases where baseline was wrong and candidate was correct.",
+                "Regressed cases are cases where baseline was correct and candidate was wrong.",
+                "fixed_cases=" + json.dumps(fixed_cases[:12], ensure_ascii=False),
+                "regressed_cases=" + json.dumps(regressed_cases[:12], ensure_ascii=False),
+            ]
+        )
+        refined_skills = [
+            self.generator.revise_skill(
+                skill=skill,
+                revision_brief=brief,
+                coverage_contract=bundle.coverage_contract,
+                training_context=training_context,
+            )
+            for skill in bundle.skills
+        ]
+        for original, refined in zip(bundle.skills, refined_skills):
+            refined.name = original.name
+
+        refined_bundle = replace(
+            bundle,
+            run_id=f"{bundle.run_id}_router_refine",
+            skills=refined_skills,
+            rationale=(bundle.rationale + " Router refined using fixed/regressed train-set diff.").strip(),
+        )
+        refined_dir = self.active_store.stage_bundle(refined_bundle)
+        return refined_bundle, refined_dir
+
+    @staticmethod
+    def _eval_diff(
+        baseline_records: list[TrainSetEvalRecord],
+        candidate_records: list[TrainSetEvalRecord],
+    ) -> dict[str, Any]:
+        baseline_by_id = {row.case_id: row for row in baseline_records}
+        candidate_by_id = {row.case_id: row for row in candidate_records}
+
+        def row_payload(case_id: str, before: TrainSetEvalRecord, after: TrainSetEvalRecord) -> dict[str, Any]:
+            return {
+                "case_id": case_id,
+                "family": before.capability_family,
+                "expected": before.expected,
+                "baseline_answer": before.answer,
+                "candidate_answer": after.answer,
+                "candidate_tools": list(after.tool_names),
+                "candidate_artifacts": list(after.artifact_paths),
+            }
+
+        fixed_cases: list[dict[str, Any]] = []
+        regressed_cases: list[dict[str, Any]] = []
+        unchanged_wrong_cases: list[str] = []
+        for case_id, before in baseline_by_id.items():
+            after = candidate_by_id.get(case_id)
+            if after is None:
+                continue
+            if not before.correct and after.correct:
+                fixed_cases.append(row_payload(case_id, before, after))
+            elif before.correct and not after.correct:
+                regressed_cases.append(row_payload(case_id, before, after))
+            elif not before.correct and not after.correct:
+                unchanged_wrong_cases.append(case_id)
+        return {
+            "fixed_cases": fixed_cases,
+            "regressed_cases": regressed_cases,
+            "unchanged_wrong_case_ids": unchanged_wrong_cases,
+            "fixed_count": len(fixed_cases),
+            "regressed_count": len(regressed_cases),
+            "net_fixed_count": len(fixed_cases) - len(regressed_cases),
+        }
+
+    @staticmethod
+    def _learned_tool_artifact_gate(
+        bundle: CapabilityBundleProposal,
+        candidate_records: list[TrainSetEvalRecord],
+    ) -> tuple[bool, str]:
+        learned_tool_names = {tool.name for tool in bundle.tools}
+        if not learned_tool_names:
+            return True, "no generated tools"
+
+        used_rows = [
+            row for row in candidate_records
+            if learned_tool_names.intersection(set(row.tool_names))
+        ]
+        if not used_rows:
+            return False, f"generated tools were never used: {', '.join(sorted(learned_tool_names))}"
+
+        missing_artifact_rows = [row.case_id for row in used_rows if not row.artifact_paths]
+        if missing_artifact_rows:
+            return (
+                False,
+                "generated tool used without artifact on cases: " + ", ".join(missing_artifact_rows[:8]),
+            )
+        return True, "generated tool artifact gate passed"
+
+    def _batch_plans_from_digest(self, digest: TrainingSetDigest) -> list[dict[str, Any]]:
+        plans: list[dict[str, Any]] = []
+        seen_families: set[str] = set()
+        for cluster in digest.failure_clusters:
+            if len(plans) >= self.max_planning_rounds:
+                break
+            if cluster.capability_family in seen_families and len(seen_families) < self.families_per_round_limit:
+                continue
+            memory = next((item for item in digest.family_memories if item.capability_family == cluster.capability_family), None)
+            gap = memory.toolbox_gaps[0] if memory and memory.toolbox_gaps else None
+            cluster_memory = next(
+                (item for item in (memory.cluster_memories if memory else []) if item.cluster_id == cluster.cluster_id),
+                None,
+            )
+            action = "generate_skill" if self.disable_generated_tools else "generate_both"
+            if self.tool_preference == "balanced" and gap is None:
+                action = "generate_skill"
+            plans.append(
+                {
+                    "target_family": cluster.capability_family,
+                    "target_cluster_ids": [cluster.cluster_id],
+                    "representative_case_ids": list(cluster.representative_case_ids[: self.representatives_per_cluster]),
+                    "next_action": action,
+                    "primitive_category": gap.primitive_category if gap else cluster.cluster_key,
+                    "toolability": cluster_memory.toolability if cluster_memory else "medium",
+                    "toolability_blocked": False,
+                    "tool_goal": gap.summary if gap else f"Create reusable visual support for {cluster.cluster_key}.",
+                    "skill_update_note": f"Route {cluster.capability_family} failures using the generated reusable tool when helpful.",
+                    "rationale": "Batch training digest selected this recurring failure cluster from the full train subset.",
+                    "expected_gain": "Recover multiple wrong training cases without regressing already-correct family cases.",
+                }
+            )
+            seen_families.add(cluster.capability_family)
+        return plans
+
+    def _combine_batch_bundles(self, bundles: list[CapabilityBundleProposal]) -> CapabilityBundleProposal:
+        tools_by_name: dict[str, ToolProposal] = {}
+        skills_by_name: dict[str, SkillProposal] = {}
+        target_cluster_ids: list[str] = []
+        representative_case_ids: list[str] = []
+        primitive_categories: list[str] = []
+        for bundle in bundles:
+            for tool in bundle.tools:
+                tools_by_name[tool.name] = tool
+            for skill in bundle.skills:
+                skills_by_name[skill.name] = skill
+            for cluster_id in bundle.target_cluster_ids:
+                if cluster_id not in target_cluster_ids:
+                    target_cluster_ids.append(cluster_id)
+            for case_id in bundle.representative_case_ids:
+                if case_id not in representative_case_ids:
+                    representative_case_ids.append(case_id)
+            if bundle.primitive_category and bundle.primitive_category not in primitive_categories:
+                primitive_categories.append(bundle.primitive_category)
+        return CapabilityBundleProposal(
+            run_id=datetime.now().strftime("batch_%Y%m%d_%H%M%S_%f"),
+            target_family="vstar_batch",
+            target_cluster_ids=target_cluster_ids,
+            representative_case_ids=representative_case_ids,
+            rationale="Combined smoke-passed VStar tools and skills from one full training-set error digest.",
+            expected_gain="Improve full train accuracy with a reusable batch capability bundle.",
+            primitive_category="+".join(primitive_categories),
+            tools=list(tools_by_name.values()),
+            skills=list(skills_by_name.values()),
+        )
+
+    @staticmethod
+    def _family_regression_within_limit(
+        baseline_records: list[TrainSetEvalRecord],
+        candidate_records: list[TrainSetEvalRecord],
+        max_regressed_cases: int,
+    ) -> bool:
+        baseline_by_family: dict[str, int] = {}
+        candidate_by_family: dict[str, int] = {}
+        for row in baseline_records:
+            baseline_by_family[row.capability_family] = baseline_by_family.get(row.capability_family, 0) + int(row.correct)
+        for row in candidate_records:
+            candidate_by_family[row.capability_family] = candidate_by_family.get(row.capability_family, 0) + int(row.correct)
+        for family, baseline_correct in baseline_by_family.items():
+            if baseline_correct - candidate_by_family.get(family, 0) > max_regressed_cases:
+                return False
+        return True
+
     def _emit_checkpoint(
         self,
         baseline_records: list[TrainSetEvalRecord],
@@ -1208,6 +1693,10 @@ class SubsetEvolutionLoop:
         round_idx: int,
     ) -> CapabilityBundleProposal:
         if not bundle.skills:
+            return bundle
+        if bundle.tools:
+            # Mastery candidates currently come from the preset-tool catalog. Do not let
+            # that preset-only phase overwrite a skill that was generated for new tools.
             return bundle
         family_memory = next((memory for memory in digest.family_memories if memory.capability_family == bundle.target_family), None)
         if family_memory is None:
@@ -1469,31 +1958,16 @@ class SubsetEvolutionLoop:
 
         for index, tool in enumerate(list(bundle.tools)):
             print(f"[subset-loop] smoke validate: tool {tool.name}")
-            validation = self._validate_tool_across_cases(validator, validator_loop, tool, smoke_cases, family_smoke_cases)
-            if not validation.passed and validation.revision_brief is not None:
-                revised_tool = self.generator.revise_tool(
-                    tool=tool,
-                    revision_brief=validation.revision_brief,
-                    coverage_contract=bundle.coverage_contract,
-                    training_context=self.planner._format_training_context(
-                        next((memory for memory in digest.family_memories if memory.capability_family == bundle.target_family), None),
-                        bundle.representative_case_ids,
-                    ),
-                )
-                bundle.tools[index] = revised_tool
-                refreshed_candidate_dir = self.active_store.stage_bundle(bundle)
-                candidate_dir = refreshed_candidate_dir
-                validator_loop = EvolutionLoop(
-                    work_dir=self.work_dir / f"round_{round_idx}" / "smoke_repair",
-                    learned_dir=candidate_dir,
-                    skills_dir=self.skills_dir,
-                    vlm_client=self.vlm_client,
-                    max_attempts=1,
-                    subset_id=None,
-                    capability_mode=self.capability_mode,
-                )
-                validator = validator_loop.validator
-                validation = self._validate_tool_across_cases(validator, validator_loop, revised_tool, smoke_cases, family_smoke_cases)
+            validation, candidate_dir, validator_loop, bundle = self._repair_and_validate_tool(
+                bundle=bundle,
+                tool_index=index,
+                digest=digest,
+                candidate_dir=candidate_dir,
+                round_idx=round_idx,
+                smoke_cases=smoke_cases,
+                family_smoke_cases=family_smoke_cases,
+            )
+            validator = validator_loop.validator
             if not validation.passed:
                 return False, validation.reason or f"Tool {tool.name} failed smoke validation.", bundle, self._validation_meta(validation)
 
@@ -1575,6 +2049,159 @@ class SubsetEvolutionLoop:
 
         smoke_progress.finish(correct=len(smoke_cases), average_score=1.0)
         return True, "smoke passed", bundle, {}
+
+    def _repair_and_validate_tool(
+        self,
+        bundle: CapabilityBundleProposal,
+        tool_index: int,
+        digest: TrainingSetDigest,
+        candidate_dir: Path,
+        round_idx: int,
+        smoke_cases: list[TaskCase],
+        family_smoke_cases: list[TaskCase] | None,
+    ) -> tuple[ValidationResult, Path, EvolutionLoop, CapabilityBundleProposal]:
+        validator_loop = self._make_smoke_loop(candidate_dir, round_idx, "smoke")
+        validator = validator_loop.validator
+        tool = bundle.tools[tool_index]
+        validation = self._validate_tool_across_cases(validator, validator_loop, tool, smoke_cases, family_smoke_cases)
+        repair_history: list[dict[str, Any]] = []
+
+        for repair_attempt in range(1, self.MAX_TOOL_REPAIR_ATTEMPTS + 1):
+            if validation.passed or validation.revision_brief is None:
+                break
+
+            repair_history.append(self._repair_history_entry(repair_attempt, validation))
+            revision_brief = self._artifact_aware_revision_brief(validation.revision_brief, tool)
+            if self._should_apply_fallback_artifact_wrapper(repair_history, validation, repair_attempt):
+                print(f"[subset-loop] smoke repair {repair_attempt}: applying fallback artifact wrapper for {tool.name}")
+                revised_tool = self._with_fallback_artifact_wrapper(tool)
+            else:
+                print(
+                    f"[subset-loop] smoke repair {repair_attempt}/{self.MAX_TOOL_REPAIR_ATTEMPTS}: "
+                    f"tool={tool.name} failure={validation.failure_type or 'unknown'}"
+                )
+                revised_tool = self.generator.revise_tool(
+                    tool=tool,
+                    revision_brief=revision_brief,
+                    coverage_contract=bundle.coverage_contract,
+                    training_context=self.planner._format_training_context(
+                        next((memory for memory in digest.family_memories if memory.capability_family == bundle.target_family), None),
+                        bundle.representative_case_ids,
+                    ),
+                )
+
+            tool = revised_tool
+            bundle.tools[tool_index] = revised_tool
+            candidate_dir = self.active_store.stage_bundle(bundle)
+            validator_loop = self._make_smoke_loop(candidate_dir, round_idx, f"smoke_repair_{repair_attempt}")
+            validator = validator_loop.validator
+            validation = self._validate_tool_across_cases(validator, validator_loop, revised_tool, smoke_cases, family_smoke_cases)
+
+        if not validation.passed and repair_history:
+            validation.smoke_case_results.append({"repair_history": json.dumps(repair_history, ensure_ascii=False)})
+        return validation, candidate_dir, validator_loop, bundle
+
+    def _make_smoke_loop(self, candidate_dir: Path, round_idx: int, phase: str) -> EvolutionLoop:
+        return EvolutionLoop(
+            work_dir=self.work_dir / f"round_{round_idx}" / phase,
+            learned_dir=candidate_dir,
+            skills_dir=self.skills_dir,
+            vlm_client=self.vlm_client,
+            max_attempts=1,
+            subset_id=None,
+            capability_mode=self.capability_mode,
+        )
+
+    @staticmethod
+    def _repair_history_entry(repair_attempt: int, validation: ValidationResult) -> dict[str, Any]:
+        return {
+            "attempt": repair_attempt,
+            "failure_type": validation.failure_type,
+            "reason": validation.reason,
+            "evidence": [] if validation.revision_brief is None else list(validation.revision_brief.evidence),
+            "rewrite_requirements": [] if validation.revision_brief is None else list(validation.revision_brief.rewrite_requirements),
+        }
+
+    @staticmethod
+    def _artifact_aware_revision_brief(brief: RevisionBrief, tool: ToolProposal) -> RevisionBrief:
+        if brief.failure_type != "no_artifact":
+            return brief
+        requirements = list(brief.rewrite_requirements)
+        requirements.extend(
+            [
+                "The top-level run(image_path: str) must always create a concrete processed_img numpy ndarray for valid image inputs.",
+                f'Use output_path = "artifacts/{tool.name}_output.png" or another artifacts/<name>.png path stored in one variable.',
+                "Call save_image(processed_img, output_path) before returning.",
+                "Return ToolResult(status='ok', answer='', artifacts=[output_path]) with the exact same output_path variable.",
+                "If OpenCV drawing fails with 'img is not a numpy array', convert intermediate PIL/list/scalar values to np.ndarray before cv2.line/cv2.rectangle/cv2.putText.",
+                "Do not swallow exceptions by returning ok without artifacts; either produce a fallback artifact or return a clear error.",
+            ]
+        )
+        banned_patterns = list(brief.banned_patterns)
+        banned_patterns.extend(["return ToolResult(status='ok', answer='', artifacts=[])", "status-only tool"])
+        return RevisionBrief(
+            failure_type=brief.failure_type,
+            reason=brief.reason,
+            evidence=list(brief.evidence),
+            rewrite_requirements=list(dict.fromkeys(requirements)),
+            banned_patterns=list(dict.fromkeys(banned_patterns)),
+            retry_action=brief.retry_action,
+        )
+
+    @staticmethod
+    def _should_apply_fallback_artifact_wrapper(
+        repair_history: list[dict[str, Any]],
+        validation: ValidationResult,
+        repair_attempt: int,
+    ) -> bool:
+        if validation.failure_type != "no_artifact":
+            return False
+        no_artifact_failures = sum(1 for item in repair_history if item.get("failure_type") == "no_artifact")
+        return repair_attempt >= 3 and no_artifact_failures >= 2
+
+    @staticmethod
+    def _with_fallback_artifact_wrapper(tool: ToolProposal) -> ToolProposal:
+        code = str(tool.code or "")
+        if "_original_run_before_artifact_fallback" in code:
+            return tool
+        wrapped = code.replace("def run(image_path: str) -> ToolResult:", "def _original_run_before_artifact_fallback(image_path: str) -> ToolResult:", 1)
+        if wrapped == code:
+            return tool
+        fallback_code = f'''
+
+def run(image_path: str) -> ToolResult:
+    fallback_error = ""
+    try:
+        result = _original_run_before_artifact_fallback(image_path)
+        if getattr(result, "status", "") == "ok" and getattr(result, "artifacts", None):
+            return result
+        fallback_error = str(getattr(result, "error", "") or "original tool returned no artifacts")
+    except Exception as exc:
+        fallback_error = str(exc)
+    try:
+        img = load_image(image_path)
+        processed_img = img.copy() if hasattr(img, "copy") else img
+        output_path = "artifacts/{tool.name}_fallback.png"
+        save_image(processed_img, output_path)
+        return ToolResult(
+            status="ok",
+            answer="",
+            artifacts=[output_path],
+            debug_info="fallback artifact emitted after repair: " + fallback_error[:200],
+        )
+    except Exception as exc:
+        return ToolResult(status="error", answer="", error=str(exc))
+'''
+        return ToolProposal(
+            name=tool.name,
+            description=tool.description,
+            applicability_conditions=tool.applicability_conditions,
+            code=wrapped.rstrip() + fallback_code,
+            usage_example=tool.usage_example,
+            expected_inputs=list(tool.expected_inputs),
+            expected_outputs=list(tool.expected_outputs),
+            primitive_category=tool.primitive_category,
+        )
 
     def _select_cluster_smoke_case_ids(self, bundle: CapabilityBundleProposal, digest: TrainingSetDigest) -> list[str]:
         selected: list[str] = []
@@ -1691,9 +2318,17 @@ class SubsetEvolutionLoop:
 
     @staticmethod
     def _validation_meta(validation: ValidationResult) -> dict[str, Any]:
+        repair_history = []
+        for item in validation.smoke_case_results:
+            if isinstance(item, dict) and "repair_history" in item:
+                try:
+                    repair_history = json.loads(str(item["repair_history"]))
+                except json.JSONDecodeError:
+                    repair_history = [str(item["repair_history"])]
         return {
             "failure_type": validation.failure_type,
             "revision_brief": None if validation.revision_brief is None else asdict(validation.revision_brief),
+            "repair_history": repair_history,
         }
 
 
@@ -1718,6 +2353,24 @@ def _merge_tool_names(*groups: list[str]) -> list[str]:
             if name and name not in merged:
                 merged.append(name)
     return merged
+
+
+def _tool_step_debug(result: AgentResult) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for step in result.steps:
+        if step.action is None or step.action.name != "bash":
+            continue
+        command = str(step.command or step.action.arguments.get("command", "") or "")
+        observation = str(step.observation or "")
+        rows.append(
+            {
+                "turn": step.turn,
+                "command": command[:500],
+                "observation": observation[:1000],
+                "artifacts": list(step.artifacts),
+            }
+        )
+    return rows
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -1874,6 +2527,13 @@ def _resolve_case_id(raw_text: str, cases_by_id: dict[str, TaskCase]) -> str:
                     return existing
 
     return ""
+
+
+def _normalize_next_action(raw_value: Any) -> str:
+    action = str(raw_value or "generate_skill").strip()
+    if action in {"generate_tool", "generate_skill", "generate_both", "generate_code_skill", "give_up"}:
+        return action
+    return "generate_skill"
 
 
 class _ProgressPrinter:

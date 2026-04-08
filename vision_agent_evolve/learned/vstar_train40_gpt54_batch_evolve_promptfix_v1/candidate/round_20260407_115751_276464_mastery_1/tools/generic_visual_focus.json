@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a saliency-and-edge emphasis visualization that highlights visually distinct object regions to support later left-vs-right localized comparison between two queried objects.",
+  "applicability_conditions": "Use when the task asks whether one depicted object is to the left or right of another in a single image, and no object-specific detector is available. Appropriate for everyday object pairs and also when the input may already be an intermediate artifact, because it enhances localized visually distinct regions, boundaries, and candidate objects without assuming object category or fixed position.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-07T11:59:17.985378",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

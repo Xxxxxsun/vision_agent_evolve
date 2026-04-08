@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Creates and saves a concrete overview artifact that marks up to six candidate local regions with numbered boxes and matching zoomed crops to support downstream color identification of a referenced object or clothing item. The tool is defensive on normal inputs and always writes a real PNG artifact under artifacts/ before returning.",
+  "applicability_conditions": "Creates and saves a concrete overview artifact that marks up to six candidate local regions with numbered boxes and matching zoomed crops to support downstream color identification of a referenced object or clothing item. The tool is defensive on normal inputs and always writes a real PNG artifact under artifacts/ before returning.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T14:53:14.469488",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

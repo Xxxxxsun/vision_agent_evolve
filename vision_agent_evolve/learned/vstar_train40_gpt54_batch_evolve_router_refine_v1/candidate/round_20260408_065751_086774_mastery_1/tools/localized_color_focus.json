@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Creates a region-proposal overlay and contrast-enhanced candidate zoom strip to support localized color inspection of salient accessories or clothing items.",
+  "applicability_conditions": "Use when a direct-attribute question asks for the color of a visible object, accessory, or clothing item, especially when the target is small relative to the whole image or attached to a person. This is appropriate on raw images or prior artifacts when the next step needs region-focused visual inspection rather than global color averaging. It supports variations where the target may be handheld, worn, or adjacent to a person, and where multiple candidate local regions should be surfaced without assuming a fixed object class or position.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-08T06:59:38.939722",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

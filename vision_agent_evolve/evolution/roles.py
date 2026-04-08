@@ -1507,7 +1507,16 @@ def run(image_path: str) -> ToolResult:
         return normalized or "unnamed_tool"
 
     def _normalize_tool_code(self, code: str, tool_name: str) -> str:
-        normalized = code.replace("Path(__file__).parents[3]", "Path(__file__).parents[2]")
+        normalized = str(code or "").strip()
+        if normalized.startswith("```"):
+            normalized = re.sub(r"^```(?:python)?\s*", "", normalized)
+            normalized = re.sub(r"\s*```$", "", normalized).strip()
+        if normalized.count("\n") < 3 and "\\n" in normalized:
+            try:
+                normalized = bytes(normalized, "utf-8").decode("unicode_escape")
+            except UnicodeDecodeError:
+                normalized = normalized.replace("\\n", "\n").replace("\\t", "\t")
+        normalized = normalized.replace("Path(__file__).parents[3]", "Path(__file__).parents[2]")
         if "python learned/tools/" in normalized:
             normalized = normalized.replace("python learned/tools/", "python -m tools ")
 

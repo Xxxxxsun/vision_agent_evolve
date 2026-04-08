@@ -1,0 +1,49 @@
+[
+  {
+    "run_id": "round_20260407_082541_468433",
+    "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Direct multiple-choice visual attribute questions that require identifying the color of a specific localized object in an image.",
+      "supported_variations": [
+        "Color identification for a named object when the object is explicitly mentioned in the question",
+        "Multiple-choice direct lookup questions where answering depends on focusing on one salient object region"
+      ],
+      "unsupported_variations": [
+        "Questions requiring reading text, counting objects, or reasoning about relationships between multiple objects"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode a specific handbag color or any answer prior",
+        "Do not assume fixed object location, scale, or image composition",
+        "Do not use one-off coordinates or crop regions tied to a single example"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The failures cluster around missing localized color extraction for explicitly referenced objects, which is a stable and reusable visual primitive across direct attribute questions."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+      "evidence": [
+        "artifacts/localized_color_focus_output.png"
+      ],
+      "rewrite_requirements": [
+        "Write the artifact file before returning.",
+        "Keep ToolResult.artifacts aligned with real relative file paths."
+      ],
+      "banned_patterns": [
+        "nonexistent artifact paths"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

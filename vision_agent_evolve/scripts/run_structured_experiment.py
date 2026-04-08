@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from evolution.benchmark_adapters import available_benchmark_datasets
+from evolution.benchmark_adapters import get_benchmark_adapter
 from evolution.structured_runner import StructuredBenchmarkRunner, StructuredExperimentConfig
 
 
@@ -55,7 +56,7 @@ def main() -> None:
         "--settings",
         nargs="+",
         default=["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
-        help="Subset of settings to run. Choices: direct_vlm pure_react toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
+        help="Subset of settings to run. Choices: direct_vlm pure_react toolpool_prompt_baseline agent_train_adaptive agent_train_batch_evolve skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
     args = parser.parse_args()
 
@@ -84,6 +85,7 @@ def main() -> None:
         fixed_tool_names=args.fixed_tool_names,
         disable_generated_tools=args.disable_generated_tools,
     )
+    _validate_dataset_assets(config)
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
     print(json.dumps(summary, ensure_ascii=False, indent=2))
@@ -107,6 +109,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
             "pure_react",
             "toolpool_prompt_baseline",
             "agent_train_adaptive",
+            "agent_train_batch_evolve",
             "skill_only_train_adaptive",
             "preset_tools_only",
             "same_tool_preset_tools_only",
@@ -121,6 +124,34 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
         if normalized not in expanded:
             expanded.append(normalized)
     return expanded
+
+
+def _validate_dataset_assets(config: StructuredExperimentConfig) -> None:
+    dataset_names = config.datasets or [config.dataset]
+    missing_by_dataset: dict[str, list[str]] = {}
+    for dataset_name in dataset_names:
+        adapter = get_benchmark_adapter(dataset_name)
+        split_names = {config.evolve_split}
+        if config.held_out_split:
+            split_names.add(config.held_out_split)
+        for split in split_names:
+            cases = adapter.load_cases(config.normalized_data_root, split, limit=0)
+            missing = [
+                f"{case.case_id}: {case.image_path}"
+                for case in cases
+                if case.image_path and not Path(case.image_path).exists()
+            ]
+            if missing:
+                missing_by_dataset.setdefault(dataset_name, []).extend(missing)
+
+    if not missing_by_dataset:
+        return
+
+    lines = ["Dataset asset validation failed. Missing image files detected before experiment start:"]
+    for dataset_name, missing in sorted(missing_by_dataset.items()):
+        lines.append(f"- {dataset_name}: {len(missing)} missing")
+        lines.extend(f"  {entry}" for entry in missing[:5])
+    raise SystemExit("\n".join(lines))
 
 
 if __name__ == "__main__":

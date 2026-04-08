@@ -1,0 +1,20 @@
+{
+  "dataset": "refocus_tablevqa",
+  "source": "tablevqa_wbb.json",
+  "raw_data_root": "/root/vqa_datasets/datasets/refocus_hf",
+  "image_root": "/root/VTool-R1",
+  "normalized_data_root": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/refocus_tablevqa",
+  "splits": {
+    "train": {
+      "count": 200,
+      "source_file": "/root/vqa_datasets/datasets/refocus_hf/test_data_with_bounding_box /tablevqa_wbb.json",
+      "output_file": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/refocus_tablevqa/train.jsonl"
+    },
+    "test": {
+      "count": 550,
+      "source_file": "/root/vqa_datasets/datasets/refocus_hf/test_data_with_bounding_box /tablevqa_wbb.json",
+      "output_file": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/refocus_tablevqa/test.jsonl"
+    }
+  },
+  "split_note": "TableVQA source is a held-out VTool-R1/Refocus table file; train/test are deterministic pseudo-splits for training-free evolution experiments."
+}

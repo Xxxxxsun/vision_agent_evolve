@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Highlights salient object-like regions and annotates their horizontal centers to support later left/right relation reasoning between referenced objects.",
+  "applicability_conditions": "Use when a task in the relative-position family asks whether one visible object is to the left or right of another, and the main need is image-plane localization rather than category-specific reasoning. Appropriate for raw images or intermediate artifacts where both target entities are expected to be visible somewhere in the frame, including varied outdoor or indoor scenes with multiple candidate objects. Especially useful as a reusable first-pass focus primitive before a later skill maps question nouns to the marked regions.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "relative_position_marker",
+  "created_at": "2026-04-07T14:55:27.754327",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "run_id": "round_20260406_192422_222651",
+    "reason": "Rejected candidate because score delta was -0.1250",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "baseline_score": 0.65,
+    "candidate_score": 0.525,
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Answer multiple-choice questions by identifying a directly queried visible attribute of a specific object or person, with frequent need to inspect localized color regions.",
+      "supported_variations": [
+        "color of a named object or clothing item",
+        "pose or simple state of a referenced person when the target entity is clearly identifiable"
+      ],
+      "unsupported_variations": [
+        "questions requiring counting, reading text, fine-grained relational reasoning, or multi-step disambiguation among many similar candidates"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "do not hardcode any specific object class, person, or image layout from representative examples",
+        "do not rely on fixed coordinates, fixed crop regions, or fixed color priors for the answer",
+        "do not assume the referenced entity is always centered, large, or uniquely salient without verification"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_skill",
+      "why_this_should_generalize": "The failures mostly reflect missing targeted visual attention for direct attribute lookup, especially localized color inspection, which is a stable cluster-level behavior that can be improved with a reusable reasoning skill without needing a dedicated tool."
+    }
+  }
+]

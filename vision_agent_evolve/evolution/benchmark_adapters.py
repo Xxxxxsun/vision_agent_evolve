@@ -13,6 +13,7 @@ from core.structured_data import (
     check_mathvista_answer,
     check_textvqa_case_answer,
     check_multiple_choice_answer,
+    infer_choices_from_prompt,
     load_json_objects,
     load_normalized_cases,
     score_mathvista_answer,
@@ -187,13 +188,13 @@ class VStarAdapter(GenericJsonlAdapter):
         super().__init__(dataset_name="vstar")
 
     def score_answer(self, answer: str, case: TaskCase) -> float:
-        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        choices = _resolve_case_choices(case)
         if not choices:
             return super().score_answer(answer, case)
         return score_multiple_choice_answer(answer, case.gold_answer, choices)
 
     def check_answer(self, answer: str, case: TaskCase) -> bool:
-        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        choices = _resolve_case_choices(case)
         if not choices:
             return super().check_answer(answer, case)
         return check_multiple_choice_answer(answer, case.gold_answer, choices)
@@ -206,13 +207,13 @@ class HRBenchAdapter(GenericJsonlAdapter):
         super().__init__(dataset_name="hrbench")
 
     def score_answer(self, answer: str, case: TaskCase) -> float:
-        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        choices = _resolve_case_choices(case)
         if not choices:
             return super().score_answer(answer, case)
         return score_multiple_choice_answer(answer, case.gold_answer, choices)
 
     def check_answer(self, answer: str, case: TaskCase) -> bool:
-        choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
+        choices = _resolve_case_choices(case)
         if not choices:
             return super().check_answer(answer, case)
         return check_multiple_choice_answer(answer, case.gold_answer, choices)
@@ -423,6 +424,16 @@ def _parse_number(value: str) -> float | None:
         return float(match.group(0))
     except ValueError:
         return None
+
+
+def _resolve_case_choices(case: TaskCase) -> dict[str, str]:
+    raw_choices = case.metadata.get("choices")
+    if isinstance(raw_choices, dict) and raw_choices:
+        return raw_choices
+    inferred = infer_choices_from_prompt(case.prompt)
+    if inferred:
+        case.metadata["choices"] = inferred
+    return inferred
 
 
 def _coerce_optional_int(value: object) -> int | None:

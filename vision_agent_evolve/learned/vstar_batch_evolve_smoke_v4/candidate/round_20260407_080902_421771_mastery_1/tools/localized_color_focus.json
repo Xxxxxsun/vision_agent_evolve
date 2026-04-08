@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights compact, visually distinct candidate object regions and adds zoomed crops to support later color inspection of a referenced item.",
+  "applicability_conditions": "Use when a direct visual-attribute question asks for the color of a specific named object or object part, and the object must first be localized within a full scene or an upstream artifact. Appropriate for multiple-choice direct lookup cases where a single item needs local inspection, including small carried items, clothing parts, accessories, or other compact foreground/background objects, but not for counting or relation-heavy tasks.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T08:10:39.190308",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

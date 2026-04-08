@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Creates a concrete artifact image under artifacts/ showing a region-proposal overlay plus a candidate zoom strip for localized inspection of colorful or high-detail regions. Useful for direct visible-color questions about clothing, accessories, or other salient local objects without assuming a fixed class or fixed position.",
+  "applicability_conditions": "Creates a concrete artifact image under artifacts/ showing a region-proposal overlay plus a candidate zoom strip for localized inspection of colorful or high-detail regions. Useful for direct visible-color questions about clothing, accessories, or other salient local objects without assuming a fixed class or fixed position.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-08T07:04:00.304271",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "chart_value_overlay",
+  "description": "Generates an overlay on a chart image to highlight bar-like regions and their approximate positions, aiding in manual value extraction.",
+  "applicability_conditions": "This tool is applicable to images containing bar charts with numerical values overlaid or extractable via OCR. It is designed to work with charts where bars are visually distinct and can be detected using relative geometry. The chart should have a rectangular shape, and bars should be aligned horizontally or vertically. This tool does not handle charts with non-rectangular shapes or overlapping elements.",
+  "usage_example": "python -m tools chart_value_overlay <image_path>",
+  "primitive_category": "chart_value_overlay",
+  "created_at": "2026-04-08T09:51:57.749907",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

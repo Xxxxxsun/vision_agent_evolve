@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 
 from core.structured_data import load_visualtoolbench_cases, normalize_visualtoolbench_dataset
-from core.visualtoolbench_runner import VisualCaseResult, VisualToolBenchRunner, VisualTurnResult
+from core.visualtoolbench_runner import (
+    VisualCaseResult,
+    VisualToolBenchRunner,
+    VisualTurnResult,
+    _extract_action,
+)
 from tools.visualtoolbench_tools import execute_visualtoolbench_tool
 
 
@@ -100,6 +105,39 @@ def test_visualtoolbench_python_image_processing_supports_import_and_alias(tmp_p
     )
     assert result.status == "ok"
     assert result.answer == "ok"
+    assert result.artifacts
+
+
+def test_visualtoolbench_extracts_bare_json_action() -> None:
+    payload = _extract_action(
+        '{"name":"python_image_processing","arguments":{"code":"print(1)"}}'
+    )
+    assert payload is not None
+    assert payload["name"] == "python_image_processing"
+
+
+def test_visualtoolbench_python_image_processing_collects_workspace_artifacts(tmp_path: Path) -> None:
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+        b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03\x01\x01\x00\xc9\xfe\x92\xef"
+        b"\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+    result = execute_visualtoolbench_tool(
+        "python_image_processing",
+        {
+            "code": (
+                "from PIL import Image\n"
+                "img = Image.open('image_1.png').convert('RGB')\n"
+                "img.save('transformed_image_1.png', 'PNG')\n"
+            )
+        },
+        workspace_dir=tmp_path / "workspace_collect",
+        image_paths=[str(image_path)],
+    )
+    assert result.status == "ok"
+    assert any(path.endswith("transformed_image_1.png") for path in result.artifacts)
 
 
 def test_visualtoolbench_diagnostics_summary() -> None:

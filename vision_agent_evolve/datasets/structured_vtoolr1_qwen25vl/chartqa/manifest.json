@@ -1,0 +1,23 @@
+{
+  "dataset": "chartqa",
+  "source": "VTool-R1 chartqa_vcot",
+  "raw_data_root": "/root/VTool-R1",
+  "normalized_data_root": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/chartqa",
+  "splits": {
+    "train": {
+      "count": 14344,
+      "source_file": "/root/VTool-R1/data/chartqa_vcot/train.jsonl",
+      "output_file": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/chartqa/train.jsonl"
+    },
+    "val": {
+      "count": 813,
+      "source_file": "/root/VTool-R1/data/chartqa_vcot/val.jsonl",
+      "output_file": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/chartqa/val.jsonl"
+    },
+    "test": {
+      "count": 826,
+      "source_file": "/root/VTool-R1/data/chartqa_vcot/test.jsonl",
+      "output_file": "/root/vision_agent_evolve/vision_agent_evolve/datasets/structured_vtoolr1_qwen25vl/chartqa/test.jsonl"
+    }
+  }
+}

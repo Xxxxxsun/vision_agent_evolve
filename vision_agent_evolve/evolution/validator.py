@@ -404,13 +404,32 @@ class Validator:
                 proposal.usage_example,
             ]
         )
-        if origin_case.case_id and origin_case.case_id in combined:
+        if self._contains_case_identifier(combined, origin_case.case_id):
             return "Tool proposal references the current case id and looks case-specific"
         if origin_case.image_path and str(origin_case.image_path) in combined:
             return "Tool proposal references the current image path and looks case-specific"
-        if self._count_numeric_literals(proposal.code) >= 12:
-            return "Tool code contains too many numeric literals and looks overfit to one example"
+        numeric_issue = self._detect_case_specific_numeric_logic(proposal.code)
+        if numeric_issue:
+            return numeric_issue
         return ""
+
+    def _contains_case_identifier(self, text: str, case_id: str) -> bool:
+        """Detect explicit case-id references without flagging ordinary numeric constants."""
+        normalized_case_id = str(case_id or "").strip()
+        if not normalized_case_id:
+            return False
+
+        context_pattern = re.compile(
+            rf"\b(?:case(?:[_\-\s]*id)?|problem(?:[_\-\s]*id)?)\s*[:=_#-]?\s*{re.escape(normalized_case_id)}\b",
+            re.IGNORECASE,
+        )
+        if context_pattern.search(text):
+            return True
+
+        # Non-numeric ids are uncommon in code constants; a standalone token is suspicious.
+        if not normalized_case_id.isdigit():
+            return bool(re.search(rf"\b{re.escape(normalized_case_id)}\b", text))
+        return False
 
     def _detect_case_specific_skill(self, proposal: SkillProposal, problem_id: str) -> str:
         """Reject skills that are too tied to one example instead of the task family."""
@@ -444,6 +463,53 @@ class Validator:
 
     def _count_numeric_literals(self, text: str) -> int:
         return len(re.findall(r"\b\d+(?:\.\d+)?\b", text or ""))
+
+    def _detect_case_specific_numeric_logic(self, code: str) -> str:
+        """Reject fixed coordinate/answer tables while allowing normal OpenCV constants."""
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return ""
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and self._fixed_numeric_assignment_looks_case_specific(node):
+                return "Tool code contains a large fixed numeric table and looks case-specific"
+            if isinstance(node, ast.Dict):
+                numeric_items = sum(
+                    1
+                    for key in list(node.keys) + list(node.values)
+                    if isinstance(key, ast.Constant) and isinstance(key.value, (int, float))
+                )
+                if numeric_items >= 8:
+                    return "Tool code contains a large fixed numeric mapping and looks case-specific"
+        return ""
+
+    def _fixed_numeric_assignment_looks_case_specific(self, node: ast.Assign) -> bool:
+        target_names = [
+            target.id.lower()
+            for target in node.targets
+            if isinstance(target, ast.Name)
+        ]
+        if not target_names:
+            return False
+        case_specific_name = any(
+            any(marker in name for marker in ("box", "bbox", "coord", "point", "lookup", "table"))
+            for name in target_names
+        )
+        if not case_specific_name:
+            return False
+        if not isinstance(node.value, (ast.List, ast.Tuple, ast.Set)):
+            return False
+        return self._numeric_sequence_length(node.value) >= 8
+
+    def _numeric_sequence_length(self, node: ast.List | ast.Tuple | ast.Set) -> int:
+        count = 0
+        for elt in node.elts:
+            if isinstance(elt, ast.Constant) and isinstance(elt.value, (int, float)):
+                count += 1
+            elif isinstance(elt, (ast.List, ast.Tuple, ast.Set)):
+                count += self._numeric_sequence_length(elt)
+        return count
 
     def _is_tool_result_call(self, node: ast.Call) -> bool:
         func = node.func

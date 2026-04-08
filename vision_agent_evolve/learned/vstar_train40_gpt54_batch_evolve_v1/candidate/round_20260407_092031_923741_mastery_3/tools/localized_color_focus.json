@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights compact, object-like candidate regions and produces zoomed color-focused panels to help inspect the color of a referenced local object without selecting an answer.",
+  "applicability_conditions": "Use when the question asks for the color of a named object in a full image or prior artifact, especially when the object may be small, off-center, or one of several localized items (for example handbag, shirt, sign, swim ring, or car). This is appropriate after raw-image loading or after an earlier generic crop/overlay artifact when the next need is to inspect likely local object regions and their dominant visible colors more clearly.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T09:23:23.574542",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -414,3 +414,4 @@ class CandidateEvalResult:
     activated_snapshot: str = ""
     baseline_summary: TrainSetEvalSummary | None = None
     candidate_summary: TrainSetEvalSummary | None = None
+    eval_diff: dict[str, object] = field(default_factory=dict)

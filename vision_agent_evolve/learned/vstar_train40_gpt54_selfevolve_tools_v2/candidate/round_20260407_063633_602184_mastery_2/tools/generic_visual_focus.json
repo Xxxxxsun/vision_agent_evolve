@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a family-level focus artifact by proposing salient object regions with center markers and labels, helping later reasoning compare two named objects for left/right or above/below relations.",
+  "applicability_conditions": "Use when the task family asks for the 2D relative position of one visible object with respect to another visible object in a single image, especially generic left/right or above/below multiple-choice questions. Appropriate both on raw scene images and on intermediate artifacts where the objects are still visually identifiable. Best when a later reasoning step can use a small set of image-derived candidate object regions and their centers rather than fixed coordinates or object-specific rules.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-07T06:40:05.099554",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

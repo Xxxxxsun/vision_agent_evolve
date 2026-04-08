@@ -241,7 +241,7 @@ class StructuredBenchmarkRunner:
         self._write_train_subset_manifest(evolve_cases)
 
         self.records_path.write_text("", encoding="utf-8")
-        if {"agent_train_adaptive", "scratch_skill_train_adaptive"} & set(self.config.settings):
+        if {"agent_train_adaptive", "agent_train_batch_evolve", "scratch_skill_train_adaptive"} & set(self.config.settings):
             self._reset_evolve_reports_file()
         records: list[StructuredCaseRecord] = []
         snapshot_name = ""
@@ -262,6 +262,11 @@ class StructuredBenchmarkRunner:
         if "agent_train_adaptive" in self.config.settings:
             print(f"\n=== Agent adaptive train on {self.config.evolve_split}[:{train_limit}] ===")
             train_records, snapshot_name = self._run_agent_train_adaptive(evolve_cases)
+            records.extend(train_records)
+
+        if "agent_train_batch_evolve" in self.config.settings:
+            print(f"\n=== Agent batch evolve train on {self.config.evolve_split}[:{train_limit}] ===")
+            train_records, snapshot_name = self._run_agent_train_batch_evolve(evolve_cases)
             records.extend(train_records)
 
         if "skill_only_train_adaptive" in self.config.settings:
@@ -524,6 +529,48 @@ class StructuredBenchmarkRunner:
 
         return records, report.snapshot_name
 
+    def _run_agent_train_batch_evolve(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
+        subset_loop = self._make_subset_loop(cases)
+        report = subset_loop.run_batch_vstar(cases)
+        self.last_subset_rounds = [asdict(item) for item in report.round_results]
+        round_payload = [
+            {
+                "ordinal": index,
+                "case_id": result.representative_case_ids[0] if result.representative_case_ids else "",
+                "target_family": result.target_family,
+                "target_cluster_ids": list(result.target_cluster_ids),
+                "attempts": [
+                    {
+                        "attempt": 1,
+                        "decision": "keep" if result.accepted else "discard",
+                        "smoke_passed": result.smoke_passed,
+                        "baseline_score": result.baseline_score,
+                        "candidate_score": result.candidate_score,
+                        "score_delta": result.score_delta,
+                        "reason": result.reason,
+                    }
+                ],
+            }
+            for index, result in enumerate(report.round_results[: self.config.save_first_n_evolves], start=1)
+        ]
+        self._save_evolve_reports(round_payload)
+        records = self._materialize_agent_train_records(
+            cases,
+            report.baseline_records,
+            report.final_records,
+            report.round_results,
+            setting="agent_train_batch_evolve",
+        )
+        self._replace_records_for_setting("agent_train_batch_evolve", self.config.evolve_split, records)
+        for index, record in enumerate(records, start=1):
+            status = "OK" if record.correct else "FAIL"
+            extra = " evolved" if record.evolve_triggered else " no-evolve"
+            print(
+                f"[{index:03d}/{len(cases):03d}] {status}{extra} "
+                f"case={record.case_id} answer={record.answer!r}"
+            )
+        return records, report.snapshot_name
+
     def _run_skill_only_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
         subset_loop = self._make_subset_loop(cases, capability_mode="skill_only_same_tools")
         report = subset_loop.run(cases)
@@ -683,7 +730,7 @@ class StructuredBenchmarkRunner:
             artifact_paths=artifacts,
             chain_trace=chain_trace,
             image_path=case.image_path,
-            metadata=_merge_record_metadata(case.metadata, result.error),
+            metadata=_merge_record_metadata(case.metadata, result.error, _tool_step_debug(result)),
             readability_improved=None if readability is None else readability.get("readability_improved"),
             target_region_clearer=None if readability is None else readability.get("target_region_clearer"),
             text_or_marks_more_legible=None if readability is None else readability.get("text_or_marks_more_legible"),
@@ -698,18 +745,37 @@ class StructuredBenchmarkRunner:
             choice_lines = "\n".join(f"{label}. {text}" for label, text in sorted(choices.items()))
             choice_block = f"\nChoices:\n{choice_lines}"
         prompt = (
-            "Answer the question directly from the image.\n"
-            "Return only the final short answer with no explanation.\n"
-            "If the task is multiple choice, return the option letter when possible.\n\n"
-            f"Question: {case.prompt}{choice_block}"
+            "Answer the question from the image.\n"
+            "First do a brief visual reasoning process grounded in visible evidence, then give the final answer.\n"
+            "Return JSON only with keys analysis and answer.\n"
         )
+        if choices:
+            prompt += "The answer field must be exactly one option letter from the provided choices.\n\n"
+        else:
+            prompt += "The answer field must contain only the final short answer, with no explanation.\n\n"
+        prompt += f"Question: {case.prompt}{choice_block}"
         messages = [
             {
                 "role": "user",
                 "content": VLMClient.image_message_parts(case.image_path, prompt),
             }
         ]
-        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=200))
+        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=400))
+
+        parsed = _extract_json(response)
+        parsed_answer = str(parsed.get("answer", "")).strip()
+        if parsed_answer:
+            if choices:
+                if parsed_answer in choices:
+                    return parsed_answer
+            else:
+                return parsed_answer
+
+        if choices:
+            upper = response.upper()
+            for label in sorted(choices):
+                if re.search(rf"\b{re.escape(label)}\b", upper):
+                    return label
         return response.strip()
 
     def _create_plain_react_agent(self, case: TaskCase, phase: str) -> ReActAgent:
@@ -971,7 +1037,7 @@ class StructuredBenchmarkRunner:
                 artifact_paths=list(final.artifact_paths),
                 chain_trace=list(final.chain_trace),
                 image_path=case.image_path,
-                metadata=dict(case.metadata),
+                metadata=_merge_record_metadata(case.metadata, None, _train_record_tool_step_debug(final)),
             )
             record.initial_answer = baseline.answer
             record.initial_correct = baseline.correct
@@ -1041,6 +1107,8 @@ class StructuredBenchmarkRunner:
             "settings": settings_summary,
             "full_agent_accuracy": settings_summary.get("agent_train_adaptive", {}).get("full_agent_accuracy", 0.0),
             "post_evolve_recovery_accuracy": settings_summary.get("agent_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
+            "batch_full_agent_accuracy": settings_summary.get("agent_train_batch_evolve", {}).get("full_agent_accuracy", 0.0),
+            "batch_post_evolve_recovery_accuracy": settings_summary.get("agent_train_batch_evolve", {}).get("post_evolve_recovery_accuracy", 0.0),
             "skill_only_full_agent_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("full_agent_accuracy", 0.0),
             "skill_only_post_evolve_recovery_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
             "preset_tools_only_accuracy": settings_summary.get("preset_tools_only", {}).get("accuracy", 0.0),
@@ -1139,11 +1207,40 @@ def _extract_scratch_script_summary(result: AgentResult) -> str | None:
     return " | ".join(commands[:2])
 
 
-def _merge_record_metadata(metadata: dict[str, Any], runtime_error: str | None) -> dict[str, Any]:
+def _merge_record_metadata(
+    metadata: dict[str, Any],
+    runtime_error: str | None,
+    tool_steps: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     payload = dict(metadata)
     if runtime_error:
         payload["runtime_error"] = runtime_error
+    if tool_steps:
+        payload["tool_steps"] = tool_steps
     return payload
+
+
+def _tool_step_debug(result: AgentResult) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for step in result.steps:
+        if step.action is None or step.action.name != "bash":
+            continue
+        command = str(step.command or step.action.arguments.get("command", "") or "")
+        observation = str(step.observation or "")
+        rows.append(
+            {
+                "turn": step.turn,
+                "command": command[:500],
+                "observation": observation[:1000],
+                "artifacts": list(step.artifacts),
+            }
+        )
+    return rows
+
+
+def _train_record_tool_step_debug(record) -> list[dict[str, Any]]:
+    rows = record.metadata.get("tool_steps") if isinstance(record.metadata, dict) else None
+    return list(rows) if isinstance(rows, list) else []
 
 
 def _record_is_resume_eligible(record: StructuredCaseRecord) -> bool:

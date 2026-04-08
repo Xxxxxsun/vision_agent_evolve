@@ -24,6 +24,7 @@ except ImportError:
 class ModelSettings:
     """LLM generation settings."""
     temperature: float = 0.2
+    top_p: float | None = None
     max_tokens: int = 1400
     timeout: int = 120
     max_retries: int = 3
@@ -91,13 +92,16 @@ class VLMClient:
                 if self.api_style == "alibaba_chat":
                     return self._chat_alibaba(messages, settings)
 
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=settings.temperature,
-                    max_tokens=settings.max_tokens,
-                    timeout=settings.timeout,
-                )
+                request_kwargs: dict[str, Any] = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": settings.temperature,
+                    "max_tokens": settings.max_tokens,
+                    "timeout": settings.timeout,
+                }
+                if settings.top_p is not None:
+                    request_kwargs["top_p"] = settings.top_p
+                response = self.client.chat.completions.create(**request_kwargs)
 
                 usage = UsageStats()
                 if hasattr(response, "usage") and response.usage:

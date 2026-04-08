@@ -540,6 +540,20 @@ class EvolutionLoop:
                 "- For edit/generation tasks, produce the requested image artifact first, then answer with the final short response."
             )
 
+        if dataset_name == "vstar" or family.startswith("vstar"):
+            return (
+                "Task-specific instructions for VStar fine-grained VQA:\n"
+                "- Before completing, write one short `Visual grounding:` line that identifies the named target object(s), inspects the relevant local evidence, and compares against every option.\n"
+                "- For direct-attribute questions, first localize the referenced object or person, then read the requested visible attribute from that region only.\n"
+                "- For relative-position questions, first localize both referenced objects, then compare their image-plane centers for left/right or above/below; do not use world priors.\n"
+                "- Use a tool only when the target is small, cluttered, visually ambiguous, or a learned SOP explicitly routes you to a tool; otherwise answer directly after the grounding pass.\n"
+                "- On completion, use exactly this format:\n"
+                "  Visual grounding: <one short evidence sentence>\n"
+                "  Final Answer: <option letter and short option text>\n"
+                "  ACTION: TASK_COMPLETE\n"
+                "- Keep the final answer short, but do not skip the visual grounding step before choosing."
+            )
+
         if dataset_name == "textvqa" or family.startswith("textvqa"):
             return (
                 "Task-specific instructions for OCR / short-answer VQA:\n"
@@ -605,6 +619,12 @@ class EvolutionLoop:
         if self.fixed_builtin_tools:
             allowed = set(self.fixed_builtin_tools)
             builtin_names = [name for name in builtin_names if name in allowed]
+        elif case is not None and (case.dataset_name().strip().lower() == "vstar" or case.capability_family().strip().lower().startswith("vstar")):
+            # For VStar, a long generic builtin inventory drowns out the visual
+            # grounding instruction and makes empty-snapshot frozen inference a
+            # worse prompt than the direct CoT baseline. Learned tools are still
+            # added below when they exist.
+            builtin_names = []
         snapshot.available_tools.extend(builtin_names)
         if case is not None and self._requires_strict_tool_commands(case):
             allowed = self._allowed_gta_tool_names(case)

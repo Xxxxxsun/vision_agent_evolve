@@ -7,7 +7,7 @@
       "count": 40,
       "source_split": "test",
       "source_files": [
-        "/root/vqa_datasets/datasets/vstar_bench/data/test-00000-of-00001.parquet"
+        "/root/vqa_datasets/datasets/vstar_bench/data/test.jsonl"
       ],
       "output_file": "datasets/structured_multibench/vstar/train.jsonl"
     },
@@ -15,7 +15,7 @@
       "count": 151,
       "source_split": "test",
       "source_files": [
-        "/root/vqa_datasets/datasets/vstar_bench/data/test-00000-of-00001.parquet"
+        "/root/vqa_datasets/datasets/vstar_bench/data/test.jsonl"
       ],
       "output_file": "datasets/structured_multibench/vstar/val.jsonl"
     }

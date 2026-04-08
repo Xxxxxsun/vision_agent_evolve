@@ -72,6 +72,18 @@ class MultiTurnTaskCase:
 
 
 @dataclass
+class TirBenchCase:
+    """One TIR-Bench visual reasoning case."""
+
+    case_id: str
+    task: str
+    prompt: str
+    gold_answer: str
+    image_paths: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class Message:
     """Chat message."""
     role: Literal["system", "user", "assistant"]
@@ -91,6 +103,7 @@ class AgentStep:
     turn: int
     thought: str | None = None
     action: AgentAction | None = None
+    command: str | None = None
     observation: str | None = None
     artifacts: list[str] = field(default_factory=list)  # Generated files (images, etc)
     is_final: bool = False

@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights compact, high-saliency local regions with zoomed contrast-enhanced crops to support inspection of object or clothing color without predicting the answer.",
+  "applicability_conditions": "Use this tool for direct multiple-choice attribute questions when the target is a visible local entity or accessory tied to a referenced person/object, especially when the failure mode is missing a small colored item due to lack of focused inspection. It is appropriate on raw images or prior artifacts when the scene is cluttered, the target occupies a small fraction of the frame, or a person/object needs closer localized color reading. It supports variations such as handbags, clothing items, or similarly localized visible attributes, but not OCR, counting, or ambiguous target resolution requiring deeper reasoning.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T11:55:18.369512",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights salient local object candidates and adds zoomed color-inspection panels with dominant-color swatches to support object-specific color lookup.",
+  "applicability_conditions": "Use when a multiple-choice visual question asks for the color of a specific foreground object/entity and success depends on inspecting a localized region rather than the whole image. Appropriate for raw images or intermediate artifacts where the target object may be small, near image borders, or visually mixed with background clutter. Especially useful after no prior localization tool has been applied, or when a previous artifact still needs local color-focused inspection.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T06:28:57.640352",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

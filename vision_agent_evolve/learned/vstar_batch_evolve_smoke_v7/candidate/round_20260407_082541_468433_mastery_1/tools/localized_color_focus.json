@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights compact, high-saliency object candidate regions and produces a zoomed contact sheet to support localized color inspection for direct attribute questions.",
+  "applicability_conditions": "Use when the task family asks for the color of a specifically named object or accessory in a natural image, especially in direct multiple-choice lookup questions where the object may be small relative to the full frame. This is appropriate both on raw images and on intermediate artifacts from prior steps, as long as the target object is expected to appear as one of several localized salient regions whose color needs closer inspection.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T08:27:16.714361",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

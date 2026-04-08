@@ -1,0 +1,14 @@
+{
+  "name": "localized_color_focus",
+  "description": "Highlights compact foreground object candidates with zoomed crops and boosted local color contrast to support direct color lookup on a referenced item.",
+  "applicability_conditions": "Use when a vstar_direct_attributes question asks for the visible color of a specific localized object or clothing item (for example a bag, hat, shirt, shoes, or handheld accessory) and the full image is too wide or cluttered for reliable inspection. This is especially appropriate as a first reusable step when no prior tool has isolated the target, or when the input is already an intermediate artifact but still contains multiple people/object regions needing localized color inspection.",
+  "usage_example": "python -m tools localized_color_focus <image_path>",
+  "primitive_category": "localized_color_focus",
+  "created_at": "2026-04-07T08:22:26.276253",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

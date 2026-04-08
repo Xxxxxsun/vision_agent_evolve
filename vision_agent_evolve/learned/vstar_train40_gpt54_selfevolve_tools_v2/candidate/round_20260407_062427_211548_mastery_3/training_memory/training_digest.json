@@ -1,0 +1,300 @@
+{
+  "baseline_summary": {
+    "total_cases": 40,
+    "correct_cases": 23,
+    "primary_score": 0.575,
+    "per_dataset_scores": {
+      "vstar": 0.575
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.6086956521739131,
+      "vstar_relative_position": 0.5294117647058824
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 9,
+      "case_ids": [
+        "100",
+        "108",
+        "4",
+        "49",
+        "65",
+        "74",
+        "81",
+        "93",
+        "94"
+      ],
+      "representative_case_ids": [
+        "100",
+        "108"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+        "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (7/9)",
+        "tool_used (2/9)"
+      ],
+      "shared_tool_patterns": [
+        "none (7/9)",
+        "TextToBbox (1/9)",
+        "localized_color_focus (1/9)"
+      ],
+      "shared_prompt_patterns": [
+        "color (8/9)",
+        "generic_question (1/9)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "cluster_key": "vstar_relative_position::generic::multiple_choice",
+      "total_cases": 8,
+      "case_ids": [
+        "122",
+        "127",
+        "149",
+        "154",
+        "169",
+        "175",
+        "177",
+        "178"
+      ],
+      "representative_case_ids": [
+        "122",
+        "127"
+      ],
+      "summary_lines": [
+        "case_id=122; prompt=Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below; expected=B; answer=A. above",
+        "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (5/8)",
+        "tool_used (3/8)"
+      ],
+      "shared_tool_patterns": [
+        "none (5/8)",
+        "relative_position_marker (2/8)",
+        "ImageDescription (1/8)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (8/8)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 23,
+      "failed_cases": 9,
+      "baseline_score": 0.6086956521739131,
+      "common_question_patterns": [
+        "multiple_choice (23/23)",
+        "direct_lookup (22/23)",
+        "generic_question (1/23)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (7/9)",
+        "tool_used (2/9)"
+      ],
+      "tool_usage_patterns": [
+        "none (16/23)",
+        "localized_color_focus (5/23)",
+        "TextToBbox (2/23)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 9,
+          "case_ids": [
+            "100",
+            "108",
+            "4",
+            "49",
+            "65",
+            "74",
+            "81",
+            "93",
+            "94"
+          ],
+          "representative_case_ids": [
+            "100",
+            "108"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (7/9)",
+            "tool_used (2/9)"
+          ],
+          "shared_tool_patterns": [
+            "none (7/9)",
+            "TextToBbox (1/9)",
+            "localized_color_focus (1/9)"
+          ],
+          "shared_prompt_patterns": [
+            "color (8/9)",
+            "generic_question (1/9)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+            "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100",
+            "108"
+          ],
+          "supported_patterns": [
+            "color (8/9)",
+            "generic_question (1/9)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "vstar_relative_position",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 17,
+      "failed_cases": 8,
+      "baseline_score": 0.5294117647058824,
+      "common_question_patterns": [
+        "generic_question (17/17)",
+        "multiple_choice (17/17)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (5/8)",
+        "tool_used (3/8)"
+      ],
+      "tool_usage_patterns": [
+        "none (14/17)",
+        "relative_position_marker (2/17)",
+        "ImageDescription (1/17)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_relative_position",
+          "cluster_key": "vstar_relative_position::generic::multiple_choice",
+          "total_cases": 8,
+          "case_ids": [
+            "122",
+            "127",
+            "149",
+            "154",
+            "169",
+            "175",
+            "177",
+            "178"
+          ],
+          "representative_case_ids": [
+            "122",
+            "127"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (5/8)",
+            "tool_used (3/8)"
+          ],
+          "shared_tool_patterns": [
+            "none (5/8)",
+            "relative_position_marker (2/8)",
+            "ImageDescription (1/8)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (8/8)"
+          ],
+          "example_case_summaries": [
+            "case_id=122; prompt=Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below; expected=B; answer=A. above",
+            "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left"
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for vstar_relative_position.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "122",
+            "127"
+          ],
+          "supported_patterns": [
+            "generic_question (8/8)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    },
+    {
+      "case_id": "108",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange"
+    },
+    {
+      "case_id": "122",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the bell above or below the clock?\n(A) above\n(B) below\n\nChoices:\nA. above\nB. below"
+    },
+    {
+      "case_id": "127",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left"
+    }
+  ],
+  "recent_rejected_plans": [],
+  "mastery_profiles": {}
+}

@@ -66,6 +66,13 @@ def main():
 
     tool_name = sys.argv[1]
 
+    if scoped_learned_dir and tool_name in learned_tools:
+        tool_path = learned_tools[tool_name]
+        args = sys.argv[2:]
+        output = execute_learned_tool(tool_path, args)
+        print(output)
+        return
+
     if tool_name in builtin_tools:
         if len(sys.argv) < 3 and " <image_path>" in builtin_tools[tool_name].usage_example:
             print(f"Usage: {builtin_tools[tool_name].usage_example}")

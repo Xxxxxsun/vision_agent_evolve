@@ -1,0 +1,123 @@
+{
+  "baseline_summary": {
+    "total_cases": 3,
+    "correct_cases": 2,
+    "primary_score": 0.6666666666666666,
+    "per_dataset_scores": {
+      "vstar": 0.6666666666666666
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.6666666666666666
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 1,
+      "case_ids": [
+        "100"
+      ],
+      "representative_case_ids": [
+        "100"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "none (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "color (1/1)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 3,
+      "failed_cases": 1,
+      "baseline_score": 0.6666666666666666,
+      "common_question_patterns": [
+        "direct_lookup (3/3)",
+        "multiple_choice (3/3)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (1/1)"
+      ],
+      "tool_usage_patterns": [
+        "none (3/3)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 1,
+          "case_ids": [
+            "100"
+          ],
+          "representative_case_ids": [
+            "100"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "none (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "color (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100"
+          ],
+          "supported_patterns": [
+            "color (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    }
+  ],
+  "recent_rejected_plans": [],
+  "mastery_profiles": {}
+}

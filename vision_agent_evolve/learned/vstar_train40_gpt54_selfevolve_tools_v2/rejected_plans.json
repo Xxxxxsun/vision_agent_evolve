@@ -1,0 +1,150 @@
+[
+  {
+    "run_id": "round_20260407_063633_602184",
+    "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+    "failure_type": "case_specific_logic",
+    "target_family": "vstar_relative_position",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Determine whether one referenced object is spatially left/right or above/below another object in a generic scene image.",
+      "supported_variations": [
+        "left vs right relation between two named objects",
+        "above vs below relation between two named objects"
+      ],
+      "unsupported_variations": [
+        "depth, distance, overlap, containment, or directional motion relations not reducible to 2D relative position between two identifiable objects"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "do not hardcode object locations for any representative image",
+        "do not use fixed pixel thresholds or numeric coordinates tied to one scene",
+        "do not assume the target objects always appear in canonical positions or sizes",
+        "do not answer from choice ordering or prompt priors without image grounding"
+      ],
+      "primitive_category": "generic_visual_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The family repeatedly asks the same low-level visual reasoning operation: identify two referenced objects and compare their 2D positions. A reusable visual focus tool plus lightweight decision skill can cover both left/right and above/below across varied scenes without case-specific logic."
+    },
+    "revision_brief": {
+      "failure_type": "case_specific_logic",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "evidence": [
+        "Static inspection found image- or case-anchored logic in the tool proposal."
+      ],
+      "rewrite_requirements": [
+        "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+        "State applicability conditions for a family-level visual pattern."
+      ],
+      "banned_patterns": [
+        "current case id",
+        "current image path",
+        "fixed one-image thresholds"
+      ],
+      "retry_action": "revise_tool"
+    }
+  },
+  {
+    "run_id": "round_20260407_063113_687164",
+    "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+    "failure_type": "case_specific_logic",
+    "target_family": "vstar_relative_position",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Determine the relative spatial position of one depicted object with respect to another in generic image scenes, typically answering left/right or above/below multiple-choice questions.",
+      "supported_variations": [
+        "left vs right relation between two identified objects",
+        "above vs below relation between two identified objects across varied natural or illustrated scenes"
+      ],
+      "unsupported_variations": [
+        "depth, occlusion, or front/behind judgments requiring 3D scene inference"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "do not hardcode any specific object pair such as bell-clock or seesaw-vehicle",
+        "do not assume fixed image layouts, canonical object locations, or one-off coordinates from representative cases",
+        "do not rely on dataset-specific answer priors like vehicles usually being below playground objects"
+      ],
+      "primitive_category": "generic_visual_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_tool",
+      "why_this_should_generalize": "The family uses a stable question form and repeatedly needs focused localization of two referenced objects before comparing their positions, so a reusable generic visual focus primitive should improve performance across many cases."
+    },
+    "revision_brief": {
+      "failure_type": "case_specific_logic",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "evidence": [
+        "Static inspection found image- or case-anchored logic in the tool proposal."
+      ],
+      "rewrite_requirements": [
+        "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+        "State applicability conditions for a family-level visual pattern."
+      ],
+      "banned_patterns": [
+        "current case id",
+        "current image path",
+        "fixed one-image thresholds"
+      ],
+      "retry_action": "revise_tool"
+    }
+  },
+  {
+    "run_id": "round_20260407_062427_211548",
+    "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+    "failure_type": "case_specific_logic",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Multiple-choice visual attribute questions that ask for the color of a specific object, where success depends on isolating the referenced object and inspecting its local color rather than reasoning globally.",
+      "supported_variations": [
+        "Color identification for a named foreground object in a natural image",
+        "Color lookup when the target object is small or requires localized visual focus"
+      ],
+      "unsupported_variations": [
+        "Questions requiring object detection plus relational reasoning, counting, reading text, or non-color attributes"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode handbag, swim ring, or any specific object category",
+        "Do not assume fixed image regions, centers, or one-off coordinates for the target object",
+        "Do not rely on answer-choice priors such as common clothing or accessory colors"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_tool",
+      "why_this_should_generalize": "The failures are concentrated in a stable, high-toolability subproblem: localized color extraction for a referenced object. A reusable focus-and-inspect tool can support many direct-attribute cases across the family without depending on case-specific content."
+    },
+    "revision_brief": {
+      "failure_type": "case_specific_logic",
+      "reason": "Tool code contains too many numeric literals and looks overfit to one example",
+      "evidence": [
+        "Static inspection found image- or case-anchored logic in the tool proposal."
+      ],
+      "rewrite_requirements": [
+        "Replace case-specific thresholds or coordinates with relative or image-derived logic.",
+        "State applicability conditions for a family-level visual pattern."
+      ],
+      "banned_patterns": [
+        "current case id",
+        "current image path",
+        "fixed one-image thresholds"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

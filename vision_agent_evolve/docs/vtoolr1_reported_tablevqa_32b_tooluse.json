@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.76,
+  "source": "VTool-R1 paper, Table 1, Qwen2.5-VL-32B Table Split, Tool Use row",
+  "context": {
+    "setting": "vanilla model, prompt with tool",
+    "dataset": "Table Split",
+    "model": "Qwen2.5-VL-32B-Instruct"
+  }
+}

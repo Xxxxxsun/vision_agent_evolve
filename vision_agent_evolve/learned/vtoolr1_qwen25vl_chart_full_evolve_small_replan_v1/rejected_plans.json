@@ -1,0 +1,88 @@
+[
+  {
+    "run_id": "round_20260408_094800_247809",
+    "reason": "Tool did not produce any artifacts",
+    "failure_type": "no_artifact",
+    "target_family": "chartqa",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "chartqa",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Computing differences between chart values (e.g., largest vs. smallest bar)",
+      "supported_variations": [
+        "Questions asking for differences between chart elements (e.g., bars, lines)",
+        "Charts with numerical values overlaid or extractable via OCR"
+      ],
+      "unsupported_variations": [
+        "Charts without numerical values or OCR-extractable data",
+        "Questions requiring non-numeric reasoning (e.g., qualitative comparisons)"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Hardcoding specific chart images or coordinates",
+        "Assuming a fixed chart type or layout"
+      ],
+      "primitive_category": "chart_value_overlay",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_tool",
+      "why_this_should_generalize": "The pattern involves a common chart analysis task (value comparison) that can be generalized across various chart types and questions."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool did not produce any artifacts",
+      "evidence": [
+        "{'status': 'error', 'answer': \"Error processing image: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\\n> Overload resolution failed:\\n>  - img is not a numpy array, neither a scalar\\n>  - Expected Ptr<cv::UMat> for argum"
+      ],
+      "rewrite_requirements": [
+        "Save at least one real artifact under artifacts/.",
+        "Return the same artifact path in ToolResult.artifacts."
+      ],
+      "banned_patterns": [
+        "status-only tools",
+        "tools with no artifact output"
+      ],
+      "retry_action": "revise_tool"
+    },
+    "repair_history": [
+      {
+        "attempt": 1,
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "Error executing learned tool: No module named 'pytesseract'"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ]
+      },
+      {
+        "attempt": 2,
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "Error executing learned tool: Cannot find tool class in <module 'chart_value_overlay' from '/root/vision_agent_evolve/vision_agent_evolve/learned/vtoolr1_qwen25vl_chart_full_evolve_small_replan_v1/candidate/round_20260408_094800_247809/tool"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ]
+      },
+      {
+        "attempt": 3,
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "{'status': 'error', 'answer': \"Error processing image: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\\n> Overload resolution failed:\\n>  - img is not a numpy array, neither a scalar\\n>  - Expected Ptr<cv::UMat> for argum"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ]
+      }
+    ]
+  }
+]

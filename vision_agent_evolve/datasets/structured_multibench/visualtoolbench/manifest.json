@@ -4,7 +4,7 @@
   "normalized_data_root": "datasets/structured_multibench/visualtoolbench",
   "splits": {
     "test": {
-      "count": 3,
+      "count": 1204,
       "source_file": "datasets/visualtoolbench_official/test.parquet",
       "output_file": "datasets/structured_multibench/visualtoolbench/test.jsonl"
     }

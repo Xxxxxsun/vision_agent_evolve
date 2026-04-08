@@ -1,0 +1,98 @@
+[
+  {
+    "run_id": "round_20260407_093742_408151",
+    "reason": "Tool did not produce any artifacts",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_relative_position",
+    "target_cluster_ids": [
+      "cluster_2"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "problem_pattern": "Determine whether one referenced object is to the left or right of another object in a natural image from a generic multiple-choice question.",
+      "supported_variations": [
+        "Two distinct objects with clear spatial separation where the answer is left-versus-right relative position",
+        "Objects described by category and simple attribute cues such as color, with either object serving as the reference"
+      ],
+      "unsupported_variations": [
+        "Cases requiring depth, occlusion resolution, ambiguous group selection, or relations beyond simple horizontal left-right positioning"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode specific object pairs such as seesaw-vehicle or trash can-motorcycle",
+        "Do not rely on fixed image-side priors for particular categories or colors",
+        "Do not use one-off coordinates, memorized layouts, or dataset-specific camera framing assumptions"
+      ],
+      "primitive_category": "generic_visual_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The failures stem from not using any focused visual grounding. A reusable visual-focus primitive can help localize the two queried objects and compare their horizontal positions across many left-right relative-position questions in this family."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool did not produce any artifacts",
+      "evidence": [
+        "STATUS: ok"
+      ],
+      "rewrite_requirements": [
+        "Save at least one real artifact under artifacts/.",
+        "Return the same artifact path in ToolResult.artifacts."
+      ],
+      "banned_patterns": [
+        "status-only tools",
+        "tools with no artifact output"
+      ],
+      "retry_action": "revise_tool"
+    }
+  },
+  {
+    "run_id": "round_20260407_093233_973543",
+    "reason": "Tool did not produce any artifacts",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Questions ask for the color of a specific referenced object in an image, usually as multiple-choice direct attribute lookup requiring localized visual focus on that object.",
+      "supported_variations": [
+        "Multiple-choice questions asking the color of a named object",
+        "Direct color lookup for a single salient or moderately localized object"
+      ],
+      "unsupported_variations": [
+        "Questions requiring counting, reading text, relational reasoning, or attributes beyond localized object color"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode colors associated with specific object types",
+        "Do not assume the target object is centered, largest, or uniquely salient",
+        "Do not use one-off image coordinates or case-specific regions"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "family",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "Failures concentrate on missing localized color inspection, and the dominant family pattern is stable direct object-color identification across images, making a reusable color-focused primitive plus selection skill broadly applicable."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool did not produce any artifacts",
+      "evidence": [
+        "Error executing learned tool: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\n> Overload resolution failed:\n>  - img is not a numpy array, neither a scalar\n>  - Expected Ptr<cv::UMat> for argument 'img'"
+      ],
+      "rewrite_requirements": [
+        "Save at least one real artifact under artifacts/.",
+        "Return the same artifact path in ToolResult.artifacts."
+      ],
+      "banned_patterns": [
+        "status-only tools",
+        "tools with no artifact output"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

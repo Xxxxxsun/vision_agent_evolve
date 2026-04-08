@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.structured_data import load_visualtoolbench_cases
+from core.vlm_client import VLMClient
 from core.visualtoolbench_runner import VisualToolBenchRunner
 from tools.visualtoolbench_tools import execute_visualtoolbench_tool
 
@@ -24,9 +25,10 @@ def main() -> None:
     parser.add_argument("--split", default="test")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--output-dir", default="artifacts/visualtoolbench")
-    parser.add_argument("--max-tool-calls-per-turn", type=int, default=8)
+    parser.add_argument("--max-tool-calls-per-turn", type=int, default=20)
     parser.add_argument("--preflight-limit", type=int, default=3, help="Run a small preflight sample before the main evaluation.")
     parser.add_argument("--skip-preflight", action="store_true")
+    parser.add_argument("--judge-model", default="", help="Optional separate judge model. Defaults to current VLM_MODEL.")
     args = parser.parse_args()
 
     normalized_root = Path(args.normalized_data_root)
@@ -37,9 +39,15 @@ def main() -> None:
         preflight = _run_preflight(cases[: max(1, args.preflight_limit)])
         print(json.dumps({"preflight": preflight}, ensure_ascii=False, indent=2))
 
+    solver_client = VLMClient()
+    judge_model = args.judge_model.strip()
+    judge_client = VLMClient(model=judge_model) if judge_model else solver_client
+
     runner = VisualToolBenchRunner(
         normalized_data_root=normalized_root,
         output_dir=PROJECT_ROOT / args.output_dir,
+        client=solver_client,
+        judge_client=judge_client,
         max_tool_calls_per_turn=args.max_tool_calls_per_turn,
     )
     summary = runner.run(split=args.split, limit=args.limit)

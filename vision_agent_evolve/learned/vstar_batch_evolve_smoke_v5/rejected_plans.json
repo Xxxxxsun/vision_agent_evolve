@@ -1,0 +1,49 @@
+[
+  {
+    "run_id": "round_20260407_081305_966529",
+    "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+    "failure_type": "no_artifact",
+    "target_family": "vstar_direct_attributes",
+    "target_cluster_ids": [
+      "cluster_1"
+    ],
+    "coverage_contract": {
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "problem_pattern": "Direct multiple-choice visual attribute lookup where the answer depends on identifying the color of a specific localized object in the image.",
+      "supported_variations": [
+        "Questions asking for the color of a named object held, worn, or placed in the scene",
+        "Multiple-choice direct attribute questions requiring visual focus on one referenced object region"
+      ],
+      "unsupported_variations": [
+        "Questions requiring counting, reading text, inferring intent, or resolving ambiguous object references without clear localization"
+      ],
+      "forbidden_case_specific_assumptions": [
+        "Do not hardcode the woman's handbag or any specific object category from one example",
+        "Do not rely on fixed image coordinates or assume the target object appears in a consistent location",
+        "Do not assume a specific color set or map answer choices from prior cases"
+      ],
+      "primitive_category": "localized_color_focus",
+      "tool_validation_scope": "cluster",
+      "recommended_action": "generate_both",
+      "why_this_should_generalize": "The cluster is unified by a stable primitive: localize the referenced object and inspect its dominant color. This is reusable across direct attribute questions on different objects and scenes."
+    },
+    "revision_brief": {
+      "failure_type": "no_artifact",
+      "reason": "Tool reported missing artifacts: artifacts/localized_color_focus_output.png",
+      "evidence": [
+        "artifacts/localized_color_focus_output.png"
+      ],
+      "rewrite_requirements": [
+        "Write the artifact file before returning.",
+        "Keep ToolResult.artifacts aligned with real relative file paths."
+      ],
+      "banned_patterns": [
+        "nonexistent artifact paths"
+      ],
+      "retry_action": "revise_tool"
+    }
+  }
+]

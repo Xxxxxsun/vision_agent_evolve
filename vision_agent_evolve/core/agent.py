@@ -110,7 +110,7 @@ class ReActAgent:
 
         for turn in range(1, self.config.max_turns + 1):
             # Get LLM response
-            response, _ = self.client.chat(messages, ModelSettings(max_tokens=12000))  # Ignore usage in agent
+            response, _ = self.client.chat(messages, ModelSettings(temperature=0.0, max_tokens=12000))  # Ignore usage in agent
             parse_result = self.parser.parse_response(response)
             step = AgentStep(turn=turn, thought=response)
 
@@ -186,11 +186,13 @@ class ReActAgent:
                 observation = f"Error: unknown tool '{action.name}'. Only 'bash' is allowed."
             else:
                 command = str(action.arguments.get("command", ""))
+                step.command = command
                 if self._uses_required_tool(command):
                     required_tool_used = True
                 if self._uses_required_skill(command):
                     required_skill_used = True
                 observation = self._run_bash(command)
+                step.command = getattr(self, "_last_executed_command", command)
 
             step.observation = observation
 
@@ -331,6 +333,11 @@ class ReActAgent:
             quoted_current_image = shlex.quote(current_image)
             rewritten_command = rewritten_command.replace('image="<image_path>"', f"image={quoted_current_image}")
             rewritten_command = re.sub(
+                r"(?<!\S)/mnt/data/\d+\.(?:png|jpg|jpeg|webp|gif)(?!\S)",
+                quoted_current_image,
+                rewritten_command,
+            )
+            rewritten_command = re.sub(
                 r"\binput_file_0\.(?:png|jpg|jpeg|webp|gif)\b",
                 quoted_current_image,
                 rewritten_command,
@@ -342,6 +349,7 @@ class ReActAgent:
             quoted_artifact = shlex.quote(latest_artifact)
             rewritten_command = rewritten_command.replace('image="<artifact_path>"', f"image={quoted_artifact}")
             rewritten_command = rewritten_command.replace("<artifact_path>", quoted_artifact)
+        self._last_executed_command = rewritten_command
         return rewritten_command
 
     def _user_content(self, text: str, image_path: str) -> Any:

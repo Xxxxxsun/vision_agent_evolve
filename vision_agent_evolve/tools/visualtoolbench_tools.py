@@ -9,6 +9,7 @@ import math
 import os
 import re
 import traceback
+import types
 from html import unescape
 import shutil
 from pathlib import Path
@@ -26,7 +27,8 @@ def get_visualtoolbench_tool_descriptions() -> str:
     """Return the prompt-facing tool catalog."""
     return (
         "- python_image_processing(code): Generate Python code that reads one input image, performs image editing "
-        "with PIL/NumPy/OpenCV, and saves PNG outputs as transformed_image_i.png.\n"
+        "with PIL/NumPy/OpenCV, and saves PNG outputs as transformed_image_i.png. OCR-only packages such as "
+        "pytesseract/easyocr are not preinstalled; prefer PIL/OpenCV transforms.\n"
         "- python_interpreter(code): Run general-purpose Python code and capture stdout/stderr.\n"
         "- web_search(query, num_results=5): Search the web and return concise result snippets.\n"
         "- browser_get_page_text(url): Fetch one webpage and return extracted text content.\n"
@@ -71,17 +73,17 @@ def python_image_processing(
     output_dir.mkdir(parents=True, exist_ok=True)
     _materialize_input_images(workspace_dir, image_paths)
 
-    before = {path.name for path in output_dir.glob("transformed_image_*.png")}
+    before = _transformed_image_names(workspace_dir, output_dir)
+    code = _rewrite_workspace_paths(str(code), workspace_dir)
     globals_dict = _sandbox_globals(workspace_dir, image_paths, output_dir)
     stdout = io.StringIO()
     stderr = io.StringIO()
     with _pushd(workspace_dir), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-        exec(str(code), globals_dict, globals_dict)
+        exec(code, globals_dict, globals_dict)
 
-    after = sorted(output_dir.glob("transformed_image_*.png"))
-    artifacts = [str(path) for path in after if path.name not in before]
+    artifacts = _collect_transformed_artifacts(workspace_dir, output_dir, before)
     if not artifacts:
-        artifacts = [str(path) for path in after]
+        artifacts = [str(path) for path in _all_transformed_artifacts(workspace_dir, output_dir)]
 
     answer = stdout.getvalue().strip()
     debug = stderr.getvalue().strip()
@@ -97,11 +99,12 @@ def python_interpreter(
     """Run general-purpose Python code in a constrained namespace."""
     workspace_dir.mkdir(parents=True, exist_ok=True)
     _materialize_input_images(workspace_dir, image_paths)
+    code = _rewrite_workspace_paths(str(code), workspace_dir)
     globals_dict = _sandbox_globals(workspace_dir, image_paths, workspace_dir / "processed_images")
     stdout = io.StringIO()
     stderr = io.StringIO()
     with _pushd(workspace_dir), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-        exec(str(code), globals_dict, globals_dict)
+        exec(code, globals_dict, globals_dict)
     return ToolResult(
         status="ok",
         answer=stdout.getvalue().strip(),
@@ -212,7 +215,7 @@ def calculator(expression: str, **_: Any) -> ToolResult:
 def _sandbox_globals(workspace_dir: Path, image_paths: list[str], output_dir: Path) -> dict[str, Any]:
     image_list = [str(Path(path)) for path in image_paths]
     builtins_dict = {
-        "__import__": __import__,
+        "__import__": _safe_import,
         "abs": abs,
         "all": all,
         "any": any,
@@ -226,6 +229,7 @@ def _sandbox_globals(workspace_dir: Path, image_paths: list[str], output_dir: Pa
         "max": max,
         "min": min,
         "print": print,
+        "open": open,
         "range": range,
         "round": round,
         "set": set,
@@ -234,6 +238,11 @@ def _sandbox_globals(workspace_dir: Path, image_paths: list[str], output_dir: Pa
         "sum": sum,
         "tuple": tuple,
         "zip": zip,
+        "Exception": Exception,
+        "FileNotFoundError": FileNotFoundError,
+        "RuntimeError": RuntimeError,
+        "TypeError": TypeError,
+        "ValueError": ValueError,
     }
     return {
         "__builtins__": builtins_dict,
@@ -253,6 +262,12 @@ def _sandbox_globals(workspace_dir: Path, image_paths: list[str], output_dir: Pa
     }
 
 
+def _rewrite_workspace_paths(code: str, workspace_dir: Path) -> str:
+    """Map common notebook scratch paths to the tool workspace."""
+    workspace = str(workspace_dir)
+    return code.replace("/mnt/data", workspace).replace("/content", workspace)
+
+
 def _materialize_input_images(workspace_dir: Path, image_paths: list[str]) -> None:
     """Expose images in the workspace using the paper-style image_N aliases."""
     for index, raw_path in enumerate(image_paths, start=1):
@@ -262,8 +277,107 @@ def _materialize_input_images(workspace_dir: Path, image_paths: list[str]) -> No
         suffix = source.suffix.lower() or ".png"
         alias_path = workspace_dir / f"image_{index}{suffix}"
         if alias_path.exists():
-            continue
-        shutil.copy2(source, alias_path)
+            pass
+        else:
+            shutil.copy2(source, alias_path)
+        basename_path = workspace_dir / source.name
+        if not basename_path.exists():
+            shutil.copy2(source, basename_path)
+        generic_path = workspace_dir / f"input_image{suffix}"
+        if index == 1 and not generic_path.exists():
+            shutil.copy2(source, generic_path)
+
+
+def _transformed_image_names(workspace_dir: Path, output_dir: Path) -> set[str]:
+    return {path.name for path in _all_transformed_artifacts(workspace_dir, output_dir)}
+
+
+def _all_transformed_artifacts(workspace_dir: Path, output_dir: Path) -> list[Path]:
+    seen: dict[str, Path] = {}
+    for base in (workspace_dir, output_dir):
+        for path in sorted(base.glob("transformed_image_*.png")):
+            seen.setdefault(path.name, path.resolve())
+    return list(seen.values())
+
+
+def _collect_transformed_artifacts(workspace_dir: Path, output_dir: Path, before: set[str]) -> list[str]:
+    artifacts = []
+    for path in _all_transformed_artifacts(workspace_dir, output_dir):
+        if path.name not in before:
+            artifacts.append(str(path))
+    return artifacts
+
+
+def _safe_import(name: str, globals=None, locals=None, fromlist=(), level=0):
+    if name == "pytesseract":
+        return _build_pytesseract_shim()
+    if name == "easyocr":
+        return _build_easyocr_shim()
+    return __import__(name, globals, locals, fromlist, level)
+
+
+def _build_pytesseract_shim():
+    module = types.ModuleType("pytesseract")
+
+    def image_to_string(image, *args, **kwargs):
+        path = _ensure_image_path(image)
+        prompt = (
+            "Read all visible text from this image. "
+            "Return plain text only, preserving numbers and line breaks when possible."
+        )
+        return _vlm_ocr_text(path, prompt)
+
+    module.image_to_string = image_to_string
+    return module
+
+
+def _build_easyocr_shim():
+    module = types.ModuleType("easyocr")
+
+    class Reader:
+        def __init__(self, languages, *args, **kwargs):
+            self.languages = languages
+
+        def readtext(self, image, *args, **kwargs):
+            path = _ensure_image_path(image)
+            prompt = (
+                "Read all visible text from this image. "
+                "Return one line per detected text span using the format: recognized text"
+            )
+            text = _vlm_ocr_text(path, prompt)
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            return [([0, 0, 0, 0], line, 0.5) for line in lines]
+
+    module.Reader = Reader
+    return module
+
+
+def _ensure_image_path(image: Any) -> str:
+    if isinstance(image, (str, Path)):
+        return str(image)
+    if isinstance(image, Image.Image):
+        temp_path = Path.cwd() / "_ocr_temp_input.png"
+        image.save(temp_path)
+        return str(temp_path)
+    if isinstance(image, np.ndarray):
+        temp_path = Path.cwd() / "_ocr_temp_input.png"
+        Image.fromarray(image).save(temp_path)
+        return str(temp_path)
+    raise TypeError(f"Unsupported image type for OCR shim: {type(image)!r}")
+
+
+def _vlm_ocr_text(image_path: str, prompt: str) -> str:
+    from tools.implementations.shared.vlm_helper import create_vlm_client
+
+    client = create_vlm_client()
+    messages = [
+        {"role": "system", "content": "You are an OCR system."},
+        {"role": "user", "content": client.image_message_parts(str(image_path), prompt)},
+    ]
+    from core.vlm_client import ModelSettings
+
+    response, _ = client.chat(messages, ModelSettings(temperature=0.0, max_tokens=800))
+    return str(response).strip()
 
 
 @contextlib.contextmanager

@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a layout-preserving focus artifact for left/right comparison by emphasizing visually salient regions and candidate object extents in natural images without relying on object-specific detectors. Robustly converts PIL images, numpy arrays, grayscale, RGBA, and unusual intermediate values into concrete numpy image arrays before OpenCV operations, and always saves a real artifact under artifacts/ for valid inputs.",
+  "applicability_conditions": "Creates a layout-preserving focus artifact for left/right comparison by emphasizing visually salient regions and candidate object extents in natural images without relying on object-specific detectors. Robustly converts PIL images, numpy arrays, grayscale, RGBA, and unusual intermediate values into concrete numpy image arrays before OpenCV operations, and always saves a real artifact under artifacts/ for valid inputs.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-08T07:17:15.964930",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

@@ -66,7 +66,8 @@ def execute_learned_tool(tool_path: Path, args: list[str]) -> str:
     """Execute a learned tool with given arguments."""
     try:
         execution_root = tool_path.parent
-        artifact_dir = execution_root / "artifacts"
+        project_root = Path(os.environ.get("VISION_AGENT_PROJECT_ROOT", "") or Path(__file__).parents[1])
+        artifact_dir = Path(os.environ.get("VISION_AGENT_WORK_DIR", "") or execution_root / "artifacts")
         before_artifacts = _snapshot_artifacts(artifact_dir)
         old_cwd = Path.cwd()
         os.chdir(execution_root)
@@ -76,10 +77,10 @@ def execute_learned_tool(tool_path: Path, args: list[str]) -> str:
             # Preferred path: a simple top-level run(image_path, ...)
             if hasattr(module, "run") and callable(module.run):
                 try:
-                    result = module.run(*args)
+                    result = module.run(*_normalize_run_args(args))
                     if result is not None:
                         output = str(result).strip() or "Tool executed with no output"
-                        return _normalize_artifact_output(output, artifact_dir, before_artifacts)
+                        return _normalize_artifact_output(output, artifact_dir, before_artifacts, project_root)
                 except TypeError:
                     # Some generated tools may expose run() but expect main()-style parsing.
                     pass
@@ -96,7 +97,7 @@ def execute_learned_tool(tool_path: Path, args: list[str]) -> str:
                         module.main()
                     output = stdout_buffer.getvalue() + stderr_buffer.getvalue()
                     output = output.strip() or "Tool executed with no output"
-                    return _normalize_artifact_output(output, artifact_dir, before_artifacts)
+                    return _normalize_artifact_output(output, artifact_dir, before_artifacts, project_root)
                 finally:
                     sys.argv = old_argv
 
@@ -115,12 +116,21 @@ def execute_learned_tool(tool_path: Path, args: list[str]) -> str:
                     kwargs[f"arg{len(kwargs)}"] = arg
 
             result = tool.run(**kwargs)
-            return _normalize_artifact_output(str(result), artifact_dir, before_artifacts)
+            return _normalize_artifact_output(str(result), artifact_dir, before_artifacts, project_root)
         finally:
             os.chdir(old_cwd)
 
     except Exception as e:
         return f"Error executing learned tool: {e}"
+
+
+def _normalize_run_args(args: list[str]) -> list[str]:
+    """Allow generated run(image_path) tools to accept common key=value image args."""
+    if len(args) == 1 and "=" in args[0]:
+        key, value = args[0].split("=", 1)
+        if key.strip() in {"image", "image_path", "input", "path"}:
+            return [value.strip()]
+    return args
 
 
 def _snapshot_artifacts(artifact_dir: Path) -> dict[Path, tuple[int, int]]:
@@ -136,19 +146,30 @@ def _snapshot_artifacts(artifact_dir: Path) -> dict[Path, tuple[int, int]]:
     return snapshot
 
 
-def _normalize_artifact_output(output: str, artifact_dir: Path, before: dict[Path, tuple[int, int]]) -> str:
+def _normalize_artifact_output(
+    output: str,
+    artifact_dir: Path,
+    before: dict[Path, tuple[int, int]],
+    project_root: Path,
+) -> str:
     """Normalize ARTIFACTS to the actual files written during this execution."""
     after = _snapshot_artifacts(artifact_dir)
     created_or_updated: list[str] = []
     for path, stat in after.items():
         if before.get(path) != stat:
-            created_or_updated.append(str(path.relative_to(artifact_dir.parent)))
+            created_or_updated.append(_artifact_reference(path, project_root))
 
     actual_artifacts = sorted(created_or_updated)
     reported_artifacts = _extract_reported_artifacts(output)
+    if os.environ.get("VISION_AGENT_WORK_DIR", "").strip():
+        work_dir_artifacts = _resolve_reported_artifacts(reported_artifacts, artifact_dir, project_root)
+        if work_dir_artifacts:
+            actual_artifacts = work_dir_artifacts
 
     if not actual_artifacts:
-        return output
+        actual_artifacts = _resolve_reported_artifacts(reported_artifacts, artifact_dir, project_root)
+        if not actual_artifacts:
+            return output
 
     if reported_artifacts and reported_artifacts == actual_artifacts:
         return output
@@ -160,6 +181,27 @@ def _normalize_artifact_output(output: str, artifact_dir: Path, before: dict[Pat
         return f"{output.rstrip()}\n{artifact_line}"
 
     return re.sub(r"ARTIFACTS:\s*.+", artifact_line, output, count=1)
+
+
+def _artifact_reference(path: Path, project_root: Path) -> str:
+    """Return an artifact path that downstream agents and validators can resolve."""
+    try:
+        return str(path.relative_to(project_root))
+    except ValueError:
+        return str(path)
+
+
+def _resolve_reported_artifacts(reported_artifacts: list[str], artifact_dir: Path, project_root: Path) -> list[str]:
+    """Map reported artifact basenames to real work-dir files when snapshot diff is empty."""
+    resolved: list[str] = []
+    for artifact in reported_artifacts:
+        path = Path(artifact)
+        candidates = [path] if path.is_absolute() else [project_root / path, artifact_dir / path.name, artifact_dir / path]
+        for candidate in candidates:
+            if candidate.exists():
+                resolved.append(_artifact_reference(candidate, project_root))
+                break
+    return sorted(resolved)
 
 
 def _extract_reported_artifacts(output: str) -> list[str]:

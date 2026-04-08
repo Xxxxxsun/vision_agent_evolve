@@ -1,0 +1,14 @@
+{
+  "name": "generic_visual_focus",
+  "description": "Creates a saliency-style focus map and edge overlay to help localize prominent objects and compare their horizontal positions in left-versus-right spatial questions.",
+  "applicability_conditions": "Use this tool for vstar_relative_position family questions when the task is to decide whether one visible object is to the left or right of another in a natural image, and no object-specific detector is available. It is appropriate when two distinct objects are expected to be visually separable by contrast, edges, color, or local prominence, including cases where either object may be the reference and where the input may be the original image or an intermediate artifact from a previous visual step. It is not intended for cases dominated by heavy occlusion, depth-only reasoning, or ambiguous multi-instance selection.",
+  "usage_example": "python -m tools generic_visual_focus <image_path>",
+  "primitive_category": "generic_visual_focus",
+  "created_at": "2026-04-07T09:39:53.435153",
+  "validation": {
+    "static_ok": true,
+    "origin_ok": true,
+    "regression_ok": true,
+    "leakage_detected": false
+  }
+}

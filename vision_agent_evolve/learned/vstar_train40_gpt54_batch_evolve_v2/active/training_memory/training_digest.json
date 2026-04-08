@@ -1,0 +1,385 @@
+{
+  "baseline_summary": {
+    "total_cases": 40,
+    "correct_cases": 24,
+    "primary_score": 0.6,
+    "per_dataset_scores": {
+      "vstar": 0.6
+    },
+    "per_family_scores": {
+      "vstar_direct_attributes": 0.5217391304347826,
+      "vstar_relative_position": 0.7058823529411765
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+      "total_cases": 11,
+      "case_ids": [
+        "100",
+        "108",
+        "4",
+        "43",
+        "49",
+        "65",
+        "81",
+        "89",
+        "9",
+        "93",
+        "94"
+      ],
+      "representative_case_ids": [
+        "100",
+        "108"
+      ],
+      "summary_lines": [
+        "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+        "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (11/11)"
+      ],
+      "shared_tool_patterns": [
+        "none (11/11)"
+      ],
+      "shared_prompt_patterns": [
+        "color (10/11)",
+        "generic_question (1/11)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "cluster_key": "vstar_relative_position::generic::multiple_choice",
+      "total_cases": 5,
+      "case_ids": [
+        "127",
+        "149",
+        "150",
+        "154",
+        "177"
+      ],
+      "representative_case_ids": [
+        "127",
+        "149"
+      ],
+      "summary_lines": [
+        "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left",
+        "case_id=149; prompt=Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=B; answer=A. left"
+      ],
+      "common_failure_signals": [
+        "no_tool_used (5/5)"
+      ],
+      "shared_tool_patterns": [
+        "none (5/5)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (5/5)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "vstar_direct_attributes",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 23,
+      "failed_cases": 11,
+      "baseline_score": 0.5217391304347826,
+      "common_question_patterns": [
+        "multiple_choice (23/23)",
+        "direct_lookup (22/23)",
+        "generic_question (1/23)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (11/11)"
+      ],
+      "tool_usage_patterns": [
+        "none (23/23)"
+      ],
+      "recent_revision_briefs": [
+        "no_artifact: Tool did not produce any artifacts | rewrite=Save at least one real artifact under artifacts/.; Return the same artifact path in ToolResult.artifacts."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Questions ask for the color of a specific referenced object in an image, usually as multiple-choice direct attribute lookup requiring localized visual focus on that object. | supported=Multiple-choice questions asking the color of a named object; Direct color lookup for a single salient or moderately localized object"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_direct_attributes",
+          "cluster_key": "vstar_direct_attributes::generic::multiple_choice",
+          "total_cases": 11,
+          "case_ids": [
+            "100",
+            "108",
+            "4",
+            "43",
+            "49",
+            "65",
+            "81",
+            "89",
+            "9",
+            "93",
+            "94"
+          ],
+          "representative_case_ids": [
+            "100",
+            "108"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (11/11)"
+          ],
+          "shared_tool_patterns": [
+            "none (11/11)"
+          ],
+          "shared_prompt_patterns": [
+            "color (10/11)",
+            "generic_question (1/11)"
+          ],
+          "example_case_summaries": [
+            "case_id=100; prompt=What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black; expected=C; answer=D. black",
+            "case_id=108; prompt=What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange; expected=D; answer=C. blue"
+          ],
+          "primitive_category": "localized_color_focus",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_color_focus",
+          "summary": "Need a reusable localized_color_focus primitive for vstar_direct_attributes.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "100",
+            "108"
+          ],
+          "supported_patterns": [
+            "color (10/11)",
+            "generic_question (1/11)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "vstar_relative_position",
+      "dataset_names": [
+        "vstar"
+      ],
+      "total_cases": 17,
+      "failed_cases": 5,
+      "baseline_score": 0.7058823529411765,
+      "common_question_patterns": [
+        "generic_question (17/17)",
+        "multiple_choice (17/17)"
+      ],
+      "recurring_failure_signals": [
+        "no_tool_used (5/5)"
+      ],
+      "tool_usage_patterns": [
+        "none (17/17)"
+      ],
+      "recent_revision_briefs": [
+        "no_artifact: Tool did not produce any artifacts | rewrite=Save at least one real artifact under artifacts/.; Return the same artifact path in ToolResult.artifacts."
+      ],
+      "recent_coverage_notes": [
+        "pattern=Determine whether one referenced object is to the left or right of another object in a natural image from a generic multiple-choice question. | supported=Two distinct objects with clear spatial separation where the answer is left-versus-right relative position; Objects described by category and simple attribute cues such as color, with either object serving as the reference"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "vstar",
+          "capability_family": "vstar_relative_position",
+          "cluster_key": "vstar_relative_position::generic::multiple_choice",
+          "total_cases": 5,
+          "case_ids": [
+            "127",
+            "149",
+            "150",
+            "154",
+            "177"
+          ],
+          "representative_case_ids": [
+            "127",
+            "149"
+          ],
+          "common_failure_signals": [
+            "no_tool_used (5/5)"
+          ],
+          "shared_tool_patterns": [
+            "none (5/5)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (5/5)"
+          ],
+          "example_case_summaries": [
+            "case_id=127; prompt=Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left; expected=A; answer=B. left",
+            "case_id=149; prompt=Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right; expected=B; answer=A. left"
+          ],
+          "primitive_category": "generic_visual_focus",
+          "toolability": "medium"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "generic_visual_focus",
+          "summary": "Need a reusable generic_visual_focus primitive for vstar_relative_position.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "127",
+            "149"
+          ],
+          "supported_patterns": [
+            "generic_question (5/5)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "100",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the woman's handbag?\n(A) white\n(B) red\n(C) brown\n(D) black\n\nChoices:\nA. white\nB. red\nC. brown\nD. black"
+    },
+    {
+      "case_id": "108",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_direct_attributes",
+      "prompt": "What is the color of the swim ring?\n(A) white\n(B) yellow\n(C) blue\n(D) orange\n\nChoices:\nA. white\nB. yellow\nC. blue\nD. orange"
+    },
+    {
+      "case_id": "127",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the seesaw on the left or right side of the red vehicle?\n(A) right\n(B) left\n\nChoices:\nA. right\nB. left"
+    },
+    {
+      "case_id": "149",
+      "dataset_name": "vstar",
+      "capability_family": "vstar_relative_position",
+      "prompt": "Is the yellow trash can on the left or right side of the motorcycle?\n(A) left\n(B) right\n\nChoices:\nA. left\nB. right"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260407_093742_408151",
+      "reason": "Tool did not produce any artifacts",
+      "failure_type": "no_artifact",
+      "target_family": "vstar_relative_position",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_relative_position",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Determine whether one referenced object is to the left or right of another object in a natural image from a generic multiple-choice question.",
+        "supported_variations": [
+          "Two distinct objects with clear spatial separation where the answer is left-versus-right relative position",
+          "Objects described by category and simple attribute cues such as color, with either object serving as the reference"
+        ],
+        "unsupported_variations": [
+          "Cases requiring depth, occlusion resolution, ambiguous group selection, or relations beyond simple horizontal left-right positioning"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode specific object pairs such as seesaw-vehicle or trash can-motorcycle",
+          "Do not rely on fixed image-side priors for particular categories or colors",
+          "Do not use one-off coordinates, memorized layouts, or dataset-specific camera framing assumptions"
+        ],
+        "primitive_category": "generic_visual_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "The failures stem from not using any focused visual grounding. A reusable visual-focus primitive can help localize the two queried objects and compare their horizontal positions across many left-right relative-position questions in this family."
+      },
+      "revision_brief": {
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "STATUS: ok"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ],
+        "banned_patterns": [
+          "status-only tools",
+          "tools with no artifact output"
+        ],
+        "retry_action": "revise_tool"
+      }
+    },
+    {
+      "run_id": "round_20260407_093233_973543",
+      "reason": "Tool did not produce any artifacts",
+      "failure_type": "no_artifact",
+      "target_family": "vstar_direct_attributes",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "coverage_contract": {
+        "target_family": "vstar_direct_attributes",
+        "target_cluster_ids": [
+          "cluster_1"
+        ],
+        "problem_pattern": "Questions ask for the color of a specific referenced object in an image, usually as multiple-choice direct attribute lookup requiring localized visual focus on that object.",
+        "supported_variations": [
+          "Multiple-choice questions asking the color of a named object",
+          "Direct color lookup for a single salient or moderately localized object"
+        ],
+        "unsupported_variations": [
+          "Questions requiring counting, reading text, relational reasoning, or attributes beyond localized object color"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not hardcode colors associated with specific object types",
+          "Do not assume the target object is centered, largest, or uniquely salient",
+          "Do not use one-off image coordinates or case-specific regions"
+        ],
+        "primitive_category": "localized_color_focus",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_both",
+        "why_this_should_generalize": "Failures concentrate on missing localized color inspection, and the dominant family pattern is stable direct object-color identification across images, making a reusable color-focused primitive plus selection skill broadly applicable."
+      },
+      "revision_brief": {
+        "failure_type": "no_artifact",
+        "reason": "Tool did not produce any artifacts",
+        "evidence": [
+          "Error executing learned tool: OpenCV(4.10.0) :-1: error: (-5:Bad argument) in function 'putText'\n> Overload resolution failed:\n>  - img is not a numpy array, neither a scalar\n>  - Expected Ptr<cv::UMat> for argument 'img'"
+        ],
+        "rewrite_requirements": [
+          "Save at least one real artifact under artifacts/.",
+          "Return the same artifact path in ToolResult.artifacts."
+        ],
+        "banned_patterns": [
+          "status-only tools",
+          "tools with no artifact output"
+        ],
+        "retry_action": "revise_tool"
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}

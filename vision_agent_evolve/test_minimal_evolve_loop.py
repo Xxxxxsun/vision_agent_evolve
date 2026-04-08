@@ -1624,6 +1624,19 @@ class MinimalEvolveLoopTests(unittest.TestCase):
         self.assertIn("datasets/mira/billiards/images/2.png", invoked_command)
         self.assertNotIn("input_file_0.png", invoked_command)
 
+    def test_run_bash_rewrites_mnt_data_alias_to_current_image_path(self):
+        agent = ReActAgent(DummyVLMClient())
+        agent._current_image_path = "/root/vqa_datasets/datasets/vstar_bench/images/101.jpg"
+
+        with mock.patch("core.agent.subprocess.run") as run_mock:
+            run_mock.return_value = mock.Mock(stdout="STATUS: ok\n", stderr="", returncode=0)
+
+            agent._run_bash("python -m tools localized_color_focus /mnt/data/0.png")
+
+        invoked_command = run_mock.call_args.args[0]
+        self.assertIn("/root/vqa_datasets/datasets/vstar_bench/images/101.jpg", invoked_command)
+        self.assertNotIn("/mnt/data/0.png", invoked_command)
+
     def test_run_bash_scopes_tool_lookup_to_agent_learned_dir(self):
         learned_dir = Path("/tmp/fake_learned_dir")
         agent = ReActAgent(DummyVLMClient(), config=AgentConfig(learned_dir=learned_dir))

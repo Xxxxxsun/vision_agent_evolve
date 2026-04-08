@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 import base64
+import importlib.util
 from io import BytesIO
 from pathlib import Path
 from unittest import mock
@@ -15,6 +16,7 @@ from core.structured_data import (
     check_chartqa_answer,
     check_mathvista_answer,
     check_multiple_choice_answer,
+    infer_choices_from_prompt,
     load_normalized_cases,
     normalize_chartqa_dataset,
     normalize_gta_dataset,
@@ -28,7 +30,7 @@ from core.agent import AgentConfig, ReActAgent
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
 from evolution.benchmark_adapters import GTAAdapter, ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
 from evolution.loop import EvolutionLoop
-from evolution.roles import AnalyzerDecider
+from evolution.roles import AnalyzerDecider, Generator
 from evolution.store import CapabilityStore
 from evolution.subset_loop import SubsetEvaluator, SubsetEvolutionLoop, SubsetEvolutionRunReport, SubsetPlanner
 from evolution.structured_runner import (
@@ -37,6 +39,7 @@ from evolution.structured_runner import (
     StructuredExperimentConfig,
     _aggregate_records,
 )
+from evolution.validator import Validator
 from evolution.types import (
     CapabilityBundleProposal,
     CandidateEvalResult,
@@ -55,8 +58,19 @@ from evolution.types import (
     TrainingSetDigest,
     ValidationResult,
 )
-from scripts.run_structured_experiment import _normalize_settings
 from tools.builtin_tools import execute_builtin_tool
+from tools.dynamic_loader import _normalize_artifact_output, _normalize_run_args, _snapshot_artifacts
+
+_RUN_STRUCTURED_EXPERIMENT_SPEC = importlib.util.spec_from_file_location(
+    "run_structured_experiment_module",
+    Path(__file__).resolve().parent / "scripts" / "run_structured_experiment.py",
+)
+assert _RUN_STRUCTURED_EXPERIMENT_SPEC is not None
+assert _RUN_STRUCTURED_EXPERIMENT_SPEC.loader is not None
+_RUN_STRUCTURED_EXPERIMENT_MODULE = importlib.util.module_from_spec(_RUN_STRUCTURED_EXPERIMENT_SPEC)
+_RUN_STRUCTURED_EXPERIMENT_SPEC.loader.exec_module(_RUN_STRUCTURED_EXPERIMENT_MODULE)
+_normalize_settings = _RUN_STRUCTURED_EXPERIMENT_MODULE._normalize_settings
+_validate_dataset_assets = _RUN_STRUCTURED_EXPERIMENT_MODULE._validate_dataset_assets
 
 
 class DummyClient:
@@ -217,6 +231,96 @@ class ScratchFakeLoop(FakeLoop):
                 return ScratchFakeAgent(case.gold_answer, artifact="artifacts/case2_edit.png")
             return ScratchFakeAgent("wrong")
         return ScratchFakeAgent("wrong")
+
+
+class MultipleChoiceRecoveryTests(unittest.TestCase):
+    def test_infer_choices_from_prompt_extracts_option_lines(self):
+        prompt = (
+            "What is the color of the trash can?\n"
+            "(A) black\n"
+            "(B) silver\n"
+            "(C) yellow\n"
+            "(D) green\n"
+            "Answer with the option's letter from the given choices directly."
+        )
+        self.assertEqual(
+            infer_choices_from_prompt(prompt),
+            {"A": "black", "B": "silver", "C": "yellow", "D": "green"},
+        )
+
+    def test_load_normalized_cases_backfills_missing_multiple_choice_metadata(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            dataset_root = root / "vstar"
+            dataset_root.mkdir(parents=True, exist_ok=True)
+            image_path = root / "sample.png"
+            image_path.write_bytes(b"fake")
+            prompt = (
+                "Is the switch on the left or right side of the towel?\n"
+                "(A) left\n"
+                "(B) right\n"
+                "Answer with the option's letter from the given choices directly."
+            )
+            (dataset_root / "val.jsonl").write_text(
+                json.dumps(
+                    {
+                        "id": "1",
+                        "problem_id": "vstar",
+                        "prompt": prompt,
+                        "answer": "B",
+                        "image_path": str(image_path),
+                        "metadata": {"dataset_name": "vstar", "answer_type": "multiple_choice", "choices": {}},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            [case] = load_normalized_cases(root, "vstar", "val")
+
+        self.assertEqual(case.metadata["choices"], {"A": "left", "B": "right"})
+        self.assertTrue(check_multiple_choice_answer("right", case.gold_answer, case.metadata["choices"]))
+
+    def test_validate_dataset_assets_reports_missing_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            dataset_root = root / "vstar"
+            dataset_root.mkdir(parents=True, exist_ok=True)
+            prompt = "What color?\n(A) red\n(B) blue"
+            (dataset_root / "train.jsonl").write_text(
+                json.dumps(
+                    {
+                        "id": "missing-1",
+                        "problem_id": "vstar",
+                        "prompt": prompt,
+                        "answer": "A",
+                        "image_path": str(root / "missing.png"),
+                        "metadata": {"dataset_name": "vstar", "answer_type": "multiple_choice", "choices": {}},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (dataset_root / "val.jsonl").write_text(
+                (dataset_root / "train.jsonl").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            config = StructuredExperimentConfig(
+                dataset="vstar",
+                raw_data_root=root,
+                normalized_data_root=root,
+                subset_id="tmp",
+                evolve_split="train",
+                held_out_split="val",
+                settings=["direct_vlm"],
+            )
+
+            with self.assertRaises(SystemExit) as exc:
+                _validate_dataset_assets(config)
+
+        self.assertIn("Dataset asset validation failed", str(exc.exception))
+        self.assertIn("missing-1", str(exc.exception))
 
     def run_single_case(self, case):
         self.run_single_case_calls.append(case.case_id)
@@ -1829,6 +1933,195 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("Final Answer: <shortest exact answer string>", agent.system_prompt)
         self.assertIn("skip bash and complete immediately", agent.system_prompt)
 
+    def test_vstar_agent_prompt_adds_visual_grounding_hint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = EvolutionLoop(
+                work_dir=root / "work",
+                learned_dir=root / "learned",
+                skills_dir=root / "skills",
+                vlm_client=DummyClient(),
+                max_attempts=1,
+                subset_id=None,
+            )
+            case = TaskCase(
+                case_id="v1",
+                problem_id="vstar",
+                prompt="Is the bell above or below the clock?\n(A) above\n(B) below",
+                gold_answer="B",
+                metadata={"dataset_name": "vstar", "capability_family": "vstar_relative_position"},
+            )
+
+            agent = loop._create_agent(case, attempt=1, phase="solve")
+
+        self.assertIn("Task-specific instructions for VStar fine-grained VQA", agent.system_prompt)
+        self.assertIn("Visual grounding:", agent.system_prompt)
+        self.assertIn("No tools available.", agent.system_prompt)
+        self.assertIn("compare their image-plane centers", agent.system_prompt)
+        self.assertIn("Final Answer: <option letter and short option text>", agent.system_prompt)
+
+    def test_tool_code_normalization_decodes_literal_newlines(self):
+        generator = Generator(DummyClient())
+        proposal = generator._normalize_tool_proposal(
+            {
+                "name": "generic_visual_focus",
+                "description": "desc",
+                "applicability_conditions": "Use for generic focus.",
+                "code": "from core.types import ToolResult\\n\\ndef run(image_path: str) -> ToolResult:\\n    return ToolResult(status=\"ok\", answer=\"\", artifacts=[])\\n",
+            }
+        )
+
+        self.assertIn("\ndef run", proposal.code)
+        compile(proposal.code, "<tool>", "exec")
+
+    def test_validator_allows_generic_opencv_constants_but_rejects_numeric_tables(self):
+        validator = Validator(Path("/tmp/work"), Path("/tmp/learned"))
+        generic_code = """
+from core.types import ToolResult
+import cv2
+import numpy as np
+
+def run(image_path: str) -> ToolResult:
+    edges = cv2.Canny(np.zeros((32, 32), dtype=np.uint8), 50, 150)
+    _ = cv2.GaussianBlur(edges, (5, 5), 0)
+    return ToolResult(status="ok", answer="", artifacts=[])
+"""
+        table_code = """
+from core.types import ToolResult
+
+FIXED_BOXES = [(1, 2, 3, 4), (10, 20, 30, 40)]
+
+def run(image_path: str) -> ToolResult:
+    return ToolResult(status="ok", answer="", artifacts=[])
+"""
+        origin = TaskCase(case_id="case_1", problem_id="vstar", prompt="Q", gold_answer="A", image_path="/tmp/input.png")
+        numeric_origin = TaskCase(case_id="100", problem_id="vstar", prompt="Q", gold_answer="A", image_path="/tmp/input.png")
+        generic = ToolProposal(
+            name="generic_focus",
+            description="desc",
+            applicability_conditions="Use generically.",
+            code=generic_code,
+            usage_example="python -m tools generic_focus <image_path>",
+            expected_inputs=["image_path"],
+            expected_outputs=[],
+        )
+        table = ToolProposal(
+            name="fixed_focus",
+            description="desc",
+            applicability_conditions="Use generically.",
+            code=table_code,
+            usage_example="python -m tools fixed_focus <image_path>",
+            expected_inputs=["image_path"],
+            expected_outputs=[],
+        )
+
+        self.assertEqual(validator._detect_case_specific_tool(generic, origin), "")
+        self.assertEqual(validator._detect_case_specific_tool(generic, numeric_origin), "")
+        generic.description = "Generated for case_id=100 only."
+        self.assertIn("case id", validator._detect_case_specific_tool(generic, numeric_origin))
+        self.assertIn("fixed numeric table", validator._detect_case_specific_tool(table, origin))
+
+    def test_dynamic_loader_normalizes_work_dir_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact_dir = root / "artifacts" / "run_1"
+            artifact_dir.mkdir(parents=True)
+            before = _snapshot_artifacts(artifact_dir)
+            (artifact_dir / "localized_color_focus_output.png").write_bytes(b"png")
+
+            output = _normalize_artifact_output(
+                "STATUS: ok\nARTIFACTS: artifacts/localized_color_focus_output.png",
+                artifact_dir,
+                before,
+                root,
+            )
+
+        self.assertIn("ARTIFACTS: artifacts/run_1/localized_color_focus_output.png", output)
+
+    def test_dynamic_loader_accepts_image_key_for_simple_run_tools(self):
+        self.assertEqual(_normalize_run_args(["image=/tmp/example.png"]), ["/tmp/example.png"])
+        self.assertEqual(_normalize_run_args(["image_path=/tmp/example.png"]), ["/tmp/example.png"])
+        self.assertEqual(_normalize_run_args(["/tmp/example.png"]), ["/tmp/example.png"])
+
+    def test_artifact_repair_brief_adds_concrete_protocol_requirements(self):
+        tool = ToolProposal(
+            name="generic_visual_focus",
+            description="desc",
+            applicability_conditions="Use generically.",
+            code="from core.types import ToolResult\n\ndef run(image_path: str) -> ToolResult:\n    return ToolResult(status='ok', answer='', artifacts=[])\n",
+            usage_example="python -m tools generic_visual_focus <image_path>",
+            expected_inputs=["image_path"],
+            expected_outputs=[],
+        )
+        brief = RevisionBrief(
+            failure_type="no_artifact",
+            reason="Tool did not produce any artifacts",
+            rewrite_requirements=["Save at least one real artifact under artifacts/."],
+            banned_patterns=["status-only tools"],
+            retry_action="revise_tool",
+        )
+
+        repaired = SubsetEvolutionLoop._artifact_aware_revision_brief(brief, tool)
+
+        joined = "\n".join(repaired.rewrite_requirements)
+        self.assertIn("processed_img numpy ndarray", joined)
+        self.assertIn('artifacts/generic_visual_focus_output.png', joined)
+        self.assertIn("save_image(processed_img, output_path)", joined)
+        self.assertIn("ToolResult(status='ok', answer='', artifacts=[output_path])", joined)
+
+    def test_fallback_artifact_wrapper_preserves_empty_answer_and_compiles(self):
+        tool = ToolProposal(
+            name="generic_visual_focus",
+            description="desc",
+            applicability_conditions="Use generically.",
+            code=(
+                "from core.types import ToolResult\n"
+                "from tools.implementations.shared import load_image, save_image\n\n"
+                "def run(image_path: str) -> ToolResult:\n"
+                "    return ToolResult(status='ok', answer='', artifacts=[])\n"
+            ),
+            usage_example="python -m tools generic_visual_focus <image_path>",
+            expected_inputs=["image_path"],
+            expected_outputs=[],
+        )
+
+        wrapped = SubsetEvolutionLoop._with_fallback_artifact_wrapper(tool)
+
+        compile(wrapped.code, "<wrapped_tool>", "exec")
+        self.assertIn("_original_run_before_artifact_fallback", wrapped.code)
+        self.assertIn("artifacts/generic_visual_focus_fallback.png", wrapped.code)
+        self.assertNotIn("answer='A'", wrapped.code)
+        self.assertIn('answer=""', wrapped.code)
+
+    def test_artifact_fallback_waits_for_repeated_failures(self):
+        validation = ValidationResult(
+            passed=False,
+            failure_type="no_artifact",
+            reason="Tool did not produce any artifacts",
+        )
+
+        self.assertFalse(
+            SubsetEvolutionLoop._should_apply_fallback_artifact_wrapper(
+                [{"failure_type": "no_artifact"}],
+                validation,
+                repair_attempt=1,
+            )
+        )
+        self.assertFalse(
+            SubsetEvolutionLoop._should_apply_fallback_artifact_wrapper(
+                [{"failure_type": "no_artifact"}, {"failure_type": "runtime_error"}],
+                validation,
+                repair_attempt=2,
+            )
+        )
+        self.assertTrue(
+            SubsetEvolutionLoop._should_apply_fallback_artifact_wrapper(
+                [{"failure_type": "no_artifact"}, {"failure_type": "no_artifact"}, {"failure_type": "no_artifact"}],
+                validation,
+                repair_attempt=3,
+            )
+        )
+
     def test_gta_agent_prompt_includes_gta_tool_hints(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -2717,6 +3010,7 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertEqual(_normalize_settings(["same_tool_preset_tools_only"]), ["same_tool_preset_tools_only"])
         self.assertEqual(_normalize_settings(["skill_only_frozen_inference"]), ["skill_only_frozen_inference"])
         self.assertEqual(_normalize_settings(["scratch_skill_train_adaptive"]), ["scratch_skill_train_adaptive"])
+        self.assertEqual(_normalize_settings(["agent_train_batch_evolve"]), ["agent_train_batch_evolve"])
 
     def test_skill_from_mastery_strategy_builds_branching_sop(self):
         loop = SubsetEvolutionLoop.__new__(SubsetEvolutionLoop)
@@ -2779,6 +3073,80 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("mastery_profiles", payload)
         self.assertIn("chartqa", payload["mastery_profiles"])
         self.assertEqual(payload["mastery_profiles"]["chartqa"][0]["primary_tool"], "chart_value_overlay")
+
+    def test_eval_diff_tracks_fixed_and_regressed_cases(self):
+        def row(case_id: str, correct: bool, answer: str) -> TrainSetEvalRecord:
+            return TrainSetEvalRecord(
+                case_id=case_id,
+                dataset_name="vstar",
+                capability_family="vstar_direct_attributes",
+                prompt="question",
+                expected="A",
+                answer=answer,
+                correct=correct,
+            )
+
+        diff = SubsetEvolutionLoop._eval_diff(
+            [
+                row("fixed", False, "B"),
+                row("regressed", True, "A"),
+                row("still_wrong", False, "C"),
+            ],
+            [
+                row("fixed", True, "A"),
+                row("regressed", False, "B"),
+                row("still_wrong", False, "D"),
+            ],
+        )
+
+        self.assertEqual(diff["fixed_count"], 1)
+        self.assertEqual(diff["regressed_count"], 1)
+        self.assertEqual(diff["net_fixed_count"], 0)
+        self.assertEqual(diff["fixed_cases"][0]["case_id"], "fixed")
+        self.assertEqual(diff["regressed_cases"][0]["case_id"], "regressed")
+        self.assertEqual(diff["unchanged_wrong_case_ids"], ["still_wrong"])
+
+    def test_learned_tool_artifact_gate_requires_artifact_when_tool_used(self):
+        bundle = CapabilityBundleProposal(
+            run_id="r1",
+            target_family="vstar_direct_attributes",
+            tools=[
+                ToolProposal(
+                    name="localized_color_focus",
+                    description="desc",
+                    applicability_conditions="use",
+                    code="",
+                    usage_example="python -m tools localized_color_focus <image_path>",
+                    expected_inputs=["image_path"],
+                    expected_outputs=["artifact"],
+                )
+            ],
+        )
+        missing = TrainSetEvalRecord(
+            case_id="c1",
+            dataset_name="vstar",
+            capability_family="vstar_direct_attributes",
+            prompt="q",
+            expected="A",
+            answer="A",
+            correct=True,
+            tool_names=["localized_color_focus"],
+            artifact_paths=[],
+        )
+        ok = TrainSetEvalRecord(
+            case_id="c1",
+            dataset_name="vstar",
+            capability_family="vstar_direct_attributes",
+            prompt="q",
+            expected="A",
+            answer="A",
+            correct=True,
+            tool_names=["localized_color_focus"],
+            artifact_paths=["artifacts/out.png"],
+        )
+
+        self.assertFalse(SubsetEvolutionLoop._learned_tool_artifact_gate(bundle, [missing])[0])
+        self.assertTrue(SubsetEvolutionLoop._learned_tool_artifact_gate(bundle, [ok])[0])
 
 
 if __name__ == "__main__":

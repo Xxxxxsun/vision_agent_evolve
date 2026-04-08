@@ -1,0 +1,3 @@
+{"type": "candidate_stage", "run_id": "round_20260406_193534_470553", "target_family": "vstar_relative_position", "tool_count": 0, "skill_count": 1}
+{"type": "candidate_activate", "run_id": "round_20260406_193534_470553", "snapshot_name": "vstar_train40_gpt54_selfevolve_v1_round_2_accepted"}
+{"type": "candidate_stage", "run_id": "round_20260406_194548_183451_mastery_4", "target_family": "vstar_direct_attributes", "tool_count": 0, "skill_count": 1}
