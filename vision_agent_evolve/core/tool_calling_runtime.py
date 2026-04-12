@@ -23,7 +23,8 @@ from .vlm_client import ModelSettings, VLMClient
 
 SYSTEM_PROMPT = (
     "You are solving multimodal benchmark questions. "
-    "Use tools sparingly and only when they are clearly necessary. "
+    "Think through the visual evidence briefly before you commit to an answer. "
+    "Use tools when they help you inspect evidence that is small, ambiguous, or easy to confuse. "
     "Use execute_python for calculations or verification. "
     "Use visual tools when local details, small text, or spatial evidence matters. "
     "The final line of your response must begin with 'Final answer:'."
@@ -520,15 +521,40 @@ def _collect_case_images(case: TaskCase) -> list[str]:
 
 def _build_system_prompt(benchmark_name: str) -> str:
     if benchmark_name.strip().lower() == "vstar":
-        return f"{SYSTEM_PROMPT} Answer multiple-choice questions with the option letter when possible."
+        return (
+            f"{SYSTEM_PROMPT} "
+            "For VStar questions, use zoom_image when the target object is small, far away, partially occluded, "
+            "or when color/material details are hard to see at the original scale. "
+            "For relative-position questions, keep the global scene in mind and use visual tools only if they help "
+            "you inspect the two named objects without losing the left/right reference frame. "
+            "Answer multiple-choice questions with the option letter when possible."
+        )
     return SYSTEM_PROMPT
 
 
 def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
-    lines = ["Answer the following benchmark question as accurately as possible."]
+    family = str(case.metadata.get("capability_family", "") or "").strip().lower()
+    lines = [
+        "Answer the following benchmark question as accurately as possible.",
+        "First write a short reasoning trace based on the visible evidence.",
+    ]
     if include_image:
         lines.append("Use the provided image(s) when relevant.")
+    if family == "vstar_direct_attributes":
+        lines.extend(
+            [
+                "If the target object is visually small or its attribute is hard to distinguish, call zoom_image before answering.",
+                "Verify the named object carefully before choosing among similar colors or materials.",
+            ]
+        )
+    elif family == "vstar_relative_position":
+        lines.extend(
+            [
+                "Judge left/right from the viewer's perspective using the full image as the reference frame.",
+                "If the named objects are small or hard to localize, you may use zoom_image, but do not lose track of the full-scene left/right relationship.",
+            ]
+        )
     lines.extend(["", f"Question: {case.prompt}"])
     if choices and not _question_embeds_choices(case.prompt, choices):
         lines.extend(["", "Choices:"])

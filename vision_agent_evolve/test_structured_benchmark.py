@@ -953,9 +953,92 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertEqual(summary["settings"]["function_calling_vqa"]["accuracy"], 1.0)
         self.assertEqual(summary["function_calling_vqa_accuracy"], 1.0)
 
+    def test_direct_answer_extracts_final_answer_from_reasoning(self):
+        class FakeReasoningClient:
+            def chat(self, messages, settings=None):
+                return "The object appears blue.\nFinal answer: B", DummyUsage()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            image_path = root / "sample.png"
+            self._write_image(image_path, size=(16, 12))
+            config = StructuredExperimentConfig(
+                dataset="vstar",
+                raw_data_root=root,
+                normalized_data_root=root / "normalized",
+                subset_id="reasoned_answer_test",
+                settings=["direct_vlm"],
+            )
+            runner = StructuredBenchmarkRunner(config=config, project_root=Path.cwd(), vlm_client=FakeReasoningClient())
+            case = TaskCase(
+                case_id="case_1",
+                problem_id="vstar",
+                prompt="What color is the object? (A) red (B) blue",
+                gold_answer="B",
+                image_path=str(image_path),
+                metadata={"dataset_name": "vstar", "choices": {"A": "red", "B": "blue"}},
+            )
+
+            answer = runner._direct_answer(case)
+
+        self.assertEqual(answer, "B")
+
+    def test_structured_runner_supports_reasoned_vlm_setting(self):
+        class FakeReasoningClient:
+            def chat(self, messages, settings=None):
+                return "Visible evidence suggests option A.\nFinal answer: A", DummyUsage()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            normalized_root = root / "normalized"
+            image_path = root / "sample.png"
+            self._write_image(image_path, size=(16, 12))
+            rows = [
+                {
+                    "id": "v1",
+                    "problem_id": "vstar",
+                    "prompt": "Which option is correct?",
+                    "answer": "A",
+                    "image_path": str(image_path),
+                    "metadata": {
+                        "dataset_name": "vstar",
+                        "split": "train",
+                        "source_id": "v1",
+                        "capability_family": "vstar",
+                        "choices": {"A": "cat", "B": "dog"},
+                    },
+                }
+            ]
+            dataset_root = normalized_root / "vstar"
+            dataset_root.mkdir(parents=True, exist_ok=True)
+            split_file = dataset_root / "train.jsonl"
+            with split_file.open("w", encoding="utf-8") as handle:
+                for row in rows:
+                    handle.write(json.dumps(row) + "\n")
+            (dataset_root / "val.jsonl").write_text("", encoding="utf-8")
+
+            config = StructuredExperimentConfig(
+                dataset="vstar",
+                raw_data_root=root,
+                normalized_data_root=normalized_root,
+                subset_id="vstar_reasoned_test",
+                evolve_split="train",
+                held_out_split="val",
+                train_subset_size=1,
+                held_out_limit=0,
+                settings=["reasoned_vlm"],
+            )
+            runner = StructuredBenchmarkRunner(config=config, project_root=Path.cwd(), vlm_client=FakeReasoningClient())
+            summary = runner.run_experiment()
+
+        self.assertIn("reasoned_vlm", summary["settings"])
+        self.assertEqual(summary["settings"]["reasoned_vlm"]["accuracy"], 1.0)
+        self.assertEqual(summary["reasoned_vlm_accuracy"], 1.0)
+
     def test_normalize_settings_accepts_function_calling_vqa(self):
         normalized = _normalize_settings(["function_calling_vqa", "all"])
         self.assertIn("function_calling_vqa", normalized)
+        self.assertIn("reasoned_vlm", normalized)
 
     def test_gta_adapter_respects_whitelist_blacklist_and_numeric_tolerance(self):
         adapter = GTAAdapter()

@@ -220,17 +220,63 @@ python scripts/run_structured_experiment.py \
   --settings agent_train_adaptive frozen_inference
 ```
 
-### 3.3 Direct GPT-4o on full val
+### 3.3 Reasoned VLM on full val
 
 ```bash
 VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
   --dataset vstar \
   --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
   --normalized-data-root ./datasets/structured_multibench \
-  --subset-id vstar_direct_gpt4o_val_full_v1 \
+  --subset-id vstar_reasoned_gpt4o_val_full_v1 \
   --evolve-split val \
   --train-subset-size 151 \
-  --settings direct_vlm
+  --settings reasoned_vlm
+```
+
+### 3.4 Function-calling VQA on full val
+
+```bash
+VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_gpt54_val_full_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --settings function_calling_vqa
+```
+
+### 3.5 Reasoned vs function-calling with Alibaba proxy
+
+Use the HAL-style proxy credentials when testing `function_calling_vqa` against the Alibaba gateway. In local experiments, the original `llm_application` credentials frequently produced proxy errors or policy blocks on tool-calling requests, while the HAL defaults allowed the same requests to complete.
+
+```bash
+export VLM_API_STYLE="alibaba_chat"
+export VLM_BASE_URL="https://llm-chat-api.alibaba-inc.com/v1/api/chat"
+export VLM_MODEL="gpt-5.4-0305-global"
+
+export VLM_USER_ID="506759"
+export VLM_ACCESS_KEY="9101ac974ab20f60f668dcf099bc6a10"
+export VLM_QUOTA_ID="dd95187c-29dd-464d-9b96-8f62e6ab8eb5"
+export VLM_APP="model_train_vlm"
+
+python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_val151_reasoned_vs_fc_gpt54_alibaba_halcreds_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --held-out-limit 0 \
+  --settings reasoned_vlm function_calling_vqa
+```
+
+Notes:
+
+- `reasoned_vlm` is now the preferred no-tool baseline for VStar. It asks the model to reason briefly before returning `Final answer: <answer>`.
+- `function_calling_vqa` currently supports only `dataset=vstar`.
+- The current VStar tool prompt encourages `zoom_image` for small-object attribute questions.
+- `artifact_production_rate` is the reliable signal for visual tool use. `tool_usage_rate` still follows the older bash-tool extraction logic and can under-report runtime-native tool calls.
 ```
 
 ## 4. TextVQA

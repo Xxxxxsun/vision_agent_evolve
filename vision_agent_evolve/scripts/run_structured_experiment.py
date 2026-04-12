@@ -54,8 +54,8 @@ def main() -> None:
     parser.add_argument(
         "--settings",
         nargs="+",
-        default=["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
-        help="Subset of settings to run. Choices: direct_vlm pure_react function_calling_vqa toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
+        default=["reasoned_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
+        help="Subset of settings to run. Choices: direct_vlm reasoned_vlm pure_react function_calling_vqa toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
     args = parser.parse_args()
 
@@ -94,7 +94,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
     for setting in raw_settings:
         normalized = setting.strip().lower()
         if normalized == "all":
-            expanded.extend(["direct_vlm", "pure_react", "toolpool_prompt_baseline", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
+            expanded.extend(["reasoned_vlm", "pure_react", "toolpool_prompt_baseline", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
             continue
         aliases = {
             "self_evolve": "agent_train_adaptive",
@@ -104,6 +104,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
         normalized = aliases.get(normalized, normalized)
         if normalized not in {
             "direct_vlm",
+            "reasoned_vlm",
             "pure_react",
             "function_calling_vqa",
             "toolpool_prompt_baseline",

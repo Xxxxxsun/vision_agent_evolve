@@ -42,7 +42,7 @@ class StructuredExperimentConfig:
     representatives_per_cluster: int = 3
     tool_preference: str = "balanced"
     readability_judge_enabled: bool = False
-    settings: list[str] = field(default_factory=lambda: ["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
+    settings: list[str] = field(default_factory=lambda: ["reasoned_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"])
     save_first_n_evolves: int = 10
     forced_skill_name: str | None = None
     fixed_tool_names: list[str] = field(default_factory=list)
@@ -252,6 +252,10 @@ class StructuredBenchmarkRunner:
             print(f"=== Direct VLM baseline on {self.config.evolve_split}[:{train_limit}] ===")
             records.extend(self._run_direct_vlm(evolve_cases))
 
+        if "reasoned_vlm" in self.config.settings:
+            print(f"\n=== Reasoned VLM baseline on {self.config.evolve_split}[:{train_limit}] ===")
+            records.extend(self._run_reasoned_vlm(evolve_cases))
+
         if "pure_react" in self.config.settings:
             print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{train_limit}] ===")
             records.extend(self._run_pure_react(evolve_cases))
@@ -454,6 +458,43 @@ class StructuredBenchmarkRunner:
             )
             if direct_error:
                 record.metadata["runtime_error"] = direct_error
+            self._append_record(record)
+            records.append(record)
+            print(
+                f"[{index:03d}/{len(cases):03d}] "
+                f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={answer!r}"
+            )
+        return records
+
+    def _run_reasoned_vlm(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
+        records: list[StructuredCaseRecord] = []
+        for index, case in enumerate(cases, start=1):
+            answer = ""
+            reasoned_error = ""
+            try:
+                answer = self._reasoned_answer(case)
+            except Exception as exc:
+                reasoned_error = str(exc)
+            score = self._score_answer(answer, case)
+            record = StructuredCaseRecord(
+                setting="reasoned_vlm",
+                split=self.config.evolve_split,
+                case_id=case.case_id,
+                problem_id=case.problem_id,
+                expected=case.gold_answer,
+                answer=answer,
+                correct=self._check_answer(answer, case),
+                score=score,
+                turns=1,
+                tool_count=0,
+                tool_names=[],
+                used_tool=False,
+                artifact_paths=[],
+                image_path=case.image_path,
+                metadata=dict(case.metadata),
+            )
+            if reasoned_error:
+                record.metadata["runtime_error"] = reasoned_error
             self._append_record(record)
             records.append(record)
             print(
@@ -732,14 +773,18 @@ class StructuredBenchmarkRunner:
         )
 
     def _direct_answer(self, case: TaskCase) -> str:
+        return self._reasoned_answer(case)
+
+    def _reasoned_answer(self, case: TaskCase) -> str:
         choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
         choice_block = ""
         if choices and "choices:" not in case.prompt.lower():
             choice_lines = "\n".join(f"{label}. {text}" for label, text in sorted(choices.items()))
             choice_block = f"\nChoices:\n{choice_lines}"
         prompt = (
-            "Answer the question directly from the image.\n"
-            "Return only the final short answer with no explanation.\n"
+            "Analyze the image and question briefly before answering.\n"
+            "Keep the reasoning concise and grounded in visible evidence.\n"
+            "End with a final line exactly in the format: Final answer: <answer>\n"
             "If the task is multiple choice, return the option letter when possible.\n\n"
             f"Question: {case.prompt}{choice_block}"
         )
@@ -750,7 +795,7 @@ class StructuredBenchmarkRunner:
             }
         ]
         response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=200))
-        return response.strip()
+        return _extract_final_answer_text(response)
 
     def _create_plain_react_agent(self, case: TaskCase, phase: str) -> ReActAgent:
         work_dir = self.output_dir / "pure_react" / phase / f"case_{case.case_id}"
@@ -1085,6 +1130,7 @@ class StructuredBenchmarkRunner:
             "skill_only_post_evolve_recovery_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
             "preset_tools_only_accuracy": settings_summary.get("preset_tools_only", {}).get("accuracy", 0.0),
             "same_tool_preset_tools_only_accuracy": settings_summary.get("same_tool_preset_tools_only", {}).get("accuracy", 0.0),
+            "reasoned_vlm_accuracy": settings_summary.get("reasoned_vlm", {}).get("accuracy", 0.0),
             "function_calling_vqa_accuracy": settings_summary.get("function_calling_vqa", {}).get("accuracy", 0.0),
             "frozen_inference_accuracy": settings_summary.get("frozen_inference", {}).get("accuracy", 0.0),
             "skill_only_frozen_inference_accuracy": settings_summary.get("skill_only_frozen_inference", {}).get("accuracy", 0.0),
@@ -1322,3 +1368,10 @@ def _clamp_score(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return max(1, min(5, score))
+
+
+def _extract_final_answer_text(text: str) -> str:
+    match = re.search(r"Final answer:\s*(.+)$", text or "", re.IGNORECASE | re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return (text or "").strip()
