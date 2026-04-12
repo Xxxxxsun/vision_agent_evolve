@@ -7,6 +7,7 @@ import unittest
 import base64
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from PIL import Image
@@ -25,6 +26,7 @@ from core.structured_data import (
     score_textvqa_answer,
 )
 from core.agent import AgentConfig, ReActAgent
+from core.tool_calling_runtime import ToolCallingRuntimeConfig, run_function_calling_vqa_case
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
 from evolution.benchmark_adapters import GTAAdapter, ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
 from evolution.loop import EvolutionLoop
@@ -831,6 +833,129 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertIn("mathvista", datasets)
         self.assertIn("textvqa", datasets)
         self.assertIn("vstar", datasets)
+
+    def test_function_calling_runtime_handles_tool_loop_and_final_answer(self):
+        class FakeToolClient:
+            def __init__(self):
+                self.calls: list[dict[str, object]] = []
+
+            def chat_with_tools(self, messages, tools=None, settings=None, raw_response=False):
+                self.calls.append({"messages": messages, "tools": tools, "raw_response": raw_response})
+                if len(self.calls) == 1:
+                    response = SimpleNamespace(
+                        choices=[
+                            SimpleNamespace(
+                                message=SimpleNamespace(
+                                    content="",
+                                    tool_calls=[
+                                        SimpleNamespace(
+                                            id="tool_1",
+                                            function=SimpleNamespace(name="list_images", arguments="{}"),
+                                        )
+                                    ],
+                                )
+                            )
+                        ]
+                    )
+                    return response, DummyUsage()
+                response = SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                content="Reasoning...\nFinal answer: A",
+                                tool_calls=None,
+                            )
+                        )
+                    ]
+                )
+                return response, DummyUsage()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            image_path = root / "sample.png"
+            self._write_image(image_path, size=(16, 12))
+            case = TaskCase(
+                case_id="case_1",
+                problem_id="vstar",
+                prompt="What color is the object? (A) red (B) blue",
+                gold_answer="A",
+                image_path=str(image_path),
+                metadata={"dataset_name": "vstar", "choices": {"A": "red", "B": "blue"}},
+            )
+            client = FakeToolClient()
+            result = run_function_calling_vqa_case(
+                client,
+                case,
+                benchmark_name="vstar",
+                config=ToolCallingRuntimeConfig(work_dir=root / "runtime"),
+            )
+
+        self.assertEqual(result.final_answer, "A")
+        self.assertTrue(result.success)
+        self.assertEqual(len(client.calls), 2)
+        self.assertEqual(result.steps[0].action.name, "list_images")
+        self.assertIn("\"images\"", result.steps[0].observation)
+        self.assertTrue(result.steps[-1].is_final)
+
+    def test_structured_runner_supports_function_calling_vqa_setting_for_vstar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            normalized_root = root / "normalized"
+            image_path = root / "sample.png"
+            self._write_image(image_path, size=(16, 12))
+            rows = [
+                {
+                    "id": "v1",
+                    "problem_id": "vstar",
+                    "prompt": "Which option is correct?",
+                    "answer": "A",
+                    "image_path": str(image_path),
+                    "metadata": {
+                        "dataset_name": "vstar",
+                        "split": "train",
+                        "source_id": "v1",
+                        "capability_family": "vstar",
+                        "choices": {"A": "cat", "B": "dog"},
+                    },
+                }
+            ]
+            dataset_root = normalized_root / "vstar"
+            dataset_root.mkdir(parents=True, exist_ok=True)
+            split_file = dataset_root / "train.jsonl"
+            with split_file.open("w", encoding="utf-8") as handle:
+                for row in rows:
+                    handle.write(json.dumps(row) + "\n")
+            (dataset_root / "val.jsonl").write_text("", encoding="utf-8")
+
+            config = StructuredExperimentConfig(
+                dataset="vstar",
+                raw_data_root=root,
+                normalized_data_root=normalized_root,
+                subset_id="vstar_fc_test",
+                evolve_split="train",
+                held_out_split="val",
+                train_subset_size=1,
+                held_out_limit=0,
+                settings=["function_calling_vqa"],
+            )
+            runner = StructuredBenchmarkRunner(config=config, project_root=Path.cwd(), vlm_client=DummyClient())
+            fake_result = AgentResult(
+                task="Which option is correct?",
+                final_answer="A",
+                steps=[AgentStep(turn=1, thought="Final answer: A", is_final=True)],
+                total_turns=1,
+                success=True,
+            )
+            with mock.patch("evolution.structured_runner.run_function_calling_vqa_case", return_value=fake_result):
+                summary = runner.run_experiment()
+
+        self.assertIn("function_calling_vqa", summary["settings"])
+        self.assertEqual(summary["settings"]["function_calling_vqa"]["accuracy"], 1.0)
+        self.assertEqual(summary["function_calling_vqa_accuracy"], 1.0)
+
+    def test_normalize_settings_accepts_function_calling_vqa(self):
+        normalized = _normalize_settings(["function_calling_vqa", "all"])
+        self.assertIn("function_calling_vqa", normalized)
 
     def test_gta_adapter_respects_whitelist_blacklist_and_numeric_tolerance(self):
         adapter = GTAAdapter()

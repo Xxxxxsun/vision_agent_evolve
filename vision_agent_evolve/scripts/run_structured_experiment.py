@@ -55,7 +55,7 @@ def main() -> None:
         "--settings",
         nargs="+",
         default=["direct_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
-        help="Subset of settings to run. Choices: direct_vlm pure_react toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
+        help="Subset of settings to run. Choices: direct_vlm pure_react function_calling_vqa toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
     args = parser.parse_args()
 
@@ -105,6 +105,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
         if normalized not in {
             "direct_vlm",
             "pure_react",
+            "function_calling_vqa",
             "toolpool_prompt_baseline",
             "agent_train_adaptive",
             "skill_only_train_adaptive",

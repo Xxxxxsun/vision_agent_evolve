@@ -13,6 +13,7 @@ import os
 
 from core.agent import AgentConfig, ReActAgent
 from core.structured_data import check_chartqa_case_answer, load_normalized_cases
+from core.tool_calling_runtime import ToolCallingRuntimeConfig, run_function_calling_vqa_case
 from core.types import AgentResult, AgentStep, TaskCase
 from core.vlm_client import ModelSettings, VLMClient
 from evolution.benchmark_adapters import BenchmarkAdapter, get_benchmark_adapter
@@ -255,6 +256,10 @@ class StructuredBenchmarkRunner:
             print(f"\n=== Pure ReAct baseline on {self.config.evolve_split}[:{train_limit}] ===")
             records.extend(self._run_pure_react(evolve_cases))
 
+        if "function_calling_vqa" in self.config.settings:
+            print(f"\n=== Function-calling VQA baseline on {self.config.evolve_split}[:{train_limit}] ===")
+            records.extend(self._run_function_calling_vqa(evolve_cases))
+
         if "toolpool_prompt_baseline" in self.config.settings:
             print(f"\n=== Same-tool prompt baseline on {self.config.evolve_split}[:{train_limit}] ===")
             records.extend(self._run_toolpool_prompt_baseline(evolve_cases))
@@ -467,6 +472,41 @@ class StructuredBenchmarkRunner:
                 result = self._runtime_failure_result(case, exc)
             record = self._record_from_agent_result(
                 setting="pure_react",
+                split=self.config.evolve_split,
+                case=case,
+                result=result,
+                correct=self._check_answer(result.final_answer, case),
+                chain_trace=[],
+            )
+            self._append_record(record)
+            records.append(record)
+            print(
+                f"[{index:03d}/{len(cases):03d}] "
+                f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
+            )
+        return records
+
+    def _run_function_calling_vqa(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
+        configured = set(self._configured_datasets())
+        if configured != {"vstar"}:
+            raise ValueError(
+                "The function_calling_vqa setting is currently supported only for dataset='vstar'."
+            )
+
+        records: list[StructuredCaseRecord] = []
+        for index, case in enumerate(cases, start=1):
+            work_dir = self.output_dir / "function_calling_vqa" / f"case_{case.case_id}"
+            try:
+                result = run_function_calling_vqa_case(
+                    self.vlm_client,
+                    case,
+                    benchmark_name=case.dataset_name(),
+                    config=ToolCallingRuntimeConfig(work_dir=work_dir),
+                )
+            except Exception as exc:
+                result = self._runtime_failure_result(case, exc)
+            record = self._record_from_agent_result(
+                setting="function_calling_vqa",
                 split=self.config.evolve_split,
                 case=case,
                 result=result,
@@ -1045,6 +1085,7 @@ class StructuredBenchmarkRunner:
             "skill_only_post_evolve_recovery_accuracy": settings_summary.get("skill_only_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
             "preset_tools_only_accuracy": settings_summary.get("preset_tools_only", {}).get("accuracy", 0.0),
             "same_tool_preset_tools_only_accuracy": settings_summary.get("same_tool_preset_tools_only", {}).get("accuracy", 0.0),
+            "function_calling_vqa_accuracy": settings_summary.get("function_calling_vqa", {}).get("accuracy", 0.0),
             "frozen_inference_accuracy": settings_summary.get("frozen_inference", {}).get("accuracy", 0.0),
             "skill_only_frozen_inference_accuracy": settings_summary.get("skill_only_frozen_inference", {}).get("accuracy", 0.0),
             "forced_skill_frozen_accuracy": settings_summary.get("frozen_inference_forced_skill", {}).get("accuracy", 0.0),

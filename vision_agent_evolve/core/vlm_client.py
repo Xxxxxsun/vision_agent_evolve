@@ -121,6 +121,129 @@ class VLMClient:
         assert last_error is not None
         raise last_error
 
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        settings: ModelSettings | None = None,
+        raw_response: bool = False,
+    ) -> tuple[Any, UsageStats]:
+        """Send a tool-calling chat request and optionally return the raw response object."""
+        settings = settings or ModelSettings()
+
+        attempts = max(1, settings.max_retries)
+        last_error: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                if self.api_style == "alibaba_chat":
+                    return self._chat_alibaba_with_tools(messages, tools, settings, raw_response=raw_response)
+
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=settings.temperature,
+                    max_tokens=settings.max_tokens,
+                    timeout=settings.timeout,
+                    tools=tools,
+                )
+
+                usage = UsageStats()
+                if hasattr(response, "usage") and response.usage:
+                    usage.prompt_tokens = getattr(response.usage, "prompt_tokens", 0)
+                    usage.completion_tokens = getattr(response.usage, "completion_tokens", 0)
+                    usage.total_tokens = getattr(response.usage, "total_tokens", 0)
+
+                if raw_response:
+                    return response, usage
+
+                content = response.choices[0].message.content or ""
+                return content, usage
+            except Exception as exc:  # pragma: no cover - retry path depends on backend behavior
+                last_error = exc
+                if attempt >= attempts or not self._is_retryable_exception(exc):
+                    raise
+                delay = settings.retry_backoff_seconds * attempt
+                print(
+                    f"[VLMClient] transient tool-calling error on attempt {attempt}/{attempts}: {exc}. "
+                    f"Retrying in {delay:.1f}s..."
+                )
+                time.sleep(delay)
+
+        assert last_error is not None
+        raise last_error
+
+    def _chat_alibaba_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        settings: ModelSettings,
+        *,
+        raw_response: bool = False,
+    ) -> tuple[Any, UsageStats]:
+        """Send a tool-calling request to the Alibaba internal chat API."""
+        self._validate_alibaba_config()
+        payload = {
+            "model": self.model,
+            "prompt": self._serialize_prompt(messages),
+            "user_id": self.user_id,
+            "access_key": self.access_key,
+            "quota_id": self.quota_id,
+            "app": self.app,
+            "params": {
+                "temperature": settings.temperature,
+                "max_tokens": settings.max_tokens,
+            },
+        }
+        if tools:
+            payload["params"]["tools"] = tools
+        if self._is_gemini_model():
+            payload["params"].update(self._gemini_params(settings))
+            payload["tag"] = os.getenv("VLM_TAG", "").strip() or "web_chat_client"
+            payload["category"] = os.getenv("VLM_CATEGORY", "").strip() or "问答"
+
+        req = request.Request(
+            self.base_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with request.urlopen(req, timeout=settings.timeout) as resp:
+                response_body = resp.read().decode("utf-8")
+        except error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Alibaba chat API HTTP {exc.code}: {details}") from exc
+        except error.URLError as exc:
+            raise RuntimeError(f"Alibaba chat API request failed: {exc}") from exc
+
+        parsed = json.loads(response_body)
+        usage = UsageStats()
+        data = parsed.get("data") if isinstance(parsed, dict) else None
+        completion = data.get("completion") if isinstance(data, dict) else None
+        usage_payload = None
+        if isinstance(completion, dict):
+            usage_payload = completion.get("usage")
+        if not isinstance(usage_payload, dict) and isinstance(data, dict):
+            usage_payload = data.get("usage")
+        if isinstance(usage_payload, dict):
+            usage.prompt_tokens = int(usage_payload.get("prompt_tokens", 0) or 0)
+            usage.completion_tokens = int(usage_payload.get("completion_tokens", 0) or 0)
+            usage.total_tokens = int(
+                usage_payload.get("total_tokens", usage.prompt_tokens + usage.completion_tokens) or 0
+            )
+
+        if raw_response:
+            return parsed, usage
+
+        message = ""
+        if isinstance(data, dict):
+            message = str(data.get("message", "") or "")
+        return message, usage
+
     def _chat_alibaba(
         self,
         messages: list[dict[str, Any]],
