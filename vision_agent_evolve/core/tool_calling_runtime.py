@@ -520,30 +520,26 @@ def _collect_case_images(case: TaskCase) -> list[str]:
 
 
 def _build_system_prompt(benchmark_name: str) -> str:
-    if benchmark_name.strip().lower() == "vstar":
-        return (
-            f"{SYSTEM_PROMPT} "
-            "For VStar questions, use zoom_image when the target object is small, far away, partially occluded, "
-            "or when color/material details are hard to see at the original scale. "
-            "For relative-position questions, keep the global scene in mind and use visual tools only if they help "
-            "you inspect the two named objects without losing the left/right reference frame. "
-            "Answer multiple-choice questions with the option letter when possible."
-        )
+    del benchmark_name
     return SYSTEM_PROMPT
 
 
 def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
     family = str(case.metadata.get("capability_family", "") or "").strip().lower()
+    dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
     lines = [
         "Answer the following benchmark question as accurately as possible.",
         "First write a short reasoning trace based on the visible evidence.",
     ]
     if include_image:
         lines.append("Use the provided image(s) when relevant.")
+    if dataset_name == "vstar":
+        lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
     if family == "vstar_direct_attributes":
         lines.extend(
             [
+                "Use zoom_image when the target object is small, far away, partially occluded, or when color/material details are hard to see at the original scale.",
                 "If the target object is visually small or its attribute is hard to distinguish, call zoom_image before answering.",
                 "Verify the named object carefully before choosing among similar colors or materials.",
             ]
@@ -552,6 +548,8 @@ def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
         lines.extend(
             [
                 "Judge left/right from the viewer's perspective using the full image as the reference frame.",
+                "Keep the global scene in mind throughout the reasoning process.",
+                "First determine the semantic left/right conclusion, then map it to the matching option in the question.",
                 "If the named objects are small or hard to localize, you may use zoom_image, but do not lose track of the full-scene left/right relationship.",
             ]
         )
@@ -560,7 +558,12 @@ def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
         lines.extend(["", "Choices:"])
         for label, text in sorted(choices.items()):
             lines.append(f"({label}) {text}")
-    lines.extend(["", "End with a final line in the format: Final answer: <answer>"])
+    lines.extend(
+        [
+            "",
+            "End with a final line in the format: Final answer: <answer>",
+        ]
+    )
     return "\n".join(lines)
 
 

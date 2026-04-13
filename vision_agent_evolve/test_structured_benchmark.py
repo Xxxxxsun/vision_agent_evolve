@@ -1035,6 +1035,25 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertEqual(summary["settings"]["reasoned_vlm"]["accuracy"], 1.0)
         self.assertEqual(summary["reasoned_vlm_accuracy"], 1.0)
 
+    def test_vstar_adapter_maps_semantic_answer_from_prompt_choices(self):
+        adapter = VStarAdapter()
+        case = TaskCase(
+            case_id="v1",
+            problem_id="vstar",
+            prompt=(
+                "Is the telephone on the left or right side of the hand lamp?\n"
+                "(A) right\n"
+                "(B) left\n"
+                "Answer with the option's letter from the given choices directly."
+            ),
+            gold_answer="A",
+            metadata={"dataset_name": "vstar", "capability_family": "vstar_relative_position", "choices": {}},
+        )
+
+        self.assertEqual(adapter.score_answer("right", case), 1.0)
+        self.assertTrue(adapter.check_answer("right", case))
+        self.assertEqual(adapter.score_answer("left", case), 0.0)
+
     def test_normalize_settings_accepts_function_calling_vqa(self):
         normalized = _normalize_settings(["function_calling_vqa", "all"])
         self.assertIn("function_calling_vqa", normalized)

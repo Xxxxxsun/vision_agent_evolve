@@ -781,13 +781,27 @@ class StructuredBenchmarkRunner:
         if choices and "choices:" not in case.prompt.lower():
             choice_lines = "\n".join(f"{label}. {text}" for label, text in sorted(choices.items()))
             choice_block = f"\nChoices:\n{choice_lines}"
-        prompt = (
-            "Analyze the image and question briefly before answering.\n"
-            "Keep the reasoning concise and grounded in visible evidence.\n"
-            "End with a final line exactly in the format: Final answer: <answer>\n"
-            "If the task is multiple choice, return the option letter when possible.\n\n"
-            f"Question: {case.prompt}{choice_block}"
-        )
+        family = str(case.metadata.get("capability_family", "")).strip().lower()
+        dataset_name = str(case.metadata.get("dataset_name", "")).strip().lower()
+        instruction_lines = [
+            "Analyze the image and question briefly before answering.",
+            "Keep the reasoning concise and grounded in visible evidence.",
+            "End with a final line exactly in the format: Final answer: <answer>",
+        ]
+        if dataset_name == "vstar":
+            instruction_lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
+        if family == "vstar_relative_position":
+            instruction_lines.extend(
+                [
+                    "For left/right questions, first determine the semantic conclusion from the viewer's perspective.",
+                    "Then map that conclusion to the matching option in the question.",
+                ]
+            )
+        elif dataset_name != "vstar" and "(a)" in case.prompt.lower() and "(b)" in case.prompt.lower():
+            instruction_lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
+        elif dataset_name != "vstar":
+            instruction_lines.append("In Final answer, give the final answer itself rather than an explanation.")
+        prompt = "\n".join(instruction_lines) + f"\n\nQuestion: {case.prompt}{choice_block}"
         messages = [
             {
                 "role": "user",
