@@ -47,6 +47,8 @@ class StructuredExperimentConfig:
     forced_skill_name: str | None = None
     fixed_tool_names: list[str] = field(default_factory=list)
     disable_generated_tools: bool = False
+    capability_root: Path | None = None
+    use_skills: bool = True
 
 
 @dataclass
@@ -542,7 +544,12 @@ class StructuredBenchmarkRunner:
                     self.vlm_client,
                     case,
                     benchmark_name=case.dataset_name(),
-                    config=ToolCallingRuntimeConfig(work_dir=work_dir),
+                    config=ToolCallingRuntimeConfig(
+                        work_dir=work_dir,
+                        capability_root=self.config.capability_root,
+                        static_skills_dir=self.project_root / "skills",
+                        use_skills=self.config.use_skills,
+                    ),
                 )
             except Exception as exc:
                 result = self._runtime_failure_result(case, exc)
@@ -1204,13 +1211,18 @@ def _extract_tool_names(result: AgentResult) -> list[str]:
     tool_names: list[str] = []
     pattern = re.compile(r"\bpython(?:3)?\s+-m\s+tools\s+([a-zA-Z0-9_]+)\b")
     for step in result.steps:
-        if step.action is None or step.action.name != "bash":
+        if step.action is None:
             continue
-        command = str(step.action.arguments.get("command", ""))
-        match = pattern.search(command)
-        if not match:
-            continue
-        tool_name = match.group(1)
+        if step.action.name == "bash":
+            command = str(step.action.arguments.get("command", ""))
+            match = pattern.search(command)
+            if not match:
+                continue
+            tool_name = match.group(1)
+        else:
+            tool_name = str(step.action.name or "").strip()
+            if not tool_name:
+                continue
         if tool_name not in tool_names:
             tool_names.append(tool_name)
     return tool_names

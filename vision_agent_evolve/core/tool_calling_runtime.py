@@ -17,6 +17,7 @@ from typing import Any
 
 from PIL import Image
 
+from .skill_routing import ResolvedSkillContext, SkillResolver, resolve_skill_roots
 from .types import AgentAction, AgentResult, AgentStep, Message, TaskCase
 from .vlm_client import ModelSettings, VLMClient
 
@@ -41,6 +42,10 @@ class ToolCallingRuntimeConfig:
     )
     enable_tools: bool = True
     work_dir: Path | None = None
+    capability_root: Path | None = None
+    static_skills_dir: Path | None = None
+    use_skills: bool = True
+    skill_mode: str = "function_calling_router"
 
 
 class LocalPythonExecutor:
@@ -194,9 +199,15 @@ class RuntimeImageSession:
 class RuntimeToolRegistry:
     """Structured tools exposed via function calling."""
 
-    def __init__(self, image_session: RuntimeImageSession, python_executor: LocalPythonExecutor):
+    def __init__(
+        self,
+        image_session: RuntimeImageSession,
+        python_executor: LocalPythonExecutor,
+        allowed_tools: list[str] | None = None,
+    ):
         self.image_session = image_session
         self.python_executor = python_executor
+        self.allowed_tools = {name.strip() for name in (allowed_tools or []) if str(name).strip()}
         self._handlers = {
             "execute_python": self._execute_python,
             "list_images": self._list_images,
@@ -207,7 +218,7 @@ class RuntimeToolRegistry:
         }
 
     def schemas(self) -> list[dict[str, Any]]:
-        return [
+        schemas = [
             {
                 "type": "function",
                 "function": {
@@ -290,8 +301,17 @@ class RuntimeToolRegistry:
                 },
             },
         ]
+        if not self.allowed_tools:
+            return schemas
+        return [
+            schema
+            for schema in schemas
+            if str(schema.get("function", {}).get("name", "")).strip() in self.allowed_tools
+        ]
 
     def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if self.allowed_tools and tool_name not in self.allowed_tools:
+            return self._error_result("UnsupportedTool", f"Tool not enabled for this skill context: {tool_name}")
         handler = self._handlers.get(tool_name)
         if handler is None:
             return self._error_result("UnsupportedTool", f"Unsupported tool: {tool_name}")
@@ -389,9 +409,14 @@ def run_function_calling_vqa_case(
     image_session = RuntimeImageSession(work_dir)
     image_refs = _collect_case_images(case)
     image_session.register_initial_images(image_refs)
-    tool_registry = RuntimeToolRegistry(image_session, LocalPythonExecutor())
+    skill_context = _resolve_skill_context(case, runtime_config)
+    tool_registry = RuntimeToolRegistry(
+        image_session,
+        LocalPythonExecutor(),
+        allowed_tools=skill_context.tool_names or None,
+    )
     system_prompt = _build_system_prompt(benchmark_name)
-    user_prompt = _build_task_prompt(case, include_image=bool(image_refs))
+    user_prompt = _build_task_prompt(case, include_image=bool(image_refs), skill_context=skill_context)
     user_content: list[dict[str, Any]] = [{"type": "text", "text": user_prompt}]
     for image_ref in image_refs:
         user_content.append({"type": "image_url", "image_url": {"url": VLMClient.image_data_url(image_ref)}})
@@ -524,7 +549,7 @@ def _build_system_prompt(benchmark_name: str) -> str:
     return SYSTEM_PROMPT
 
 
-def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
+def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: ResolvedSkillContext | None = None) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
     family = str(case.metadata.get("capability_family", "") or "").strip().lower()
     dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
@@ -534,6 +559,12 @@ def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
     ]
     if include_image:
         lines.append("Use the provided image(s) when relevant.")
+    if skill_context and skill_context.prompt_blocks:
+        lines.extend(["", "Skill Context:"])
+        for note in skill_context.routing_notes:
+            lines.append(f"- {note}")
+        for block in skill_context.prompt_blocks:
+            lines.extend(["", block])
     if dataset_name == "vstar":
         lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
     if family == "vstar_direct_attributes":
@@ -565,6 +596,16 @@ def _build_task_prompt(case: TaskCase, include_image: bool) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def _resolve_skill_context(case: TaskCase, config: ToolCallingRuntimeConfig) -> ResolvedSkillContext:
+    if not config.use_skills:
+        return ResolvedSkillContext()
+    skill_roots = resolve_skill_roots(config.capability_root, config.static_skills_dir)
+    if not skill_roots:
+        return ResolvedSkillContext()
+    resolver = SkillResolver(skill_roots)
+    return resolver.resolve(case)
 
 
 def _question_embeds_choices(question: str, choices: dict[str, Any]) -> bool:

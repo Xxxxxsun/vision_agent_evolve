@@ -26,6 +26,10 @@ def load_skill(skill_path: Path) -> Skill:
         kind=metadata.get("kind", "skill"),
         level=metadata.get("level", "mid"),
         depends_on=metadata.get("depends_on", []),
+        children=metadata.get("children", []),
+        tool_names=metadata.get("tool_names", []),
+        routing_mode=metadata.get("routing_mode", "soft"),
+        final_answer_policy=metadata.get("final_answer_policy", ""),
         applicability_conditions=metadata.get("applicability_conditions", ""),
         skill_path=skill_path,
         references=references,
@@ -102,7 +106,11 @@ def _parse_frontmatter(content: str) -> dict:
 
         # Handle list values
         if value.startswith("[") and value.endswith("]"):
-            value = [v.strip().strip('"\'') for v in value[1:-1].split(",")]
+            inner = value[1:-1].strip()
+            if not inner:
+                value = []
+            else:
+                value = [v.strip().strip('"\'') for v in inner.split(",") if v.strip()]
 
         metadata[key] = value
 

@@ -246,6 +246,50 @@ VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
   --settings function_calling_vqa
 ```
 
+### 3.5 Function-calling VQA with hierarchical skills
+
+This uses the new prompt-routing skill layer documented in
+[FUNCTION_CALLING_SKILLS.md](/root/vision_agent_evolve/vision_agent_evolve/docs/FUNCTION_CALLING_SKILLS.md).
+
+```bash
+VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_skills_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --settings function_calling_vqa
+```
+
+To use an alternate learned/static skill root:
+
+```bash
+VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_skills_customroot_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --capability-root ./learned/my_skill_pack \
+  --settings function_calling_vqa
+```
+
+To disable the skill router and run the plain function-calling baseline:
+
+```bash
+VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_noskills_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --disable-skills \
+  --settings function_calling_vqa
+```
+
 ### 3.5 Reasoned vs function-calling with Alibaba proxy
 
 Use the HAL-style proxy credentials when testing `function_calling_vqa` against the Alibaba gateway. In local experiments, the original `llm_application` credentials frequently produced proxy errors or policy blocks on tool-calling requests, while the HAL defaults allowed the same requests to complete.

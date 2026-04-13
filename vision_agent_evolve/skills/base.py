@@ -16,6 +16,10 @@ class Skill:
     kind: str = "skill"
     level: Literal["foundation", "high", "mid", "low"] = "mid"
     depends_on: list[str] = field(default_factory=list)
+    children: list[str] = field(default_factory=list)
+    tool_names: list[str] = field(default_factory=list)
+    routing_mode: str = "soft"
+    final_answer_policy: str = ""
     applicability_conditions: str = ""
     skill_path: Path | None = None
     references: list[Path] = field(default_factory=list)

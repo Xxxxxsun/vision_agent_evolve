@@ -26,6 +26,7 @@ from core.structured_data import (
     score_textvqa_answer,
 )
 from core.agent import AgentConfig, ReActAgent
+from core.skill_routing import SkillResolver, resolve_skill_roots
 from core.tool_calling_runtime import ToolCallingRuntimeConfig, run_function_calling_vqa_case
 from core.types import AgentAction, AgentResult, AgentStep, TaskCase
 from evolution.benchmark_adapters import GTAAdapter, ChartQAAdapter, HRBenchAdapter, MathVistaAdapter, TextVQAAdapter, VStarAdapter, available_benchmark_datasets
@@ -896,6 +897,141 @@ class StructuredBenchmarkTests(unittest.TestCase):
         self.assertEqual(result.steps[0].action.name, "list_images")
         self.assertIn("\"images\"", result.steps[0].observation)
         self.assertTrue(result.steps[-1].is_final)
+
+    def test_skill_resolver_resolves_family_dependencies_and_tools(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            skills_dir = root / "skills"
+            family_dir = skills_dir / "vstar_direct_attributes"
+            family_dir.mkdir(parents=True, exist_ok=True)
+            (family_dir / "SKILL.md").write_text(
+                """---
+name: vstar_direct_attributes
+description: "Attribute router"
+depends_on: ["vision_analysis", "zoom_focus"]
+tool_names: ["zoom_image"]
+applicability_conditions: "Use for VStar attribute questions."
+---
+
+## Procedure
+- Check the object identity first.
+""",
+                encoding="utf-8",
+            )
+            foundation_dir = skills_dir / "foundation"
+            foundation_dir.mkdir(parents=True, exist_ok=True)
+            (foundation_dir / "vision_analysis.md").write_text(
+                """---
+name: vision_analysis
+description: "Foundation visual analysis"
+level: foundation
+---
+
+Inspect the image before choosing tools.
+""",
+                encoding="utf-8",
+            )
+            zoom_dir = skills_dir / "zoom_focus"
+            zoom_dir.mkdir(parents=True, exist_ok=True)
+            (zoom_dir / "SKILL.md").write_text(
+                """---
+name: zoom_focus
+description: "Zoom when the target is tiny"
+tool_names: ["zoom_image", "list_images"]
+---
+
+Use zoom_image for tiny targets.
+""",
+                encoding="utf-8",
+            )
+
+            resolver = SkillResolver([skills_dir])
+            context = resolver.resolve(
+                TaskCase(
+                    case_id="1",
+                    problem_id="vstar",
+                    prompt="What color is the object?",
+                    gold_answer="A",
+                    image_path="img.png",
+                    metadata={"dataset_name": "vstar", "capability_family": "vstar_direct_attributes"},
+                )
+            )
+
+        self.assertEqual([skill.name for skill in context.matched_skills], ["vstar_direct_attributes"])
+        self.assertEqual([skill.name for skill in context.all_skills], ["vision_analysis", "zoom_focus", "vstar_direct_attributes"])
+        self.assertEqual(context.tool_names, ["zoom_image", "list_images"])
+        self.assertTrue(any("Attribute router" in block for block in context.prompt_blocks))
+
+    def test_resolve_skill_roots_prefers_capability_root_then_static_dir(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            capability_root = root / "learned"
+            (capability_root / "skills").mkdir(parents=True, exist_ok=True)
+            static_dir = root / "skills"
+            static_dir.mkdir(parents=True, exist_ok=True)
+            roots = resolve_skill_roots(capability_root, static_dir)
+        self.assertEqual(roots, [capability_root / "skills", static_dir])
+
+    def test_function_calling_runtime_uses_skill_prompt_and_tool_filter(self):
+        class FakeSkillClient:
+            def __init__(self):
+                self.calls: list[dict[str, object]] = []
+
+            def chat_with_tools(self, messages, tools=None, settings=None, raw_response=False):
+                self.calls.append({"messages": messages, "tools": tools})
+                response = SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                content="Reasoning...\nFinal answer: A",
+                                tool_calls=None,
+                            )
+                        )
+                    ]
+                )
+                return response, DummyUsage()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            image_path = root / "sample.png"
+            self._write_image(image_path, size=(16, 12))
+            skills_dir = root / "skills"
+            (skills_dir / "vstar_direct_attributes").mkdir(parents=True, exist_ok=True)
+            (skills_dir / "vstar_direct_attributes" / "SKILL.md").write_text(
+                """---
+name: vstar_direct_attributes
+description: "Use zoom for tiny attributes"
+tool_names: ["zoom_image"]
+---
+
+## Tool Hints
+- Use zoom_image when the target is tiny.
+""",
+                encoding="utf-8",
+            )
+            case = TaskCase(
+                case_id="case_1",
+                problem_id="vstar",
+                prompt="What color is the object? (A) red (B) blue",
+                gold_answer="A",
+                image_path=str(image_path),
+                metadata={"dataset_name": "vstar", "capability_family": "vstar_direct_attributes"},
+            )
+            client = FakeSkillClient()
+            result = run_function_calling_vqa_case(
+                client,
+                case,
+                benchmark_name="vstar",
+                config=ToolCallingRuntimeConfig(work_dir=root / "runtime", static_skills_dir=skills_dir),
+            )
+
+        self.assertEqual(result.final_answer, "A")
+        first_call = client.calls[0]
+        tool_names = [tool["function"]["name"] for tool in first_call["tools"]]
+        self.assertEqual(tool_names, ["zoom_image"])
+        user_message = first_call["messages"][1]["content"][0]["text"]
+        self.assertIn("Skill Context:", user_message)
+        self.assertIn("Use zoom for tiny attributes", user_message)
 
     def test_structured_runner_supports_function_calling_vqa_setting_for_vstar(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2381,6 +2517,55 @@ class StructuredBenchmarkTests(unittest.TestCase):
 
             self.assertTrue(record.used_tool)
             self.assertEqual(record.tool_names, ["chart_bar_approximation_tool"])
+
+    def test_record_from_agent_result_counts_function_call_tools_as_used(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = StructuredExperimentConfig(
+                dataset="vstar",
+                raw_data_root=root / "raw",
+                normalized_data_root=root / "normalized",
+                subset_id="vstar_fc_tool_stats",
+            )
+            runner = StructuredBenchmarkRunner(config, root, vlm_client=DummyClient())
+            artifact = root / "artifact.png"
+            self._write_image(artifact)
+            case = TaskCase(
+                case_id="1",
+                problem_id="vstar",
+                prompt="Q",
+                gold_answer="A",
+                image_path="img.png",
+                metadata={"dataset_name": "vstar", "capability_family": "vstar_direct_attributes"},
+            )
+            result = AgentResult(
+                task="Q",
+                final_answer="A",
+                steps=[
+                    AgentStep(
+                        turn=1,
+                        action=AgentAction(name="zoom_image", arguments={"image_id": "image_0", "factor": 2.0}),
+                        artifacts=[str(artifact)],
+                    )
+                ],
+                total_turns=1,
+                success=True,
+                all_artifacts=[str(artifact)],
+            )
+
+            record = runner._record_from_agent_result(
+                setting="function_calling_vqa",
+                split="val",
+                case=case,
+                result=result,
+                correct=True,
+                chain_trace=[],
+            )
+
+            self.assertTrue(record.used_tool)
+            self.assertEqual(record.tool_count, 1)
+            self.assertEqual(record.tool_names, ["zoom_image"])
+            self.assertEqual(record.artifact_paths, [str(artifact)])
 
     def test_run_frozen_inference_resumes_existing_cases(self):
         with tempfile.TemporaryDirectory() as tmp:
