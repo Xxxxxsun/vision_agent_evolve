@@ -809,13 +809,27 @@ class StructuredBenchmarkRunner:
         elif dataset_name != "vstar":
             instruction_lines.append("In Final answer, give the final answer itself rather than an explanation.")
         prompt = "\n".join(instruction_lines) + f"\n\nQuestion: {case.prompt}{choice_block}"
+        # For refocus_chart, append bbox label info to match VTool-R1 eval protocol
+        if dataset_name == "refocus_chart":
+            x_values_bbox = case.metadata.get("x_values_bbox", {})
+            y_values_bbox = case.metadata.get("y_values_bbox", {})
+            x_keys = list(x_values_bbox.keys()) if isinstance(x_values_bbox, dict) else []
+            y_keys = list(y_values_bbox.keys()) if isinstance(y_values_bbox, dict) else []
+            bbox_info_lines = []
+            if x_keys:
+                bbox_info_lines.append(f"The x values in the image are: {x_keys}.")
+            if y_keys:
+                bbox_info_lines.append(f"The y values in the image are: {y_keys}.")
+            if bbox_info_lines:
+                prompt += "\n\nChart axis info: " + " ".join(bbox_info_lines)
+        max_tokens = 1024 if dataset_name == "refocus_chart" else 200
         messages = [
             {
                 "role": "user",
                 "content": VLMClient.image_message_parts(case.image_path, prompt),
             }
         ]
-        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=200))
+        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=max_tokens))
         return _extract_final_answer_text(response)
 
     def _create_plain_react_agent(self, case: TaskCase, phase: str) -> ReActAgent:
