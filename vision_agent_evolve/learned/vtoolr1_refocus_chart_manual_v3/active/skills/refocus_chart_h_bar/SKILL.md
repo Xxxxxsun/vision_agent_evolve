@@ -1,46 +1,46 @@
 ---
 name: refocus_chart_h_bar
-description: "SOP for all horizontal-bar chart questions: read bar values, compare bars, count/aggregate, or answer general chart questions."
+description: "SOP for all horizontal-bar chart questions using VTool-R1 bbox focus tools."
 level: mid
 depends_on: ["focus_on_y_values_with_draw"]
-applicability_conditions: "Use for any horizontal-bar chart question (generic, comparison, extrema, count/total)."
+applicability_conditions: "Use for any horizontal-bar chart question."
 ---
 
 ## SOP
 
-### Step 1 — Classify the question
+### Step 1 — Find the target label
 
-- **Numeric read**: question asks for the value of one named bar (e.g. "What is the value for Haiti?")
-- **Comparison**: question asks which of two/more named bars is larger/smaller, or the difference between them
-- **Extrema**: question asks which bar has the highest/lowest value
-- **Count/aggregate**: question asks how many bars exceed a threshold, or the sum of named bars
-- **General**: question about a color, title, axis label, or anything not tied to a specific numeric value
+Look at the question and the "Available y-axis labels" list in your context.
 
-### Step 2 — Tool use decision
+- If the question names one or more specific bars (e.g., "What is the value for Haiti?", "How much larger is Albania than Cameroon?"), identify those label names. → Go to Step 2.
+- If the question asks about a general property that does NOT require reading a specific bar's numeric value (e.g., "What color is the longest bar?", "What is the title?", "How many bars are shown?"), skip Step 2 and go directly to Step 3.
 
-**Use the focus tool only for Numeric read or Comparison** (when you need to read a precise value for a named category).
+### Step 2 — Run the focus tool exactly once
 
-- Look at the "Task-specific instructions" in your context. It shows an example command with the real bbox JSON already filled in.
-- Copy that example command, replace only the label name in the JSON list with your target label(s), and run it.
-- Run the tool **at most once**. After the tool runs (whether it succeeds or fails), proceed immediately to Step 3 — do NOT retry.
+Your context contains a "Tool call format" section showing an example command with the real bbox JSON already filled in, like this:
 
-**Skip the tool** for Extrema, Count/aggregate, and General questions — answer directly from the original chart image.
+```
+python -m tools focus_on_y_values_with_draw <image_path> '["Haiti"]' '{"Haiti":{...},"Libya":{...},...}'
+```
 
-### Step 3 — Read the answer
+Copy that command verbatim. Change **only** the label(s) inside the first JSON list (e.g., replace `"Haiti"` with your target label). Keep `<image_path>` and the entire third argument (the big bbox JSON) exactly as shown.
 
-- If the tool produced an output image: read the bar value from that image.
-- If the tool produced no output or failed: read from the original chart image.
-- For comparison questions requiring two values: if only one crop was produced, read the second value from the original.
+Run this command once. Then immediately proceed to Step 3 — do NOT retry even if the output seems empty.
 
-### Step 4 — Format and complete
+### Step 3 — Read and answer
 
-Format rules (strict):
-- Numeric value: digits only, e.g. `5.32` or `203`. Include `%` only if the chart axis explicitly shows percentages.
-- Yes/No answer: exactly `Yes` or `No`, nothing else.
-- Category name: the exact label text, no sentence.
-- Do NOT add units, explanation, or extra words.
+- If Step 2 produced an output image: read the answer from that image.
+- Otherwise: read the answer directly from the original chart image.
 
-Output exactly:
+### Step 4 — Format and output
+
+Rules (strict):
+- Numeric value: digits only, e.g. `5.32` or `203`. Add `%` only if the chart axis shows percentages.
+- Yes/No: exactly `Yes` or `No`.
+- Category name: exact label text only.
+- Do NOT add units, sentences, or explanation.
+
+Output exactly these two lines:
 ```
 Final Answer: <answer>
 ACTION: TASK_COMPLETE
