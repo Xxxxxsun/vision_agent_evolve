@@ -106,3 +106,26 @@ These are intentionally lightweight:
   - emphasizes visual extraction first, then optional calculation
 - `hrbench`
   - emphasizes zoom/crop for tiny local text or symbols, then option selection
+
+## No-tool skill packs
+
+The repo also includes a lightweight no-tool VStar skill pack for ablation runs:
+
+- `skill_packs/vstar_notool/skills/vstar/SKILL.md`
+- `skill_packs/vstar_notool/skills/vstar_direct_attributes/SKILL.md`
+- `skill_packs/vstar_notool/skills/vstar_relative_position/SKILL.md`
+
+Use it together with `--disable-fc-tools` so the runtime keeps skill prompting but exposes no tools:
+
+```bash
+python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_notool_skill_gpt54_val151_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --capability-root ./skill_packs/vstar_notool \
+  --disable-fc-tools \
+  --settings function_calling_vqa
+```

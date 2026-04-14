@@ -62,6 +62,11 @@ def main() -> None:
         help="Disable skill routing for function_calling_vqa.",
     )
     parser.add_argument(
+        "--disable-fc-tools",
+        action="store_true",
+        help="Disable tool exposure inside function_calling_vqa while keeping the runtime/skills active.",
+    )
+    parser.add_argument(
         "--settings",
         nargs="+",
         default=["reasoned_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
@@ -95,6 +100,7 @@ def main() -> None:
         disable_generated_tools=args.disable_generated_tools,
         capability_root=None if args.capability_root is None else Path(args.capability_root),
         use_skills=not args.disable_skills,
+        fc_enable_tools=not args.disable_fc_tools,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
