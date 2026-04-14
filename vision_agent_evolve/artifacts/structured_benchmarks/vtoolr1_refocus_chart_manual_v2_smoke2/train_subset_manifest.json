@@ -1,0 +1,1210 @@
+{
+  "subset_id": "vtoolr1_refocus_chart_manual_v2_smoke2",
+  "split": "train",
+  "total_cases": 200,
+  "datasets": [
+    "refocus_chart"
+  ],
+  "cases": [
+    {
+      "case_id": "00006834003065",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "00006834003065"
+    },
+    {
+      "case_id": "00035547003867",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "00035547003867"
+    },
+    {
+      "case_id": "00097754005965",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "00097754005965"
+    },
+    {
+      "case_id": "00268016000783",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "00268016000783"
+    },
+    {
+      "case_id": "00309421021808",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "00309421021808"
+    },
+    {
+      "case_id": "00326327001359",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "00326327001359"
+    },
+    {
+      "case_id": "00349887008643",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "00349887008643"
+    },
+    {
+      "case_id": "00784700010464",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "00784700010464"
+    },
+    {
+      "case_id": "00916448003743",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "00916448003743"
+    },
+    {
+      "case_id": "01200566001630",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "01200566001630"
+    },
+    {
+      "case_id": "01503134001790",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "01503134001790"
+    },
+    {
+      "case_id": "01606743005377",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "01606743005377"
+    },
+    {
+      "case_id": "01749121006280",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "01749121006280"
+    },
+    {
+      "case_id": "02108983001245",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "02108983001245"
+    },
+    {
+      "case_id": "02453559002054",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "02453559002054"
+    },
+    {
+      "case_id": "02491305001736",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "02491305001736"
+    },
+    {
+      "case_id": "03025603003748",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "03025603003748"
+    },
+    {
+      "case_id": "03650941000776",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "03650941000776"
+    },
+    {
+      "case_id": "03666641001319",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "03666641001319"
+    },
+    {
+      "case_id": "03739415004997",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "03739415004997"
+    },
+    {
+      "case_id": "04262286005326",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "04262286005326"
+    },
+    {
+      "case_id": "04336466002459",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "04336466002459"
+    },
+    {
+      "case_id": "04482797005227",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "04482797005227"
+    },
+    {
+      "case_id": "04533011003180",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "04533011003180"
+    },
+    {
+      "case_id": "04660154025330",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "04660154025330"
+    },
+    {
+      "case_id": "04741624000783",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "04741624000783"
+    },
+    {
+      "case_id": "04910323003738",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "04910323003738"
+    },
+    {
+      "case_id": "04930672006502",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "04930672006502"
+    },
+    {
+      "case_id": "04960398003730",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "04960398003730"
+    },
+    {
+      "case_id": "05144824002272",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "05144824002272"
+    },
+    {
+      "case_id": "05411753006467",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "05411753006467"
+    },
+    {
+      "case_id": "05516045003357",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "05516045003357"
+    },
+    {
+      "case_id": "05661573006964",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "05661573006964"
+    },
+    {
+      "case_id": "05836356005417",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "05836356005417"
+    },
+    {
+      "case_id": "06315654000894",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "06315654000894"
+    },
+    {
+      "case_id": "06424007002454",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "06424007002454"
+    },
+    {
+      "case_id": "06570645001901",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "06570645001901"
+    },
+    {
+      "case_id": "06579925003333",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "06579925003333"
+    },
+    {
+      "case_id": "06605156002432",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "06605156002432"
+    },
+    {
+      "case_id": "06726273005613",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "06726273005613"
+    },
+    {
+      "case_id": "07082838005745",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "07082838005745"
+    },
+    {
+      "case_id": "07143886006788",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "07143886006788"
+    },
+    {
+      "case_id": "07339205003459",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "07339205003459"
+    },
+    {
+      "case_id": "07419347008473",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "07419347008473"
+    },
+    {
+      "case_id": "07439396000076",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "07439396000076"
+    },
+    {
+      "case_id": "07712434000343",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "07712434000343"
+    },
+    {
+      "case_id": "08022138014425",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "08022138014425"
+    },
+    {
+      "case_id": "08152707004883",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "08152707004883"
+    },
+    {
+      "case_id": "08501617009882",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "08501617009882"
+    },
+    {
+      "case_id": "08688106002770",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "08688106002770"
+    },
+    {
+      "case_id": "08852562005655",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "08852562005655"
+    },
+    {
+      "case_id": "08995001000204",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "08995001000204"
+    },
+    {
+      "case_id": "09384260005693",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "09384260005693"
+    },
+    {
+      "case_id": "09605702002488",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "09605702002488"
+    },
+    {
+      "case_id": "09611732006613",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "09611732006613"
+    },
+    {
+      "case_id": "09847806002036",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "09847806002036"
+    },
+    {
+      "case_id": "10001",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10001"
+    },
+    {
+      "case_id": "10002",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10002"
+    },
+    {
+      "case_id": "10093",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10093"
+    },
+    {
+      "case_id": "10096",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10096"
+    },
+    {
+      "case_id": "10100",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10100"
+    },
+    {
+      "case_id": "10101",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10101"
+    },
+    {
+      "case_id": "10119",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10119"
+    },
+    {
+      "case_id": "10127",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10127"
+    },
+    {
+      "case_id": "10129",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10129"
+    },
+    {
+      "case_id": "10131",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10131"
+    },
+    {
+      "case_id": "10139",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10139"
+    },
+    {
+      "case_id": "10148",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10148"
+    },
+    {
+      "case_id": "10150",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10150"
+    },
+    {
+      "case_id": "10152",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10152"
+    },
+    {
+      "case_id": "10157",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10157"
+    },
+    {
+      "case_id": "10159",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10159"
+    },
+    {
+      "case_id": "10161",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10161"
+    },
+    {
+      "case_id": "10180",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10180"
+    },
+    {
+      "case_id": "10190",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10190"
+    },
+    {
+      "case_id": "10199",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10199"
+    },
+    {
+      "case_id": "10208",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10208"
+    },
+    {
+      "case_id": "10210",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10210"
+    },
+    {
+      "case_id": "10215",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10215"
+    },
+    {
+      "case_id": "10217",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10217"
+    },
+    {
+      "case_id": "10249312004999",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10249312004999"
+    },
+    {
+      "case_id": "10265",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10265"
+    },
+    {
+      "case_id": "10286",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10286"
+    },
+    {
+      "case_id": "10303",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10303"
+    },
+    {
+      "case_id": "10308",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10308"
+    },
+    {
+      "case_id": "10324",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10324"
+    },
+    {
+      "case_id": "10457",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10457"
+    },
+    {
+      "case_id": "10461",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10461"
+    },
+    {
+      "case_id": "10462",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10462"
+    },
+    {
+      "case_id": "10486",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10486"
+    },
+    {
+      "case_id": "10506",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10506"
+    },
+    {
+      "case_id": "10509",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10509"
+    },
+    {
+      "case_id": "10521",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10521"
+    },
+    {
+      "case_id": "10533",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10533"
+    },
+    {
+      "case_id": "10597",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10597"
+    },
+    {
+      "case_id": "10598",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10598"
+    },
+    {
+      "case_id": "10653",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10653"
+    },
+    {
+      "case_id": "10733",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10733"
+    },
+    {
+      "case_id": "10735",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10735"
+    },
+    {
+      "case_id": "10742",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10742"
+    },
+    {
+      "case_id": "10744",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10744"
+    },
+    {
+      "case_id": "10745",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10745"
+    },
+    {
+      "case_id": "10748",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10748"
+    },
+    {
+      "case_id": "10751",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10751"
+    },
+    {
+      "case_id": "10760",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10760"
+    },
+    {
+      "case_id": "10771",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10771"
+    },
+    {
+      "case_id": "10772",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "10772"
+    },
+    {
+      "case_id": "10774",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10774"
+    },
+    {
+      "case_id": "10789",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10789"
+    },
+    {
+      "case_id": "10799",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10799"
+    },
+    {
+      "case_id": "10803",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10803"
+    },
+    {
+      "case_id": "1082",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1082"
+    },
+    {
+      "case_id": "10832",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10832"
+    },
+    {
+      "case_id": "10834",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10834"
+    },
+    {
+      "case_id": "10853",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10853"
+    },
+    {
+      "case_id": "10875",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "10875"
+    },
+    {
+      "case_id": "1088",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1088"
+    },
+    {
+      "case_id": "10893",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10893"
+    },
+    {
+      "case_id": "10894",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10894"
+    },
+    {
+      "case_id": "10959624004326",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10959624004326"
+    },
+    {
+      "case_id": "10974",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "10974"
+    },
+    {
+      "case_id": "10976",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "10976"
+    },
+    {
+      "case_id": "1101",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1101"
+    },
+    {
+      "case_id": "11056428023728",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "11056428023728"
+    },
+    {
+      "case_id": "11067",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "11067"
+    },
+    {
+      "case_id": "11248",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "11248"
+    },
+    {
+      "case_id": "1127",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1127"
+    },
+    {
+      "case_id": "11470406001581",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "11470406001581"
+    },
+    {
+      "case_id": "116",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "116"
+    },
+    {
+      "case_id": "1179",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1179"
+    },
+    {
+      "case_id": "11830365006450",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "11830365006450"
+    },
+    {
+      "case_id": "1197",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1197"
+    },
+    {
+      "case_id": "1199",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "1199"
+    },
+    {
+      "case_id": "1202",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1202"
+    },
+    {
+      "case_id": "1204",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1204"
+    },
+    {
+      "case_id": "1206",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "1206"
+    },
+    {
+      "case_id": "1210",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "1210"
+    },
+    {
+      "case_id": "1216",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1216"
+    },
+    {
+      "case_id": "1224",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "1224"
+    },
+    {
+      "case_id": "12244398018462",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "12244398018462"
+    },
+    {
+      "case_id": "12257385003566",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "12257385003566"
+    },
+    {
+      "case_id": "1231",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1231"
+    },
+    {
+      "case_id": "12511766009780",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "12511766009780"
+    },
+    {
+      "case_id": "1264",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1264"
+    },
+    {
+      "case_id": "1270",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1270"
+    },
+    {
+      "case_id": "1273",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1273"
+    },
+    {
+      "case_id": "12790542011432",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "12790542011432"
+    },
+    {
+      "case_id": "1283",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1283"
+    },
+    {
+      "case_id": "1298",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1298"
+    },
+    {
+      "case_id": "12989619002224",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "12989619002224"
+    },
+    {
+      "case_id": "1300",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1300"
+    },
+    {
+      "case_id": "1301",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "1301"
+    },
+    {
+      "case_id": "1306",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1306"
+    },
+    {
+      "case_id": "1317",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1317"
+    },
+    {
+      "case_id": "1334",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1334"
+    },
+    {
+      "case_id": "1338",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1338"
+    },
+    {
+      "case_id": "13438060002042",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "13438060002042"
+    },
+    {
+      "case_id": "1350",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1350"
+    },
+    {
+      "case_id": "1354",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1354"
+    },
+    {
+      "case_id": "1358",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1358"
+    },
+    {
+      "case_id": "1361",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1361"
+    },
+    {
+      "case_id": "1364",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1364"
+    },
+    {
+      "case_id": "1367",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1367"
+    },
+    {
+      "case_id": "1368",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1368"
+    },
+    {
+      "case_id": "13689839003009",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "13689839003009"
+    },
+    {
+      "case_id": "1378",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1378"
+    },
+    {
+      "case_id": "1381",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1381"
+    },
+    {
+      "case_id": "1382",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1382"
+    },
+    {
+      "case_id": "1383",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1383"
+    },
+    {
+      "case_id": "13902233002510",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "13902233002510"
+    },
+    {
+      "case_id": "13957249000673",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "13957249000673"
+    },
+    {
+      "case_id": "14113772021881",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "14113772021881"
+    },
+    {
+      "case_id": "14203215005497",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "14203215005497"
+    },
+    {
+      "case_id": "1433",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1433"
+    },
+    {
+      "case_id": "1446",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1446"
+    },
+    {
+      "case_id": "146",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "146"
+    },
+    {
+      "case_id": "14644586005092",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "14644586005092"
+    },
+    {
+      "case_id": "14843149005580",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "14843149005580"
+    },
+    {
+      "case_id": "14929682007417",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "14929682007417"
+    },
+    {
+      "case_id": "1493",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1493"
+    },
+    {
+      "case_id": "14935655003519",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_extrema",
+      "source_id": "14935655003519"
+    },
+    {
+      "case_id": "15168220000623",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "15168220000623"
+    },
+    {
+      "case_id": "15239782005012",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "15239782005012"
+    },
+    {
+      "case_id": "1554",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1554"
+    },
+    {
+      "case_id": "15775224002881",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "15775224002881"
+    },
+    {
+      "case_id": "15890399002800",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "15890399002800"
+    },
+    {
+      "case_id": "1595",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1595"
+    },
+    {
+      "case_id": "15979830001413",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "15979830001413"
+    },
+    {
+      "case_id": "16071612007243",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "16071612007243"
+    },
+    {
+      "case_id": "16077211005237",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "16077211005237"
+    },
+    {
+      "case_id": "1625",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1625"
+    },
+    {
+      "case_id": "1627",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1627"
+    },
+    {
+      "case_id": "16309028006002",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "16309028006002"
+    },
+    {
+      "case_id": "1631",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_count_or_total",
+      "source_id": "1631"
+    },
+    {
+      "case_id": "16823767005326",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "16823767005326"
+    },
+    {
+      "case_id": "1683",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "1683"
+    },
+    {
+      "case_id": "16902888001203",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_generic",
+      "source_id": "16902888001203"
+    },
+    {
+      "case_id": "16918615006084",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "16918615006084"
+    },
+    {
+      "case_id": "16918615006190",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "16918615006190"
+    },
+    {
+      "case_id": "1694",
+      "dataset_name": "refocus_chart",
+      "capability_family": "refocus_chart_chartqa_h_bar_comparison",
+      "source_id": "1694"
+    }
+  ]
+}
