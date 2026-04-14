@@ -1,0 +1,359 @@
+% \documentclass{article} % For LaTeX2e
+
+% ========================================
+% 单栏/双栏切换：注释其中一行即可
+% ========================================
+% 单栏布局（撰写编辑推荐）
+\documentclass[10pt, a4paper, logo]{googledeepmind}
+% 双栏布局（会议投稿推荐）
+% \documentclass[10pt, a4paper, twocolumn, logo]{googledeepmind}
+% ========================================
+
+\usepackage{times}
+
+
+\usepackage{hyperref}
+\usepackage[leftcaption]{sidecap} % caption 在右边
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{amssymb}
+\usepackage[most]{tcolorbox}
+\usepackage[table]{xcolor}
+\tcbuselibrary{breakable} % 加载分页支持库
+\usepackage{amsmath}
+\usepackage{siunitx}
+\usepackage{colortbl}
+
+\usepackage{microtype}
+\usepackage{color}
+\usepackage{wrapfig}
+\usepackage{natbib}
+\usepackage{colortbl}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs} % for professional tables
+\usepackage{array}
+%\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage[ruled, linesnumbered, lined]{algorithm2e}
+% \usepackage{minitoc}
+\usepackage{multirow}
+\usepackage{enumitem}
+
+% 定义颜色 (可以自定义你喜欢的颜色)
+\definecolor{BestColor}{HTML}{C8E6C9}  % 一个柔和的绿色
+\definecolor{SecondBestColor}{HTML}{FFF9C4} % 一个非常淡的黄色
+
+% 定义快捷命令，使表格代码更整洁
+% \best{} 用于标记最佳结果 (绿色背景 + 粗体)
+% \secondbest{} 用于标记次佳结果 (黄色背景)
+\newcommand{\best}[1]{\cellcolor{BestColor}\textbf{#1}}
+\newcommand{\secondbest}[1]{\cellcolor{SecondBestColor}#1}
+\usepackage{tcolorbox}
+\usepackage{amsmath,amsfonts}
+\def\rre{\textcolor{red}}
+\definecolor{ggg}{RGB}{26,179,0}
+\definecolor{rrr}{RGB}{179,0,0}
+\definecolor{oodc}{RGB}{31,73,121}
+\definecolor{idc}{RGB}{68,142,68}
+\def\rr{\textcolor{red}}
+\def\bb{\textcolor{blue}}
+\definecolor{mygray}{gray}{0.9}
+
+\newcommand{\Tmat}[0]{\ensuremath{{\bf T}} }
+\newcommand{\Cmat}[0]{\ensuremath{{\bf C}} }
+\newcommand{\Dmat}[0]{\ensuremath{{\bf D}} }
+
+\newcommand{\xv}[0]{\ensuremath{\boldsymbol{x}} }
+\newcommand{\pengyu}[1]{{\color{red}{[\bf\sf Pengyu: #1]}}}
+
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+%\def\Pref{{\text{Pref}}}
+
+%\newcommand{\Pref}[1]{{\text{Pref}\langle #1 \rangle}}
+%\newcommand{\Pref}[1]{{\text{Pref}\langle #1 \rangle}}
+\def\Pref#1#2{\bm{1}_{{#1} \succ {#2}}}
+%\def\Bias#1#2{\bm{b}_{{#1}, {#2}}}
+\def\Bias#1#2{\bm{b}}
+%\newcommand{\Bias}[1]{{\text{Bias}\langle #1 \rangle}}
+
+\def\MI#1#2{{I}\left(#1;#2\right)}
+
+
+% 定义一种新的 tcolorbox 样式
+\newtcolorbox{examplebox}[2][]{ % 允许传入可选参数 [#1] 和必选标题参数 {#2}
+    breakable, % 关键：允许跨页分割
+    enhanced, % 增强模式（可选，支持更多样式）
+    colback=white, % 框体内背景色
+    colframe=cyan, % 边框颜色
+    coltitle=white, % 标题文字颜色
+    fonttitle=\bfseries, % 标题字体加粗
+    title=#2, % 框体标题（第二个必选参数）
+    % 以下为跨页分割线的样式设置（可选）
+    overlay middle={\draw[cyan, line width=1pt](frame.south west)--(frame.south east);}, % 分割处添加横线
+    overlay last={\draw[cyan, line width=1pt](frame.south west)--(frame.south east);}, % 最后一页底部横线
+    #1 % 允许在调用时传入其他可选参数以覆盖默认样式
+}
+
+\newcommand{\think}[1]{\textcolor{blue}{\texttt{<think}} #1 \textcolor{blue}{\texttt{</think}}}
+\newcommand{\search}[1]{\textcolor{cyan}{\texttt{<search>}} #1 \textcolor{cyan}{\texttt{</search>}}}
+\newcommand{\info}[1]{\textcolor{brown}{\texttt{<information>}} #1 \textcolor{brown}{\texttt{</information>}}}
+\newcommand{\answer}[1]{\textcolor{purple}{\texttt{<answer>}} #1 \textcolor{purple}{\texttt{</answer>}}}
+\newcommand{\question}[1]{\textcolor{orange}{\texttt{<question>}} #1 \textcolor{orange}{\texttt{</question>}}}
+\newcommand{\observation}[1]{\textcolor{brown}{\texttt{<observation>}} #1 \textcolor{brown}{\texttt{</observation>}}}
+\newcommand{\evidence}[1]{\textcolor{teal}{\texttt{<original\_evidence>}} #1 \textcolor{teal}{\texttt{</original\_evidence>}}}
+\newcommand{\lthink}{\textcolor{blue}{\texttt{<think}}}
+\newcommand{\rthink}{\textcolor{blue}{\texttt{</think}}}
+
+
+% --- 必要的宏包 ---
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}      % 用于漂亮的表格线 (toprule, midrule, etc.)
+\usepackage{graphicx}      % 用于 \resizebox
+\usepackage[table]{xcolor} % 用于颜色
+\usepackage{siunitx}       % 用于 S 列，实现小数点对齐
+\usepackage{etoolbox}      % 用于 \ifstrequal，实现条件判断
+\usepackage[normalem]{ulem}     % 用于更灵活的下划线 \uline
+
+% --- 命令定义 ---
+
+% 1. 定义颜色
+\definecolor{impcolor}{HTML}{2E8B57} % 提升使用的海绿色 (SeaGreen)
+
+% 2. 辅助命令：定义上标的统一格式
+\newcommand{\improvementstyle}[1]{$^{\textcolor{impcolor}{\tiny #1}}$}
+
+\newcommand{\scoreimp}[2]{%
+  \textbf{#1}%
+  \ifstrequal{#2}{+0.0}{}{%
+    \ifstrequal{#2}{0.0}{}{%
+      \makebox[0pt][l]{\improvementstyle{#2}}%
+    }%
+  }%
+}
+
+% 4. 用于没有提升的基础分数
+\newcommand{\scorebase}[1]{#1}
+
+% \newcommand{\best}[1]{\underline{#1}}
+% \definecolor{bestcolor}{HTML}{4169E1}  % ★ NEW: 最佳值使用的宝蓝色 (RoyalBlue)
+% \newcommand{\best}[1]{{\color{bestcolor}\uline{#1}}}
+% \newcommand{\best}[1]{{\color{bestcolor}{#1}}}
+% \newcommand{\pengyu}[1]{{\color{blue}{[\bf\sf Pengyu: #1]}}}
+
+\title{QABG Paper Template}
+
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+% --- AUTHORS AND AFFILIATIONS ---
+% Equal Contribution: 第一和第二作者同等贡献
+\author[1]{First Author\textsuperscript{$\S$,*}}
+\author[2]{Second Author\textsuperscript{$\S$,$\dag$}}
+\author[2]{Third Author}
+\affil[1]{xxx University}
+\affil[2]{Qwen Large Model Application Team, Alibaba}
+\footnotetext{\textsuperscript{$\S$}Equal contribution.}  % 同等贡献脚注
+
+% Corresponding author email (shown in footer)
+\correspondingauthor{zhoumengyu.zmy@alibaba-inc.com}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+% --- Abstract ---
+\begin{abstract}
+This is the abstract section. You should provide a concise summary of your paper here. Describe the main problem, your approach, key contributions, and results. The abstract should be self-contained and give readers a clear understanding of what your paper is about.
+\end{abstract}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+
+
+\begin{document}
+\maketitle
+%\vspace{-1mm}
+\section{Introduction}
+\label{sec:introduction}
+
+This is the introduction section where you should motivate your work and provide necessary background. Start by explaining the problem you are addressing and why it is important. Then discuss existing approaches and their limitations. Finally, briefly introduce your method and summarize your main contributions.
+
+You can organize the introduction as follows:
+\begin{itemize}
+    \item Background and motivation
+    \item Problem statement
+    \item Limitations of existing methods
+    \item Overview of your approach
+    \item Summary of contributions
+\end{itemize}
+
+Make sure to cite relevant work throughout the introduction using the \texttt{\textbackslash citep\{\}} or \texttt{\textbackslash citet\{\}} commands.
+
+
+%\vspace{-1mm}
+\section{Preliminary}
+\label{sec:preliminary}
+
+In this section, you should introduce the necessary background knowledge and formal definitions that readers need to understand your work. This might include:
+
+\begin{itemize}
+    \item Mathematical notation and definitions
+    \item Background on the problem domain
+    \item Description of the framework or methodology you build upon
+\end{itemize}
+
+Make sure to define all symbols and notation clearly. For example, if you use $\vx$ and $\vy$ to denote input and output, define them explicitly.
+
+%\vspace{-1mm}
+\section{Methodology}
+\label{sec:methodology}
+
+This section describes your proposed method in detail. You should:
+
+\begin{enumerate}
+    \item Provide a high-level overview of your approach
+    \item Describe each component of your method
+    \item Explain the theoretical justification (if applicable)
+    \item Discuss implementation details
+\end{enumerate}
+
+You may want to include:
+\begin{itemize}
+    \item Mathematical formulations
+    \item Algorithm pseudocode (using the algorithm2e package)
+    \item Figures illustrating your approach
+\end{itemize}
+
+For example, you can present your objective function:
+
+\begin{equation}
+\label{eq:objective}
+\min_{\theta} \mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ \mathcal{L}(f_\theta(x), y) \right]
+\end{equation}
+
+where $\mathcal{L}$ is the loss function and $f_\theta$ is your model.
+
+%\vspace{-1mm}
+\section{Related Work}
+\label{sec:related_work}
+
+In this section, you should review relevant prior work and position your contributions relative to existing literature. Organize this section by topics or themes rather than simply listing papers.
+
+Key aspects to cover:
+\begin{itemize}
+    \item Major approaches in the field
+    \item Strengths and limitations of existing methods
+    \item How your work differs from or builds upon prior work
+\end{itemize}
+
+Make sure to cite all relevant papers and provide a clear comparison between your approach and existing methods.
+
+%\vspace{-1mm}
+\section{Experiments}
+\label{sec:experiments}
+
+This section presents your experimental evaluation. Include the following subsections:
+
+\subsection{Experimental Setup}
+
+Describe your experimental setup, including:
+\begin{itemize}
+    \item Datasets used
+    \item Baseline methods for comparison
+    \item Evaluation metrics
+    \item Implementation details and hyperparameters
+    \item Hardware and computational resources
+\end{itemize}
+
+\subsection{Main Results}
+
+Present your main experimental results here. Use tables and figures to illustrate the performance of your method compared to baselines.
+
+You can create tables like this:
+
+\begin{table}[h]
+\centering
+\caption{Comparison with baseline methods}
+\label{tab:main_results}
+\begin{tabular}{lcc}
+\toprule
+Method & Metric 1 & Metric 2 \\
+\midrule
+Baseline 1 & 85.2 & 78.3 \\
+Baseline 2 & 87.1 & 80.5 \\
+Ours & \best{92.3} & \best{86.7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Analysis and Ablation Studies}
+
+Provide additional analysis to understand why your method works:
+\begin{itemize}
+    \item Ablation studies to evaluate the contribution of different components
+    \item Sensitivity analysis for hyperparameters
+    \item Qualitative examples or case studies
+\end{itemize}
+
+%\vspace{-1mm}
+\section{Conclusion}
+\label{sec:conclusion}
+
+In the conclusion, summarize your main contributions and findings. Discuss the implications of your work and potential future directions.
+
+Structure your conclusion as follows:
+\begin{itemize}
+    \item Brief recap of the problem and your approach
+    \item Summary of key results and contributions
+    \item Limitations of your work
+    \item Future research directions
+\end{itemize}
+
+Keep the conclusion concise and avoid introducing new information.
+
+\bibliography{conference}
+\bibliographystyle{conference}
+
+\appendix
+\clearpage
+
+\section{Additional Details}
+\label{app:details}
+
+You can include supplementary material in the appendix, such as:
+\begin{itemize}
+    \item Detailed proofs
+    \item Additional experimental results
+    \item Implementation details
+    \item More examples or visualizations
+\end{itemize}
+
+\section{Proofs}
+\label{app:proofs}
+
+Include detailed mathematical proofs here if needed.
+
+\begin{align}
+\MI{\vx}{\vy} &= H(\vy) + \mathbb{E}_{p(\vx,\vy)} [\log p(\vy|\vx)] \\
+&\geq H(\vy) + \mathbb{E}_{p(\vx,\vy)} [\log q_\theta(\vy|\vx)]
+\end{align}
+
+\end{document}
