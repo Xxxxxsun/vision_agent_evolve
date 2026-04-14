@@ -252,7 +252,7 @@ def _render_skill_block(skill: Skill) -> str:
     if skill.tool_names:
         lines.append(f"Preferred tools: {', '.join(_normalize_tool_names(skill.tool_names))}")
     content_lines = [line.rstrip() for line in skill.content.strip().splitlines() if line.strip()]
-    for line in content_lines[:12]:
+    for line in content_lines[:30]:
         lines.append(line)
     return "\n".join(lines).strip()
 
@@ -261,7 +261,7 @@ def _render_foundation_skill_block(skill: Skill) -> str:
     title = skill.description.strip() or skill.name
     lines = [f"### Foundation: {skill.name}", title]
     content_lines = [line.rstrip() for line in skill.content.strip().splitlines() if line.strip()]
-    for line in content_lines[:8]:
+    for line in content_lines[:20]:
         lines.append(line)
     return "\n".join(lines).strip()
 
@@ -291,7 +291,7 @@ def _render_reference_block(skill: Skill) -> str:
     if skill.tool_names:
         lines.append(f"Preferred tools: {', '.join(_normalize_tool_names(skill.tool_names))}")
     content_lines = [line.rstrip() for line in skill.content.strip().splitlines() if line.strip()]
-    for line in content_lines[:12]:
+    for line in content_lines[:30]:
         lines.append(line)
     return "\n".join(lines).strip()
 
@@ -302,7 +302,7 @@ def _family_fallback_tool_pool(case: TaskCase) -> list[str]:
     if family == "vstar_direct_attributes":
         return ["list_images", "get_image_info", "zoom_image", "crop_image"]
     if family == "vstar_relative_position":
-        return ["list_images", "get_image_info"]
+        return ["list_images", "get_image_info", "zoom_image"]
     if dataset_name == "chartqa":
         return ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
     if dataset_name == "mathvista":

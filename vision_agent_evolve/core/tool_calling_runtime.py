@@ -116,22 +116,36 @@ class RuntimeImageSession:
             "crop_box": list(crop_box),
         }
 
-    def zoom_image(self, image_id: str, factor: float) -> dict[str, Any]:
+    def zoom_image(
+        self,
+        image_id: str,
+        factor: float,
+        center_x: float = 0.5,
+        center_y: float = 0.5,
+    ) -> dict[str, Any]:
         if float(factor) <= 1.0:
             raise ValueError("zoom factor must be greater than 1.0")
+        cx = max(0.0, min(1.0, float(center_x)))
+        cy = max(0.0, min(1.0, float(center_y)))
         record = self._get_record(image_id)
         with Image.open(record["path"]) as image:
             width, height = image.size
             crop_width = max(1, int(round(width / float(factor))))
             crop_height = max(1, int(round(height / float(factor))))
-            left = max(0, (width - crop_width) // 2)
-            top = max(0, (height - crop_height) // 2)
+            # Place crop window centered at (cx, cy), clamped to image bounds
+            left = int(round(cx * width - crop_width / 2))
+            top = int(round(cy * height - crop_height / 2))
+            left = max(0, min(width - crop_width, left))
+            top = max(0, min(height - crop_height, top))
             cropped = image.crop((left, top, left + crop_width, top + crop_height))
             zoomed = cropped.resize((width, height), Image.Resampling.LANCZOS)
         new_record = self._save_generated(zoomed, source_type="zoom", source_image_id=image_id)
         return {
             **new_record,
             "factor": float(factor),
+            "center_x": cx,
+            "center_y": cy,
+            "crop_box": [left, top, left + crop_width, top + crop_height],
         }
 
     def resize_image(self, image_id: str, target_width: int, target_height: int) -> dict[str, Any]:
@@ -275,12 +289,26 @@ class RuntimeToolRegistry:
                 "type": "function",
                 "function": {
                     "name": "zoom_image",
-                    "description": "Zoom into the center of an image by a factor greater than 1 and create a new derived image.",
+                    "description": (
+                        "Zoom into a specific location of an image by a factor greater than 1 and create a new derived image. "
+                        "center_x and center_y are the normalized coordinates (0.0–1.0) of the zoom target within the image: "
+                        "0.0 is the left/top edge, 1.0 is the right/bottom edge. "
+                        "For example, to zoom into the upper-right quarter use center_x=0.75, center_y=0.25. "
+                        "Defaults to the image center (0.5, 0.5) if omitted."
+                    ),
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "image_id": {"type": "string"},
                             "factor": {"type": "number"},
+                            "center_x": {
+                                "type": "number",
+                                "description": "Horizontal center of zoom target as a fraction of image width [0.0, 1.0]. Default 0.5.",
+                            },
+                            "center_y": {
+                                "type": "number",
+                                "description": "Vertical center of zoom target as a fraction of image height [0.0, 1.0]. Default 0.5.",
+                            },
                         },
                         "required": ["image_id", "factor"],
                     },
@@ -364,6 +392,8 @@ class RuntimeToolRegistry:
             **self.image_session.zoom_image(
                 str(arguments.get("image_id", "")),
                 float(arguments.get("factor", 0)),
+                float(arguments.get("center_x", 0.5)),
+                float(arguments.get("center_y", 0.5)),
             ),
         }
         return self._image_result(payload)
@@ -620,18 +650,20 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
     if family == "vstar_direct_attributes":
         lines.extend(
             [
-                "Use zoom_image when the target object is small, far away, partially occluded, or when color/material details are hard to see at the original scale.",
-                "If the target object is visually small or its attribute is hard to distinguish, call zoom_image before answering.",
+                "The target object is often small or off-center. Always call zoom_image unless the target is unambiguously large.",
+                "Set center_x and center_y to where the target object appears in the image (normalized 0.0–1.0). Do NOT leave them at 0.5 if the target is off-center.",
+                "Example: target in upper-right → center_x=0.75, center_y=0.25. Target lower-left → center_x=0.25, center_y=0.75.",
+                "If the first zoom does not show the target, re-estimate the position and call zoom_image again.",
                 "Verify the named object carefully before choosing among similar colors or materials.",
             ]
         )
     elif family == "vstar_relative_position":
         lines.extend(
             [
-                "Judge left/right from the viewer's perspective using the full image as the reference frame.",
-                "Keep the global scene in mind throughout the reasoning process.",
-                "First determine the semantic left/right conclusion, then map it to the matching option in the question.",
-                "If the named objects are small or hard to localize, you may use zoom_image, but do not lose track of the full-scene left/right relationship.",
+                "Judge the spatial relation from the viewer's perspective using the full image as the reference frame.",
+                "If an object is too small to localize, use zoom_image with center_x/center_y at its estimated position — then reason about the relation in the full-image frame.",
+                "Never let a zoomed patch become the new reference frame for left/right judgment.",
+                "First determine the semantic spatial conclusion, then map it to the matching option letter.",
             ]
         )
     elif dataset_name == "chartqa":
