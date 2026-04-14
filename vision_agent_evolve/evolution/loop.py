@@ -554,14 +554,14 @@ class EvolutionLoop:
                 "- For names, brands, words, letters, or numbers, return only the target span, not a sentence about it."
             )
 
-        if dataset_name == "chartqa" or family.startswith("chartqa"):
+        if dataset_name in {"chartqa", "refocus_chart"} or family.startswith("chartqa") or family.startswith("refocus_chart"):
             x_values_bbox = case.metadata.get("x_values_bbox") if isinstance(case.metadata.get("x_values_bbox"), dict) else {}
             y_values_bbox = case.metadata.get("y_values_bbox") if isinstance(case.metadata.get("y_values_bbox"), dict) else {}
             x_labels = list(x_values_bbox.keys())[:12]
             y_labels = list(y_values_bbox.keys())[:12]
             if x_values_bbox or y_values_bbox:
                 return (
-                    "Task-specific instructions for same-tool ChartQA comparisons:\n"
+                    "Task-specific instructions for same-tool chart comparisons:\n"
                     f"- Available x-axis labels from metadata: {x_labels}\n"
                     f"- Available y-axis labels from metadata: {y_labels}\n"
                     "- The VTool-style chart tools expect JSON arguments.\n"

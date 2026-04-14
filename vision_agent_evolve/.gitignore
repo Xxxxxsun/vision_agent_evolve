@@ -42,6 +42,9 @@ learned/evolution_log.jsonl
 *.jpg
 *.jpeg
 datasets/mira/images/
+datasets/structured_vtoolr1_compare/
+logs/refocus_chart_*.log
+chart_image.html
 
 # Keep structure
 !learned/tools/.gitkeep

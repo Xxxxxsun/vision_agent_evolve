@@ -1,0 +1,6 @@
+{
+  "name": "refocus_chart_region_crop",
+  "description": "Crops the union of selected chart label regions using the provided bbox metadata and saves a clean focused artifact.",
+  "applicability_conditions": "Use when one or a few x-axis or y-axis labels are explicitly mentioned in a Refocus_Chart question and a tighter local crop will make the bar lengths or nearby values easier to inspect.",
+  "usage_example": "python -m tools refocus_chart_region_crop <image_path> '[\"Lamb\",\"Corn\"]' '<bbox_mapping_json>' 16"
+}

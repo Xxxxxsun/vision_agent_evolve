@@ -63,6 +63,18 @@ export VLM_MODEL="gpt-4o"  # or your model name
 .venv/bin/python run.py --mode test --example datasets/mira/example_001.json
 ```
 
+## Refocus_Chart Track
+
+This repo now includes a same-benchmark preparation path for `VTOOL/Refocus_Chart` and a handwritten manual capability root for bbox-aware chart solving.
+
+Useful entry points:
+
+- [docs/VTOOLR1_COMPARISON.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/VTOOLR1_COMPARISON.md)
+- [docs/REFOCUS_CHART_QWEN32B_RESULTS.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_QWEN32B_RESULTS.md)
+- [scripts/download_refocus_chart.py](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/download_refocus_chart.py)
+- [scripts/prepare_refocus_chart.py](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/prepare_refocus_chart.py)
+- [scripts/setup_refocus_chart_compare.sh](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/setup_refocus_chart_compare.sh)
+
 ### Use Tools Directly
 
 ```bash

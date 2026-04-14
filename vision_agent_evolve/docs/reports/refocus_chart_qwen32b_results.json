@@ -1,0 +1,29 @@
+{
+  "date_utc": "2026-04-14",
+  "dataset": "VTOOL/Refocus_Chart",
+  "split": "test",
+  "total": 826,
+  "model": "Qwen2.5-VL-32B-Instruct",
+  "runtime": "vLLM OpenAI-compatible endpoint",
+  "rows": {
+    "direct_vlm": {
+      "correct": 557,
+      "accuracy": 0.6743341404358354,
+      "summary_path": "artifacts/structured_benchmarks/vtoolr1_refocus_chart_direct_test826/summary.json"
+    },
+    "manual_skill_plus_bbox_tools": {
+      "correct": 410,
+      "accuracy": 0.4963680387409201,
+      "summary_path": "artifacts/structured_benchmarks/vtoolr1_refocus_chart_manual/summary.json"
+    },
+    "vtool_r1_reported": {
+      "accuracy": 0.807,
+      "source": "VTool-R1 paper Table 1 chart split"
+    }
+  },
+  "deltas": {
+    "direct_minus_vtool_r1_reported": -0.13266585956416458,
+    "manual_minus_vtool_r1_reported": -0.3106319612590799,
+    "manual_minus_direct": -0.17796610169491528
+  }
+}

@@ -272,6 +272,55 @@ def normalize_refocus_tablevqa_dataset(
     )
 
 
+def normalize_refocus_chart_dataset(
+    raw_data_root: Path,
+    normalized_data_root: Path,
+    train_split: str = "train",
+    eval_split: str = "test",
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Normalize ReFOCUS-Chart data into shared JSONL files."""
+    dataset_root = normalized_data_root / "refocus_chart"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+    assets_root = normalized_data_root / "_assets" / "refocus_chart"
+
+    split_to_files = {
+        train_split: _discover_data_files(raw_data_root, include_tokens=["train", "refocus", "chart"]),
+        eval_split: _discover_data_files(raw_data_root, include_tokens=["test", "refocus", "chart"]),
+    }
+    if not split_to_files[train_split]:
+        raise FileNotFoundError(f"Could not find ReFOCUS-Chart train files under {raw_data_root}")
+    if not split_to_files[eval_split]:
+        raise FileNotFoundError(f"Could not find ReFOCUS-Chart test files under {raw_data_root}")
+
+    manifest: dict[str, Any] = {
+        "dataset": "refocus_chart",
+        "raw_data_root": str(raw_data_root),
+        "normalized_data_root": str(dataset_root),
+        "splits": {},
+    }
+
+    for split, files in split_to_files.items():
+        rows = _load_rows_from_files(files)
+        if limit:
+            rows = rows[:limit]
+        records = [
+            _normalize_refocus_chart_record(item, raw_data_root, assets_root / split, index)
+            for index, item in enumerate(rows, start=1)
+        ]
+        output_file = dataset_root / f"{split}.jsonl"
+        _write_jsonl(output_file, records)
+        manifest["splits"][split] = {
+            "count": len(records),
+            "source_files": [str(path) for path in files],
+            "output_file": str(output_file),
+        }
+
+    manifest_path = dataset_root / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
 def normalize_textvqa_dataset(
     raw_data_root: Path,
     normalized_data_root: Path,
@@ -1395,6 +1444,100 @@ def _normalize_refocus_tablevqa_record(
             "figure_bbox": figure_bbox,
             "columns_bbox": columns_bbox if isinstance(columns_bbox, dict) else {},
             "row_starters": row_starters_bbox if isinstance(row_starters_bbox, dict) else {},
+        },
+    }
+
+
+def _normalize_refocus_chart_record(
+    item: dict[str, Any],
+    raw_data_root: Path,
+    assets_root: Path,
+    fallback_index: int,
+) -> dict[str, Any]:
+    raw_metadata = _coerce_record_metadata(item.get("metadata"))
+    source_id = _string_field(
+        item,
+        ["id", "qid", "question_id", "sample_id", "uid"],
+        f"refocus_chart_{fallback_index}",
+    )
+
+    extra_info = item.get("extra_info") if isinstance(item.get("extra_info"), dict) else {}
+    reward_model = item.get("reward_model") if isinstance(item.get("reward_model"), dict) else {}
+    prompt = _string_field(extra_info, ["question"], "")
+    if not prompt:
+        raw_prompt = item.get("prompt")
+        if isinstance(raw_prompt, list):
+            for message in raw_prompt:
+                if not isinstance(message, dict):
+                    continue
+                if str(message.get("role", "")).strip().lower() == "user":
+                    content = str(message.get("content", "")).strip()
+                    if content:
+                        marker = "USER REQUEST:"
+                        if marker in content:
+                            content = content.split(marker, 1)[-1].strip()
+                        prompt = content
+                        break
+        if not prompt:
+            prompt = _string_field(item, ["question", "query", "text"], "")
+    answer = _string_field(
+        reward_model,
+        ["ground_truth", "answer"],
+        _string_field(item, ["answer", "label", "gold_answer", "target"], _string_field(extra_info, ["answer"], "")),
+    )
+
+    image_item = dict(item)
+    if image_item.get("images") and isinstance(image_item["images"], list):
+        first_image = image_item["images"][0]
+        if first_image is not None:
+            image_item["image"] = first_image
+    elif image_item.get("edited_image") is not None:
+        image_item["image"] = image_item["edited_image"]
+    image_path = _materialize_image(image_item, raw_data_root, assets_root, source_id)
+
+    source = _slugify(_string_field(item, ["source", "dataset", "domain", "task"], "refocus_chart"))
+    question_type = _slugify(_string_field(item, ["question_type", "task_type", "type"], _infer_question_type(prompt)))
+    answer_type = _slugify(_string_field(item, ["answer_type", "response_type"], _infer_answer_type(answer)))
+
+    tool_metadata: dict[str, Any] = {}
+    tools_kwargs = extra_info.get("tools_kwargs") if isinstance(extra_info, dict) else None
+    if isinstance(tools_kwargs, dict):
+        raw_tool_metadata = tools_kwargs.get("metadata")
+        if isinstance(raw_tool_metadata, str):
+            try:
+                parsed = json.loads(raw_tool_metadata)
+                if isinstance(parsed, dict):
+                    tool_metadata = parsed
+            except json.JSONDecodeError:
+                tool_metadata = {}
+        elif isinstance(raw_tool_metadata, dict):
+            tool_metadata = raw_tool_metadata
+
+    x_values_bbox = tool_metadata.get("x_values_bbox", item.get("x_values_bbox", raw_metadata.get("x_values_bbox")))
+    y_values_bbox = tool_metadata.get("y_values_bbox", item.get("y_values_bbox", raw_metadata.get("y_values_bbox")))
+    figure_bbox = tool_metadata.get("figure_bbox", item.get("figure_bbox", raw_metadata.get("figure_bbox")))
+
+    return {
+        "id": source_id,
+        "problem_id": "refocus_chart",
+        "prompt": prompt,
+        "answer": answer,
+        "image_path": str(image_path),
+        "metadata": {
+            "dataset_name": "refocus_chart",
+            "split": _string_field(item, ["split"], _string_field(extra_info, ["split"], "")),
+            "source_id": source_id,
+            "capability_family": f"refocus_chart_{source}_{question_type}",
+            "source": source,
+            "question_type": question_type,
+            "answer_type": answer_type,
+            "metric_type": "accuracy",
+            "reward_style": _string_field(reward_model, ["style"], ""),
+            "figure_bbox": figure_bbox,
+            "x_values": [str(value) for value in item.get("x_values", []) if str(value).strip()],
+            "y_values": [str(value) for value in item.get("y_values", []) if str(value).strip()],
+            "x_values_bbox": x_values_bbox if isinstance(x_values_bbox, dict) else {},
+            "y_values_bbox": y_values_bbox if isinstance(y_values_bbox, dict) else {},
         },
     }
 

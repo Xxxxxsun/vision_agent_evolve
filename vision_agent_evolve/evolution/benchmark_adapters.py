@@ -317,6 +317,14 @@ class ReFocusTableVQAAdapter(GenericJsonlAdapter):
         return 1.0 if re.search(rf"(?<![a-z0-9]){re.escape(expected)}(?![a-z0-9])", actual) else 0.0
 
 
+class ReFocusChartAdapter(ChartQAAdapter):
+    """ReFOCUS-Chart answer checking."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.dataset_name = "refocus_chart"
+
+
 class GTAAdapter(GenericJsonlAdapter):
     """GTA-specific answer checking with whitelist/blacklist support."""
 
@@ -378,6 +386,8 @@ def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) ->
         "v*": VStarAdapter(),
         "hrbench": HRBenchAdapter(),
         "mathvista": MathVistaAdapter(client=client),
+        "refocus_chart": ReFocusChartAdapter(),
+        "refocus-chart": ReFocusChartAdapter(),
         "refocus_tablevqa": ReFocusTableVQAAdapter(),
         "tablevqa": ReFocusTableVQAAdapter(),
         "refocus": ReFocusTableVQAAdapter(),
@@ -390,7 +400,7 @@ def get_benchmark_adapter(dataset_name: str, client: VLMClient | None = None) ->
 
 def available_benchmark_datasets() -> list[str]:
     """Return the known dataset names for CLI choices/help."""
-    return ["chartqa", "gta", "hrbench", "mathvista", "refocus_tablevqa", "textvqa", "vstar"]
+    return ["chartqa", "gta", "hrbench", "mathvista", "refocus_chart", "refocus_tablevqa", "textvqa", "vstar"]
 
 
 def _normalize_text(value: str) -> str:

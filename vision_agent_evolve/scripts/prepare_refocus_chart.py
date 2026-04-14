@@ -1,0 +1,37 @@
+"""Normalize ReFOCUS-Chart data into the shared TaskCase schema."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from core.structured_data import normalize_refocus_chart_dataset
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Normalize ReFOCUS-Chart data into JSONL TaskCase files.")
+    parser.add_argument("--raw-data-root", required=True, help="Local root containing raw ReFOCUS-Chart parquet files.")
+    parser.add_argument("--normalized-data-root", required=True, help="Output root for normalized structured benchmark files.")
+    parser.add_argument("--train-split", default="train")
+    parser.add_argument("--eval-split", default="test")
+    parser.add_argument("--limit", type=int, default=0, help="Optional limit for quick debugging.")
+    args = parser.parse_args()
+
+    manifest = normalize_refocus_chart_dataset(
+        raw_data_root=Path(args.raw_data_root),
+        normalized_data_root=Path(args.normalized_data_root),
+        train_split=args.train_split,
+        eval_split=args.eval_split,
+        limit=args.limit,
+    )
+    print(json.dumps(manifest, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

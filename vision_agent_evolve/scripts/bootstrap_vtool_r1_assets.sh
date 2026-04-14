@@ -28,8 +28,11 @@ echo "  # Download the exact VTool-R1 checkpoint/model release documented by the
 echo
 echo "[next] Download benchmark data into ${DATA_ROOT}"
 echo "  - ChartQA official data"
+echo "  - ReFOCUS-Chart (HF: VTOOL/Refocus_Chart)"
 echo "  - ReFOCUS/TableVQA official data"
 echo
 echo "[next] Then prepare local normalized data with:"
 echo "  python scripts/prepare_chartqa.py --raw-data-root <chartqa_raw_root> --normalized-data-root ./datasets/structured_vtoolr1_compare"
+echo "  python scripts/download_refocus_chart.py --local-dir ${DATA_ROOT}/datasets/refocus_chart_hf"
+echo "  python scripts/prepare_refocus_chart.py --raw-data-root ${DATA_ROOT}/datasets/refocus_chart_hf --normalized-data-root ./datasets/structured_vtoolr1_compare"
 echo "  python scripts/prepare_refocus_tablevqa.py --raw-data-root <refocus_raw_root> --normalized-data-root ./datasets/structured_vtoolr1_compare"

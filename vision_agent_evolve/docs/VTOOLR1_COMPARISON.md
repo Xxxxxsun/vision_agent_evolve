@@ -10,6 +10,21 @@ This workflow is for the no-GPU setting:
 
 It is not a same-backbone reproduction of `VTool-R1`. It is a strict same-benchmark, same-tool-pool, training-free API evaluation line.
 
+## Refocus_Chart same-benchmark line
+
+`VTool-R1` reports a unified `Chart Split` result in Table 1 of the ICLR 2026 paper. The open `VTOOL/Refocus_Chart` dataset on Hugging Face is the released chart benchmark variant with:
+
+- `train`: 14,344 rows
+- `test`: 826 rows
+
+For the `Qwen2.5-VL-7B` row, the paper reports:
+
+- direct / pure inference: `76.2`
+- prompted tool use baseline: `53.4`
+- `VTool-R1-7B`: `80.7`
+
+Source: VTool-R1 paper Table 1, chart split (`ICLR 2026`).
+
 ## 1. Configure the API client
 
 This repo already supports Alibaba chat and OpenAI-compatible APIs through `core/vlm_client.py`.
@@ -57,6 +72,17 @@ python scripts/prepare_refocus_tablevqa.py \
   --normalized-data-root ./datasets/structured_vtoolr1_compare
 ```
 
+Download and normalize ReFOCUS-Chart:
+
+```bash
+python scripts/download_refocus_chart.py \
+  --local-dir /root/vqa_datasets/datasets/refocus_chart_hf
+
+python scripts/prepare_refocus_chart.py \
+  --raw-data-root /root/vqa_datasets/datasets/refocus_chart_hf \
+  --normalized-data-root ./datasets/structured_vtoolr1_compare
+```
+
 ## 3. Run the fixed-tool-pool baselines
 
 Use the VTool-R1 bbox tools that are wrapped in `tools/builtin_tools.py`.
@@ -66,6 +92,8 @@ Example chart tool pool:
 ```bash
 CHART_TOOLS="focus_on_x_values_with_mask focus_on_y_values_with_mask focus_on_x_values_with_draw focus_on_y_values_with_draw"
 ```
+
+In `bash`, pass the tool names as plain positional arguments. Do not use `${=CHART_TOOLS}`, which is `zsh` syntax.
 
 Example table tool pool:
 
@@ -85,7 +113,24 @@ python scripts/run_structured_experiment.py \
   --held-out-split val \
   --train-subset-size 200 \
   --held-out-limit 500 \
-  --fixed-tool-names ${=CHART_TOOLS} \
+  --fixed-tool-names focus_on_x_values_with_mask focus_on_y_values_with_mask focus_on_x_values_with_draw focus_on_y_values_with_draw \
+  --disable-generated-tools \
+  --settings direct_vlm toolpool_prompt_baseline skill_only_train_adaptive skill_only_frozen_inference
+```
+
+ReFOCUS-Chart:
+
+```bash
+python scripts/run_structured_experiment.py \
+  --dataset refocus_chart \
+  --raw-data-root /root/vqa_datasets/datasets/refocus_chart_hf \
+  --normalized-data-root ./datasets/structured_vtoolr1_compare \
+  --subset-id vtoolr1_refocus_chart_api_same_tools_v1 \
+  --evolve-split train \
+  --held-out-split test \
+  --train-subset-size 200 \
+  --held-out-limit 826 \
+  --fixed-tool-names focus_on_x_values_with_mask focus_on_y_values_with_mask focus_on_x_values_with_draw focus_on_y_values_with_draw \
   --disable-generated-tools \
   --settings direct_vlm toolpool_prompt_baseline skill_only_train_adaptive skill_only_frozen_inference
 ```
@@ -102,12 +147,32 @@ python scripts/run_structured_experiment.py \
   --held-out-split val \
   --train-subset-size 200 \
   --held-out-limit 304 \
-  --fixed-tool-names ${=TABLE_TOOLS} \
+  --fixed-tool-names focus_on_columns_with_mask focus_on_rows_with_mask focus_on_columns_with_draw focus_on_rows_with_draw \
   --disable-generated-tools \
   --settings direct_vlm toolpool_prompt_baseline skill_only_train_adaptive skill_only_frozen_inference
 ```
 
 The key row for the main table is `skill_only_frozen_inference`.
+
+## 3A. Local Qwen2.5-VL-32B sanity check on Refocus_Chart
+
+We also ran a larger local backbone through a remote `vLLM` endpoint for a quick same-benchmark check:
+
+- model: `Qwen2.5-VL-32B-Instruct`
+- split: full `test` (`826`)
+- `direct_vlm`: `67.43%` (`557 / 826`)
+- handwritten `skill + bbox tools`: `49.64%` (`410 / 826`)
+
+Result note:
+
+- the handwritten `skill + tool` stack underperformed the direct model
+- this suggests the current handwritten SOP/tool orchestration is weaker than the base model on this benchmark
+- the result should be treated as a manual baseline, not as a competitive row against `VTool-R1`
+
+See:
+
+- [docs/REFOCUS_CHART_QWEN32B_RESULTS.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_QWEN32B_RESULTS.md)
+- [docs/reports/refocus_chart_qwen32b_results.json](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/reports/refocus_chart_qwen32b_results.json)
 
 ## 4. Store the VTool-R1 reported reference
 
@@ -123,6 +188,7 @@ Create one small JSON file per dataset with the reported metric, for example:
 Recommended paths:
 
 - `/root/VTool-R1/results/chartqa_vtool_r1_reported.json`
+- `/root/VTool-R1/results/refocus_chart_vtool_r1_reported.json`
 - `/root/VTool-R1/results/refocus_tablevqa_vtool_r1_reported.json`
 
 ## 5. Merge into one comparison payload
@@ -137,6 +203,18 @@ python scripts/compare_vtool_r1_results.py \
   --our-setting skill_only_frozen_inference \
   --reference-label vtool_r1_reported \
   --output artifacts/vtool_r1_comparison/chartqa_api_compare.json
+```
+
+ReFOCUS-Chart:
+
+```bash
+python scripts/compare_vtool_r1_results.py \
+  --dataset refocus_chart \
+  --our-summary artifacts/structured_benchmarks/vtoolr1_refocus_chart_api_same_tools_v1/summary.json \
+  --vtool-result /root/VTool-R1/results/refocus_chart_vtool_r1_reported.json \
+  --our-setting skill_only_frozen_inference \
+  --reference-label vtool_r1_reported \
+  --output artifacts/vtool_r1_comparison/refocus_chart_api_compare.json
 ```
 
 ReFOCUS-TableVQA:
