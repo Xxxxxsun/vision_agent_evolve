@@ -79,11 +79,55 @@ This means the current handwritten capability root should be treated as:
 - a debugging artifact for tool-policy design
 - not yet a competitive same-benchmark replacement for the direct model
 
+## Manual Capability Inventory
+
+The handwritten capability root used in this experiment lives at:
+
+- [learned/vtoolr1_refocus_chart_manual/active](</root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active>)
+
+### Handwritten tool
+
+- [refocus_chart_region_crop.py](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/tools/refocus_chart_region_crop.py)
+  Crops the union of selected bbox-labeled regions into a tighter local artifact.
+- [refocus_chart_region_crop.json](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/tools/refocus_chart_region_crop.json)
+  Manifest describing when the crop helper is intended to be used.
+
+### Handwritten skills
+
+Horizontal-bar families:
+
+- [refocus_chart_chartqa_h_bar_generic](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_h_bar_generic/SKILL.md)
+- [refocus_chart_chartqa_h_bar_count_or_total](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_h_bar_count_or_total/SKILL.md)
+- [refocus_chart_chartqa_h_bar_extrema](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_h_bar_extrema/SKILL.md)
+- [refocus_chart_chartqa_h_bar_comparison](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_h_bar_comparison/SKILL.md)
+
+Vertical-bar families:
+
+- [refocus_chart_chartqa_v_bar_generic](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_v_bar_generic/SKILL.md)
+- [refocus_chart_chartqa_v_bar_count_or_total](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_v_bar_count_or_total/SKILL.md)
+- [refocus_chart_chartqa_v_bar_extrema](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_v_bar_extrema/SKILL.md)
+- [refocus_chart_chartqa_v_bar_comparison](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills/refocus_chart_chartqa_v_bar_comparison/SKILL.md)
+
+### How they are used
+
+These handwritten skills are consumed by the frozen evaluation path with:
+
+- `subset-id = vtoolr1_refocus_chart_manual`
+- `--force-skill`
+
+That means the runtime resolves the case family such as:
+
+- `refocus_chart_chartqa_h_bar_generic`
+- `refocus_chart_chartqa_v_bar_extrema`
+
+and then loads the matching `SKILL.md` from the capability root above. The built-in bbox tools are still available, and the handwritten crop helper is available as an extra learned tool from the same capability root.
+
 ## Key files
 
 - Dataset preparation:
   - [scripts/download_refocus_chart.py](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/download_refocus_chart.py)
   - [scripts/prepare_refocus_chart.py](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/prepare_refocus_chart.py)
 - Manual capability root:
+  - [learned/vtoolr1_refocus_chart_manual/active](</root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active>)
   - [learned/vtoolr1_refocus_chart_manual/active/tools/refocus_chart_region_crop.py](/root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/tools/refocus_chart_region_crop.py)
   - [learned/vtoolr1_refocus_chart_manual/active/skills](</root/vision_agent_evolve_rl/vision_agent_evolve/learned/vtoolr1_refocus_chart_manual/active/skills>)

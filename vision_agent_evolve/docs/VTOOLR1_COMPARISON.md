@@ -174,6 +174,10 @@ See:
 - [docs/REFOCUS_CHART_QWEN32B_RESULTS.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_QWEN32B_RESULTS.md)
 - [docs/reports/refocus_chart_qwen32b_results.json](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/reports/refocus_chart_qwen32b_results.json)
 
+The handwritten `Refocus_Chart` capability inventory itself is documented in:
+
+- `Manual Capability Inventory` section inside [docs/REFOCUS_CHART_QWEN32B_RESULTS.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_QWEN32B_RESULTS.md)
+
 ## 4. Store the VTool-R1 reported reference
 
 Create one small JSON file per dataset with the reported metric, for example:
