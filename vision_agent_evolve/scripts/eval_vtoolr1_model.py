@@ -143,44 +143,46 @@ def _bbox_keys(mapping: dict | None) -> list[str]:
     return keys
 
 
+def _load_jinja_tool_suffix(jinja_path: Path) -> str:
+    """Extract the tool-description block from chartQA.jinja (everything after {{ content | trim }})."""
+    raw = jinja_path.read_text(encoding="utf-8")
+    marker = "{{ content | trim }}"
+    idx = raw.find(marker)
+    if idx == -1:
+        return ""
+    return raw[idx + len(marker):]
+
+
+# Loaded once at module level; actual path resolved in main() and stored here.
+_JINJA_TOOL_SUFFIX: str = ""
+
+
 def _build_chart_prompt(row: dict, metadata: dict) -> str:
     query = str(row.get("query", "")).strip()
-    figure_path = str(row.get("figure_path", "image_1"))
     x_values = _bbox_keys(metadata.get("x_values_bbox"))
     y_values = _bbox_keys(metadata.get("y_values_bbox"))
-    return f"""Here are some tools that can help you. All are python codes. They are in tools.py and will be imported for you.
-You will be given a chart figure: image_1 and a question.
-Notice that you, as an AI assistant, are not good at answering questions when there are too many unnecessary and irrelevant information.
-If you are dealing with a vertical bar chart figure, you should determine which are the relevant x values to the question, and specify them in a python list. You should use the given x value names.
-If you are dealing with a horizontal bar chart figure, you should also determine which are the relevant y values to the question, and specify them in a python list. You should use the given y value names.
-Use as few tools as possible. In most situations, you only need to draw or highlight. Only use mask tools when necessary.
-If you think you got the answer, use ANSWER: <your answer>. Please extract the final answer in FINAL ANSWER: <final answer> and end with TERMINATE.
-
-# USER REQUEST #: <img src='{figure_path}'> {query}
-# USER Bounding Box Info: x_values_bbox, storing x values and coordinates. y_values_bbox, storing x values and coordinates. The x values in the image are: {x_values}. The y values in the image are: {y_values}.
-# USER IMAGE stored in image_1, as PIL image.
-Now please generate only THOUGHT 0 and ACTION 0 in RESULT. If no action is needed, also reply with ANSWER: <your answer>. Please extract the final answer in FINAL ANSWER: <final answer> and end with TERMINATE.
-# RESULT #:
-"""
+    case_block = (
+        f"# USER REQUEST #: {query}\n"
+        f"# USER Bounding Box Info: x_values_bbox, storing x values and coordinates. "
+        f"y_values_bbox, storing x values and coordinates. "
+        f"The x values in the image are: {x_values}. The y values in the image are: {y_values}.\n"
+        f"# USER IMAGE stored in image_1, as PIL image."
+    )
+    return case_block + _JINJA_TOOL_SUFFIX
 
 
 def _build_table_prompt(row: dict, metadata: dict) -> str:
     query = str(row.get("query", "")).strip()
-    figure_path = str(row.get("figure_path", "image_1"))
     columns = _bbox_keys(metadata.get("columns_bbox"))
-    rows = _bbox_keys(metadata.get("row_starters"))
-    return f"""Here are some tools that can help you. All are python codes. They are in tools.py and will be imported for you.
-You will be given a table figure: image_1 and a question.
-Notice that you, as an AI assistant, are not good at answering questions when there are too many unnecessary and irrelevant information. You should determine which are the relevant columns to the question, and specify them in a python list. You should use the given column headers.
-You should also determine which are the relevant rows to the question, and specify them in a python list. You should use the given row headers.
-Use as few tools as possible. If you think you got the answer, use ANSWER: <your answer>. Please extract the final answer in FINAL ANSWER: <final answer> and end with TERMINATE.
-
-# USER REQUEST #: <img src='{figure_path}'> {query}
-# USER Bounding Box Info: columns_bbox, where keys are column headers and values are column bounding boxes. rows_bbox, where keys are row headers and values are row bounding boxes. The columns in the image are: {columns}. The rows in the image start with: {rows}.
-# USER IMAGE stored in image_1, as PIL image.
-Now please generate only THOUGHT 0 and ACTION 0 in RESULT. If no action is needed, also reply with ANSWER: <your answer>. Please extract the final answer in FINAL ANSWER: <final answer> and end with TERMINATE.
-# RESULT #:
-"""
+    rows_list = _bbox_keys(metadata.get("row_starters"))
+    case_block = (
+        f"# USER REQUEST #: {query}\n"
+        f"# USER Bounding Box Info: columns_bbox, where keys are column headers and values are column bounding boxes. "
+        f"rows_bbox, where keys are row headers and values are row bounding boxes. "
+        f"The columns in the image are: {columns}. The rows in the image start with: {rows_list}.\n"
+        f"# USER IMAGE stored in image_1, as PIL image."
+    )
+    return case_block + _JINJA_TOOL_SUFFIX
 
 
 def _extract_final_answer(text: str) -> str:
@@ -425,6 +427,8 @@ def _eval_row(row: dict, client: OpenAI, model: str, dataset_type: str) -> dict:
 # ── main ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    global _JINJA_TOOL_SUFFIX
+
     parser = argparse.ArgumentParser(description="Eval VTool-R1 model via vLLM OpenAI-compatible endpoint.")
     parser.add_argument("--data-path", required=True, help="Path to test_full.parquet or table_test.parquet")
     parser.add_argument("--dataset-type", choices=["chart", "table"], default="chart")
@@ -434,7 +438,19 @@ def main() -> None:
     parser.add_argument("--model", required=True, help="Model name as served by vLLM")
     parser.add_argument("--limit", type=int, default=0, help="Limit rows for quick smoke test")
     parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument(
+        "--jinja-path",
+        default="/root/VTool-R1/examples/format_prompt/chartQA.jinja",
+        help="Path to chartQA.jinja on the server.",
+    )
     args = parser.parse_args()
+
+    # Load the jinja tool-description suffix (shared across all workers)
+    jinja_path = Path(args.jinja_path)
+    if not jinja_path.exists():
+        raise FileNotFoundError(f"chartQA.jinja not found at {jinja_path}. Pass --jinja-path to override.")
+    _JINJA_TOOL_SUFFIX = _load_jinja_tool_suffix(jinja_path)
+    print(f"Loaded jinja suffix ({len(_JINJA_TOOL_SUFFIX)} chars) from {jinja_path}")
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
