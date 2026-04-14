@@ -49,18 +49,18 @@
     "frozen_inference_forced_skill": {
       "split": "test",
       "total": 10,
-      "correct": 7,
-      "accuracy": 0.7,
+      "correct": 6,
+      "accuracy": 0.6,
       "per_dataset_accuracy": {
-        "refocus_chart": 0.7
+        "refocus_chart": 0.6
       },
       "per_family_accuracy": {
         "refocus_chart_chartqa_h_bar_count_or_total": 0.3333333333333333,
-        "refocus_chart_chartqa_h_bar_generic": 0.8,
+        "refocus_chart_chartqa_h_bar_generic": 0.6,
         "refocus_chart_chartqa_h_bar_comparison": 1.0,
         "refocus_chart_chartqa_h_bar_extrema": 1.0
       },
-      "full_agent_accuracy": 0.7,
+      "full_agent_accuracy": 0.6,
       "post_evolve_recovery_accuracy": 0.0,
       "scratch_code_rate": 0.0,
       "scratch_code_success_rate": 0.0,
@@ -87,7 +87,7 @@
   "function_calling_vqa_accuracy": 0.0,
   "frozen_inference_accuracy": 0.0,
   "skill_only_frozen_inference_accuracy": 0.0,
-  "forced_skill_frozen_accuracy": 0.7,
+  "forced_skill_frozen_accuracy": 0.6,
   "scratch_skill_full_agent_accuracy": 0.0,
   "scratch_skill_post_evolve_recovery_accuracy": 0.0,
   "scratch_skill_frozen_accuracy": 0.0,
