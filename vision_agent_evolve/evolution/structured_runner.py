@@ -320,11 +320,12 @@ class StructuredBenchmarkRunner:
 
         if "frozen_inference_forced_skill" in self.config.settings:
             print(f"\n=== Frozen inference with forced skill on {self.config.held_out_split} ===")
-            if not snapshot_name:
-                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            forced_snapshot = snapshot_name
+            if not forced_snapshot and not self.config.capability_root:
+                forced_snapshot = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
             records.extend(
                 self.run_frozen_inference(
-                    snapshot_name=snapshot_name,
+                    snapshot_name=forced_snapshot or None,
                     cases=held_out_cases,
                     force_skill=True,
                 )
@@ -1003,6 +1004,21 @@ class StructuredBenchmarkRunner:
             return EvolutionLoop(
                 work_dir=self.output_dir / ("scratch_skill_frozen_inference" if capability_mode == "scratch_code_skill" else "frozen_inference"),
                 learned_dir=snapshot_dir,
+                skills_dir=self.skills_dir,
+                vlm_client=self.vlm_client,
+                max_attempts=1,
+                subset_id=None,
+                answer_checker=self._check_answer,
+                capability_mode=capability_mode,
+                fixed_builtin_tools=self.config.fixed_tool_names,
+                disable_generated_tools=self.config.disable_generated_tools,
+            )
+
+        # If capability_root is explicitly specified, use it directly.
+        if self.config.capability_root is not None:
+            return EvolutionLoop(
+                work_dir=self.output_dir / ("scratch_skill_frozen_inference" if capability_mode == "scratch_code_skill" else "frozen_inference"),
+                learned_dir=self.config.capability_root,
                 skills_dir=self.skills_dir,
                 vlm_client=self.vlm_client,
                 max_attempts=1,
