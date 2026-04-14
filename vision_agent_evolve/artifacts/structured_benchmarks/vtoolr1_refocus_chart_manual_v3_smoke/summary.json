@@ -1,0 +1,95 @@
+{
+  "config": {
+    "dataset": "refocus_chart",
+    "datasets": [
+      "refocus_chart"
+    ],
+    "raw_data_root": "/root/vqa_datasets/datasets/refocus_chart_hf",
+    "normalized_data_root": "datasets/structured_vtoolr1_compare",
+    "subset_id": "vtoolr1_refocus_chart_manual_v3_smoke",
+    "evolve_split": "train",
+    "held_out_split": "test",
+    "k": 200,
+    "train_subset_size": 0,
+    "held_out_limit": 10,
+    "max_attempts": 10,
+    "max_planning_rounds": 5,
+    "families_per_round_limit": 3,
+    "representatives_per_cluster": 3,
+    "tool_preference": "balanced",
+    "readability_judge_enabled": false,
+    "forced_skill_name": "refocus_chart_h_bar",
+    "fixed_tool_names": [
+      "focus_on_x_values_with_mask",
+      "focus_on_y_values_with_mask",
+      "focus_on_x_values_with_draw",
+      "focus_on_y_values_with_draw"
+    ],
+    "disable_generated_tools": true,
+    "vlm_base_url": "http://33.3.175.26:8000/v1",
+    "vlm_model": "Qwen2.5-VL-7B-Instruct",
+    "vlm_api_style": "openai",
+    "vlm_api_key_present": true,
+    "vlm_user_id_present": false,
+    "vlm_access_key_present": false,
+    "vlm_quota_id_present": false,
+    "uses_alibaba_chat_api": false,
+    "gta_tool_mode": "",
+    "gta_tool_server": "",
+    "gta_official_repo": "",
+    "gta_device": "",
+    "serper_api_key_present": false,
+    "mathpix_app_id_present": false,
+    "mathpix_app_key_present": false
+  },
+  "snapshot_name": "",
+  "records_path": "/root/vision_agent_evolve_rl/vision_agent_evolve/artifacts/structured_benchmarks/vtoolr1_refocus_chart_manual_v3_smoke/per_case.jsonl",
+  "subset_evolution_rounds": [],
+  "settings": {
+    "frozen_inference_forced_skill": {
+      "split": "test",
+      "total": 10,
+      "correct": 7,
+      "accuracy": 0.7,
+      "per_dataset_accuracy": {
+        "refocus_chart": 0.7
+      },
+      "per_family_accuracy": {
+        "refocus_chart_chartqa_h_bar_count_or_total": 0.3333333333333333,
+        "refocus_chart_chartqa_h_bar_generic": 0.8,
+        "refocus_chart_chartqa_h_bar_comparison": 1.0,
+        "refocus_chart_chartqa_h_bar_extrema": 1.0
+      },
+      "full_agent_accuracy": 0.7,
+      "post_evolve_recovery_accuracy": 0.0,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.0,
+      "avg_tool_calls_per_case": 0.0,
+      "artifact_production_rate": 0.0,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    }
+  },
+  "full_agent_accuracy": 0.0,
+  "post_evolve_recovery_accuracy": 0.0,
+  "skill_only_full_agent_accuracy": 0.0,
+  "skill_only_post_evolve_recovery_accuracy": 0.0,
+  "preset_tools_only_accuracy": 0.0,
+  "same_tool_preset_tools_only_accuracy": 0.0,
+  "reasoned_vlm_accuracy": 0.0,
+  "function_calling_vqa_accuracy": 0.0,
+  "frozen_inference_accuracy": 0.0,
+  "skill_only_frozen_inference_accuracy": 0.0,
+  "forced_skill_frozen_accuracy": 0.7,
+  "scratch_skill_full_agent_accuracy": 0.0,
+  "scratch_skill_post_evolve_recovery_accuracy": 0.0,
+  "scratch_skill_frozen_accuracy": 0.0,
+  "scratch_skill_forced_accuracy": 0.0
+}
