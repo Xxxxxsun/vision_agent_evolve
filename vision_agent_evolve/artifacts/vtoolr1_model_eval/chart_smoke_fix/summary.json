@@ -1,0 +1,11 @@
+{
+  "total": 5,
+  "correct": 5,
+  "accuracy": 1.0,
+  "avg_score": 1.0,
+  "tool_usage_rate": 0.0,
+  "tool_exec_success_rate": 0.0,
+  "model": "VTool-Qwen2.5-7B",
+  "dataset_type": "chart",
+  "data_path": "/root/VTool-R1/vtool-r1-datasets/test_full.parquet"
+}

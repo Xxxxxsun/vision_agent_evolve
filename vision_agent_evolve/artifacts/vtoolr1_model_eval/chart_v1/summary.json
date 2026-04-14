@@ -1,0 +1,11 @@
+{
+  "total": 826,
+  "correct": 518,
+  "accuracy": 0.6271186440677966,
+  "avg_score": 0.7196396910465954,
+  "tool_usage_rate": 0.002421307506053269,
+  "tool_exec_success_rate": 0.0,
+  "model": "VTool-Qwen2.5-7B",
+  "dataset_type": "chart",
+  "data_path": "/root/VTool-R1/vtool-r1-datasets/test_full.parquet"
+}

@@ -237,39 +237,62 @@ def normalize_mathvista_dataset(
 def normalize_refocus_tablevqa_dataset(
     raw_data_root: Path,
     normalized_data_root: Path,
-    train_size: int = 200,
-    val_size: int = 500,
+    train_size: int = 0,
+    val_size: int = 0,
     limit: int = 0,
 ) -> dict[str, Any]:
     """Normalize ReFOCUS-style TableVQA data into shared JSONL files."""
     dataset_root = normalized_data_root / "refocus_tablevqa"
     dataset_root.mkdir(parents=True, exist_ok=True)
     assets_root = normalized_data_root / "_assets" / "refocus_tablevqa"
-    source_files = _discover_data_files(
-        raw_data_root,
-        include_tokens=["tablevqa", "table_vqa", "refocus", "table", "wtq", "fintabnet", "tabfact"],
-    )
-    if not source_files:
-        raise FileNotFoundError(f"Could not find ReFOCUS/TableVQA files under {raw_data_root}")
+    train_candidates = [path for path in raw_data_root.rglob("table_train.parquet") if path.is_file()]
+    val_candidates = [path for path in raw_data_root.rglob("table_test.parquet") if path.is_file()]
+    split_to_files = {
+        "train": sorted(train_candidates) or _discover_data_files(raw_data_root, include_tokens=["table_train"]),
+        "val": sorted(val_candidates) or _discover_data_files(raw_data_root, include_tokens=["table_test"]),
+    }
+    if not split_to_files["train"]:
+        raise FileNotFoundError(f"Could not find ReFOCUS/TableVQA train files under {raw_data_root}")
+    if not split_to_files["val"]:
+        raise FileNotFoundError(f"Could not find ReFOCUS/TableVQA test/val files under {raw_data_root}")
 
-    rows = _load_rows_from_files(source_files)
+    split_limits = {
+        "train": train_size if train_size > 0 else 0,
+        "val": val_size if val_size > 0 else 0,
+    }
     if limit:
-        rows = rows[:limit]
-    rows = _extract_semantic_records(rows)
-    records = [
-        _normalize_refocus_tablevqa_record(item, raw_data_root, assets_root, index)
-        for index, item in enumerate(rows, start=1)
-    ]
-    return _write_pseudo_split_dataset(
-        dataset_name="refocus_tablevqa",
-        raw_data_root=raw_data_root,
-        dataset_root=dataset_root,
-        records=records,
-        source_files=source_files,
-        train_size=train_size,
-        val_size=val_size,
-        source_split="refocus_tablevqa",
-    )
+        split_limits["train"] = limit
+        split_limits["val"] = limit
+
+    manifest: dict[str, Any] = {
+        "dataset": "refocus_tablevqa",
+        "raw_data_root": str(raw_data_root),
+        "normalized_data_root": str(dataset_root),
+        "splits": {},
+    }
+    for split, files in split_to_files.items():
+        rows = _load_rows_from_files(files)
+        split_limit = split_limits[split]
+        if split_limit:
+            rows = rows[:split_limit]
+        rows = _extract_semantic_records(rows)
+        records = [
+            _normalize_refocus_tablevqa_record(item, raw_data_root, assets_root / split, index)
+            for index, item in enumerate(rows, start=1)
+        ]
+        records = _with_split(records, split)
+        output_file = dataset_root / f"{split}.jsonl"
+        _write_jsonl(output_file, records)
+        manifest["splits"][split] = {
+            "count": len(records),
+            "source_split": "table_test.parquet" if split == "val" else "table_train.parquet",
+            "source_files": [str(path) for path in files],
+            "output_file": str(output_file),
+        }
+
+    manifest_path = dataset_root / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
 
 
 def normalize_refocus_chart_dataset(
@@ -1057,7 +1080,18 @@ def _extract_semantic_records_from_value(value: Any, inherited_id: str | None = 
 def _looks_like_semantic_record(row: dict[str, Any]) -> bool:
     keys = {str(key) for key in row.keys()}
     prompt_markers = {"question", "prompt", "query", "text"}
-    image_markers = {"image", "decoded_image", "image_path", "img", "imgname", "img_name", "image_id", "image_file"}
+    image_markers = {
+        "image",
+        "images",
+        "decoded_image",
+        "image_path",
+        "figure_path",
+        "img",
+        "imgname",
+        "img_name",
+        "image_id",
+        "image_file",
+    }
     answer_markers = {"answer", "label", "gold_answer", "target"}
     return bool(keys & prompt_markers) and bool(keys & answer_markers) and bool(keys & image_markers)
 
@@ -1715,16 +1749,28 @@ def _choice_letter(text: str) -> str:
 
 
 def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Path, source_id: str) -> Path:
-    image_value = (
-        item.get("image")
-        or item.get("decoded_image")
-        or item.get("image_path")
-        or item.get("img")
-        or item.get("imgname")
-        or item.get("img_name")
-        or item.get("image_id")
-        or item.get("image_file")
-    )
+    images_value = item.get("images")
+    image_value = None
+    if isinstance(images_value, list) and images_value:
+        first = images_value[0]
+        if isinstance(first, dict):
+            image_value = first
+        elif isinstance(first, (bytes, bytearray)):
+            image_value = bytes(first)
+        elif first is not None:
+            image_value = str(first)
+    if image_value is None:
+        image_value = (
+            item.get("image")
+            or item.get("decoded_image")
+            or item.get("image_path")
+            or item.get("figure_path")
+            or item.get("img")
+            or item.get("imgname")
+            or item.get("img_name")
+            or item.get("image_id")
+            or item.get("image_file")
+        )
     if image_value is None:
         raise KeyError(f"Record is missing image data: {_summarize_record(item)}")
 

@@ -18,8 +18,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Normalize ReFOCUS/TableVQA data into JSONL TaskCase files.")
     parser.add_argument("--raw-data-root", required=True, help="Local root containing raw ReFOCUS/TableVQA files.")
     parser.add_argument("--normalized-data-root", required=True, help="Output root for normalized structured benchmark files.")
-    parser.add_argument("--train-size", type=int, default=200)
-    parser.add_argument("--val-size", type=int, default=500)
+    parser.add_argument("--train-size", type=int, default=0, help="Optional cap for train rows; 0 keeps the full parquet split.")
+    parser.add_argument("--val-size", type=int, default=0, help="Optional cap for val rows; 0 keeps the full parquet split.")
     parser.add_argument("--limit", type=int, default=0, help="Optional limit for quick debugging.")
     args = parser.parse_args()
 
