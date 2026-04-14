@@ -289,9 +289,10 @@ class StructuredBenchmarkRunner:
 
         if "frozen_inference" in self.config.settings:
             print(f"\n=== Frozen inference on {self.config.held_out_split} ===")
-            if not snapshot_name:
-                snapshot_name = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
-            records.extend(self.run_frozen_inference(snapshot_name=snapshot_name, cases=held_out_cases))
+            fi_snapshot = snapshot_name
+            if not fi_snapshot and not self.config.capability_root:
+                fi_snapshot = f"{self.config.subset_id}_{self.config.evolve_split}_k{self.config.k}_snapshot"
+            records.extend(self.run_frozen_inference(snapshot_name=fi_snapshot or None, cases=held_out_cases))
 
         if "preset_tools_only" in self.config.settings:
             print(f"\n=== Preset-tools-only inference on {self.config.held_out_split} ===")
@@ -935,7 +936,10 @@ class StructuredBenchmarkRunner:
         if "required_skill_name" in create_agent_signature.parameters:
             create_agent_kwargs["required_skill_name"] = required_skill_name
         if "require_bash_action_before_complete" in create_agent_signature.parameters:
-            create_agent_kwargs["require_bash_action_before_complete"] = bool(required_skill_name)
+            # Only enforce bash when a capability_root is NOT manually specified (i.e. after training).
+            # For manual skill baselines the skill provides guidance but bash is not mandatory.
+            enforce_bash = bool(required_skill_name) and self.config.capability_root is None
+            create_agent_kwargs["require_bash_action_before_complete"] = enforce_bash
         if "required_image_artifact_before_complete" in create_agent_signature.parameters:
             create_agent_kwargs["required_image_artifact_before_complete"] = bool(required_skill_name and capability_mode == "scratch_code_skill")
         agent = loop._create_agent(case, **create_agent_kwargs)
@@ -998,9 +1002,14 @@ class StructuredBenchmarkRunner:
                 legacy_root = self.learned_root / "snapshots"
                 legacy_dir = legacy_root / snapshot_name
                 if not legacy_dir.exists():
-                    raise FileNotFoundError(f"Frozen snapshot not found: {snapshot_dir}")
-                snapshot_root = legacy_root
-                snapshot_dir = legacy_dir
+                    # Fall back to capability_root when snapshot doesn't exist and root is specified.
+                    if self.config.capability_root is not None:
+                        snapshot_dir = self.config.capability_root
+                    else:
+                        raise FileNotFoundError(f"Frozen snapshot not found: {snapshot_dir}")
+                else:
+                    snapshot_root = legacy_root
+                    snapshot_dir = legacy_dir
             return EvolutionLoop(
                 work_dir=self.output_dir / ("scratch_skill_frozen_inference" if capability_mode == "scratch_code_skill" else "frozen_inference"),
                 learned_dir=snapshot_dir,
