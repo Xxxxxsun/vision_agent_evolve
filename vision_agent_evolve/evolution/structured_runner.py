@@ -934,10 +934,12 @@ class StructuredBenchmarkRunner:
         if "include_learned_tools" in create_agent_signature.parameters:
             create_agent_kwargs["include_learned_tools"] = bool(use_skill and capability_mode != "skill_only_same_tools")
         if "required_skill_name" in create_agent_signature.parameters:
-            create_agent_kwargs["required_skill_name"] = required_skill_name
+            # When using a manually-specified capability_root (baseline mode), don't inject the
+            # blocking "don't complete before SOP steps" enforcement text. The skill SOP is still
+            # visible via include_learned_skills; we just don't force it.
+            skill_name_for_enforcement = required_skill_name if self.config.capability_root is None else None
+            create_agent_kwargs["required_skill_name"] = skill_name_for_enforcement
         if "require_bash_action_before_complete" in create_agent_signature.parameters:
-            # Only enforce bash when a capability_root is NOT manually specified (i.e. after training).
-            # For manual skill baselines the skill provides guidance but bash is not mandatory.
             enforce_bash = bool(required_skill_name) and self.config.capability_root is None
             create_agent_kwargs["require_bash_action_before_complete"] = enforce_bash
         if "required_image_artifact_before_complete" in create_agent_signature.parameters:

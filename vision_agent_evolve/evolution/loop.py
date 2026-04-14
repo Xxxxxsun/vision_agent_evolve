@@ -562,15 +562,20 @@ class EvolutionLoop:
             if x_values_bbox or y_values_bbox:
                 y_bbox_json = json.dumps(y_values_bbox)
                 x_bbox_json = json.dumps(x_values_bbox)
+                first_y = y_labels[0] if y_labels else "Label"
+                first_x = x_labels[0] if x_labels else "Label"
                 return (
                     "Task-specific instructions for same-tool chart comparisons:\n"
                     f"- Available y-axis labels: {y_labels}\n"
-                    f"- Full y_values_bbox JSON (pass as third arg to y-axis tools): {y_bbox_json}\n"
+                    f"- Full y_values_bbox JSON (use this entire string as the third argument for y-axis tools):\n"
+                    f"  {y_bbox_json}\n"
                     f"- Available x-axis labels: {x_labels}\n"
-                    f"- Full x_values_bbox JSON (pass as third arg to x-axis tools): {x_bbox_json}\n"
-                    "- Tool call format: python -m tools <tool_name> <image_path> '<labels_json>' '<bbox_json>'\n"
-                    "- Example (y-axis): python -m tools focus_on_y_values_with_draw <image_path> '[\"Libya\"]' '<y_values_bbox JSON above>'\n"
-                    "- Example (x-axis): python -m tools focus_on_x_values_with_draw <image_path> '[\"2019\"]' '<x_values_bbox JSON above>'\n"
+                    f"- Full x_values_bbox JSON (use this entire string as the third argument for x-axis tools):\n"
+                    f"  {x_bbox_json}\n"
+                    "- Tool call format (3 arguments: image path, JSON list of labels to focus, full bbox JSON):\n"
+                    f'  python -m tools focus_on_y_values_with_draw <image_path> \'["{first_y}"]\' \'{y_bbox_json}\'\n'
+                    f'  python -m tools focus_on_x_values_with_draw <image_path> \'["{first_x}"]\' \'{x_bbox_json}\'\n'
+                    "- Copy the full bbox JSON above verbatim as the third argument — do NOT use a placeholder.\n"
                     "- Use tools when the question asks about a specific named bar's value that may be hard to read precisely."
                 )
 
@@ -582,15 +587,20 @@ class EvolutionLoop:
             if columns_bbox or row_starters:
                 columns_bbox_json = json.dumps(columns_bbox)
                 row_starters_json = json.dumps(row_starters)
+                first_col = column_labels[0] if column_labels else "Col"
+                first_row = row_labels[0] if row_labels else "Row"
                 return (
                     "Task-specific instructions for same-tool TableVQA comparisons:\n"
                     f"- Available column labels: {column_labels}\n"
-                    f"- Full columns_bbox JSON (pass as third arg to column tools): {columns_bbox_json}\n"
+                    f"- Full columns_bbox JSON (use this entire string as the third argument for column tools):\n"
+                    f"  {columns_bbox_json}\n"
                     f"- Available row labels: {row_labels}\n"
-                    f"- Full row_starters JSON (pass as third arg to row tools): {row_starters_json}\n"
-                    "- Tool call format: python -m tools <tool_name> <image_path> '<labels_json>' '<bbox_json>'\n"
-                    "- Example (columns): python -m tools focus_on_columns_with_draw <image_path> '[\"Year\",\"Score\"]' '<columns_bbox JSON above>'\n"
-                    "- Example (rows): python -m tools focus_on_rows_with_draw <image_path> '[\"Row1\"]' '<row_starters JSON above>'\n"
+                    f"- Full row_starters JSON (use this entire string as the third argument for row tools):\n"
+                    f"  {row_starters_json}\n"
+                    "- Tool call format (3 arguments: image path, JSON list of labels to focus, full bbox JSON):\n"
+                    f'  python -m tools focus_on_columns_with_draw <image_path> \'["{first_col}"]\' \'{columns_bbox_json}\'\n'
+                    f'  python -m tools focus_on_rows_with_draw <image_path> \'["{first_row}"]\' \'{row_starters_json}\'\n'
+                    "- Copy the full bbox JSON above verbatim as the third argument — do NOT use a placeholder.\n"
                     "- Use tools when isolating specific columns or rows will make the target value easier to read."
                 )
 
