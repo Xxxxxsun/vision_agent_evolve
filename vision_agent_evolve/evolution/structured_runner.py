@@ -826,7 +826,7 @@ class StructuredBenchmarkRunner:
         elif dataset_name != "vstar":
             instruction_lines.append("In Final answer, give the final answer itself rather than an explanation.")
         prompt = "\n".join(instruction_lines) + f"\n\nQuestion: {case.prompt}{choice_block}"
-        # For refocus_chart, append bbox label info to match VTool-R1 eval protocol
+        # Append bbox label info to match VTool-R1 eval protocol
         if dataset_name == "refocus_chart":
             x_values_bbox = case.metadata.get("x_values_bbox", {})
             y_values_bbox = case.metadata.get("y_values_bbox", {})
@@ -839,7 +839,19 @@ class StructuredBenchmarkRunner:
                 bbox_info_lines.append(f"The y values in the image are: {y_keys}.")
             if bbox_info_lines:
                 prompt += "\n\nChart axis info: " + " ".join(bbox_info_lines)
-        max_tokens = 1024 if dataset_name == "refocus_chart" else 200
+        elif dataset_name == "refocus_tablevqa":
+            columns_bbox = case.metadata.get("columns_bbox", {})
+            row_starters = case.metadata.get("row_starters", {})
+            col_keys = list(columns_bbox.keys()) if isinstance(columns_bbox, dict) else []
+            row_keys = list(row_starters.keys()) if isinstance(row_starters, dict) else []
+            bbox_info_lines = []
+            if col_keys:
+                bbox_info_lines.append(f"The columns in the image are: {col_keys}.")
+            if row_keys:
+                bbox_info_lines.append(f"The rows in the image start with: {row_keys}.")
+            if bbox_info_lines:
+                prompt += "\n\nTable structure info: " + " ".join(bbox_info_lines)
+        max_tokens = 1024 if dataset_name in ("refocus_chart", "refocus_tablevqa") else 200
         messages = [
             {
                 "role": "user",
