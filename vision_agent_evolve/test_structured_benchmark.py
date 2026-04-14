@@ -908,13 +908,39 @@ class StructuredBenchmarkTests(unittest.TestCase):
                 """---
 name: vstar_direct_attributes
 description: "Attribute router"
-depends_on: ["vision_analysis", "zoom_focus"]
+depends_on: ["vstar"]
 tool_names: ["zoom_image"]
 applicability_conditions: "Use for VStar attribute questions."
 ---
 
 ## Procedure
 - Check the object identity first.
+- See `references/detail.md`
+""",
+                encoding="utf-8",
+            )
+            reference_dir = family_dir / "references"
+            reference_dir.mkdir(parents=True, exist_ok=True)
+            (reference_dir / "detail.md").write_text(
+                """---
+name: attr_detail
+description: "Attribute detail"
+---
+
+Use zoom_image before answering when the object is small.
+""",
+                encoding="utf-8",
+            )
+            router_dir = skills_dir / "vstar"
+            router_dir.mkdir(parents=True, exist_ok=True)
+            (router_dir / "SKILL.md").write_text(
+                """---
+name: vstar
+description: "VStar router"
+depends_on: ["vision_analysis", "try_direct_first"]
+---
+
+Route VStar cases by family.
 """,
                 encoding="utf-8",
             )
@@ -931,16 +957,14 @@ Inspect the image before choosing tools.
 """,
                 encoding="utf-8",
             )
-            zoom_dir = skills_dir / "zoom_focus"
-            zoom_dir.mkdir(parents=True, exist_ok=True)
-            (zoom_dir / "SKILL.md").write_text(
+            (foundation_dir / "try_direct_first.md").write_text(
                 """---
-name: zoom_focus
-description: "Zoom when the target is tiny"
-tool_names: ["zoom_image", "list_images"]
+name: try_direct_first
+description: "Try direct first"
+level: foundation
 ---
 
-Use zoom_image for tiny targets.
+Try direct first.
 """,
                 encoding="utf-8",
             )
@@ -958,9 +982,14 @@ Use zoom_image for tiny targets.
             )
 
         self.assertEqual([skill.name for skill in context.matched_skills], ["vstar_direct_attributes"])
-        self.assertEqual([skill.name for skill in context.all_skills], ["vision_analysis", "zoom_focus", "vstar_direct_attributes"])
-        self.assertEqual(context.tool_names, ["zoom_image", "list_images"])
+        self.assertEqual([skill.name for skill in context.foundation_skills], ["vision_analysis"])
+        self.assertEqual([skill.name for skill in context.all_skills], ["vision_analysis", "vstar", "vstar_direct_attributes"])
+        self.assertEqual(context.preferred_tool_names, ["zoom_image"])
+        self.assertEqual(context.effective_tool_names, ["zoom_image", "list_images", "get_image_info", "crop_image"])
         self.assertTrue(any("Attribute router" in block for block in context.prompt_blocks))
+        self.assertTrue(any("Attribute detail" in block for block in context.reference_blocks))
+        self.assertTrue(any("Use zoom_image before answering" in block for block in context.prompt_blocks))
+        self.assertFalse(any("try_direct_first" in block for block in context.prompt_blocks))
 
     def test_resolve_skill_roots_prefers_capability_root_then_static_dir(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1002,10 +1031,47 @@ Use zoom_image for tiny targets.
 name: vstar_direct_attributes
 description: "Use zoom for tiny attributes"
 tool_names: ["zoom_image"]
+depends_on: ["vstar"]
 ---
 
 ## Tool Hints
 - Use zoom_image when the target is tiny.
+""",
+                encoding="utf-8",
+            )
+            (skills_dir / "vstar").mkdir(parents=True, exist_ok=True)
+            (skills_dir / "vstar" / "SKILL.md").write_text(
+                """---
+name: vstar
+description: "VStar router"
+depends_on: ["vision_analysis", "try_direct_first"]
+---
+
+Route VStar cases.
+""",
+                encoding="utf-8",
+            )
+            foundation_dir = skills_dir / "foundation"
+            foundation_dir.mkdir(parents=True, exist_ok=True)
+            (foundation_dir / "vision_analysis.md").write_text(
+                """---
+name: vision_analysis
+description: "Foundation visual analysis"
+level: foundation
+---
+
+Inspect first.
+""",
+                encoding="utf-8",
+            )
+            (foundation_dir / "try_direct_first.md").write_text(
+                """---
+name: try_direct_first
+description: "Try direct first"
+level: foundation
+---
+
+Try direct first.
 """,
                 encoding="utf-8",
             )
@@ -1028,10 +1094,13 @@ tool_names: ["zoom_image"]
         self.assertEqual(result.final_answer, "A")
         first_call = client.calls[0]
         tool_names = [tool["function"]["name"] for tool in first_call["tools"]]
-        self.assertEqual(tool_names, ["zoom_image"])
+        self.assertEqual(tool_names, ["list_images", "get_image_info", "crop_image", "zoom_image"])
         user_message = first_call["messages"][1]["content"][0]["text"]
         self.assertIn("Skill Context:", user_message)
         self.assertIn("Use zoom for tiny attributes", user_message)
+        self.assertNotIn("Try direct first.", user_message)
+        self.assertEqual(result.debug_info["preferred_tool_names"], ["zoom_image"])
+        self.assertEqual(result.debug_info["effective_tool_names"], ["zoom_image", "list_images", "get_image_info", "crop_image"])
 
     def test_structured_runner_supports_function_calling_vqa_setting_for_vstar(self):
         with tempfile.TemporaryDirectory() as tmpdir:

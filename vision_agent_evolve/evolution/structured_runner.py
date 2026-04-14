@@ -530,12 +530,6 @@ class StructuredBenchmarkRunner:
         return records
 
     def _run_function_calling_vqa(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
-        configured = set(self._configured_datasets())
-        if configured != {"vstar"}:
-            raise ValueError(
-                "The function_calling_vqa setting is currently supported only for dataset='vstar'."
-            )
-
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(cases, start=1):
             work_dir = self.output_dir / "function_calling_vqa" / f"case_{case.case_id}"
@@ -549,6 +543,7 @@ class StructuredBenchmarkRunner:
                         capability_root=self.config.capability_root,
                         static_skills_dir=self.project_root / "skills",
                         use_skills=self.config.use_skills,
+                        fixed_tool_names=list(self.config.fixed_tool_names),
                     ),
                 )
             except Exception as exc:
@@ -771,7 +766,7 @@ class StructuredBenchmarkRunner:
             artifact_paths=artifacts,
             chain_trace=chain_trace,
             image_path=case.image_path,
-            metadata=_merge_record_metadata(case.metadata, result.error),
+            metadata=_merge_record_metadata(case.metadata, result.error, result.debug_info),
             readability_improved=None if readability is None else readability.get("readability_improved"),
             target_region_clearer=None if readability is None else readability.get("target_region_clearer"),
             text_or_marks_more_legible=None if readability is None else readability.get("text_or_marks_more_legible"),
@@ -1252,10 +1247,17 @@ def _extract_scratch_script_summary(result: AgentResult) -> str | None:
     return " | ".join(commands[:2])
 
 
-def _merge_record_metadata(metadata: dict[str, Any], runtime_error: str | None) -> dict[str, Any]:
+def _merge_record_metadata(
+    metadata: dict[str, Any],
+    runtime_error: str | None,
+    extra_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = dict(metadata)
     if runtime_error:
         payload["runtime_error"] = runtime_error
+    if extra_metadata:
+        for key, value in extra_metadata.items():
+            payload[key] = value
     return payload
 
 

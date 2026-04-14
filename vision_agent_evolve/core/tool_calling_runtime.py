@@ -46,6 +46,7 @@ class ToolCallingRuntimeConfig:
     static_skills_dir: Path | None = None
     use_skills: bool = True
     skill_mode: str = "function_calling_router"
+    fixed_tool_names: list[str] = field(default_factory=list)
 
 
 class LocalPythonExecutor:
@@ -207,7 +208,8 @@ class RuntimeToolRegistry:
     ):
         self.image_session = image_session
         self.python_executor = python_executor
-        self.allowed_tools = {name.strip() for name in (allowed_tools or []) if str(name).strip()}
+        self.allowed_tools = [str(name).strip() for name in (allowed_tools or []) if str(name).strip()]
+        self.allowed_tool_set = set(self.allowed_tools)
         self._handlers = {
             "execute_python": self._execute_python,
             "list_images": self._list_images,
@@ -306,11 +308,11 @@ class RuntimeToolRegistry:
         return [
             schema
             for schema in schemas
-            if str(schema.get("function", {}).get("name", "")).strip() in self.allowed_tools
+            if str(schema.get("function", {}).get("name", "")).strip() in self.allowed_tool_set
         ]
 
     def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        if self.allowed_tools and tool_name not in self.allowed_tools:
+        if self.allowed_tools and tool_name not in self.allowed_tool_set:
             return self._error_result("UnsupportedTool", f"Tool not enabled for this skill context: {tool_name}")
         handler = self._handlers.get(tool_name)
         if handler is None:
@@ -410,10 +412,23 @@ def run_function_calling_vqa_case(
     image_refs = _collect_case_images(case)
     image_session.register_initial_images(image_refs)
     skill_context = _resolve_skill_context(case, runtime_config)
+    fixed_tool_names = [name.strip() for name in runtime_config.fixed_tool_names if str(name).strip()]
+    if fixed_tool_names:
+        fixed_set = set(fixed_tool_names)
+        skill_context.effective_tool_names = [
+            name for name in skill_context.effective_tool_names
+            if name in fixed_set
+        ]
+        skill_context.preferred_tool_names = [
+            name for name in skill_context.preferred_tool_names
+            if name in fixed_set
+        ]
+        if not skill_context.effective_tool_names:
+            skill_context.effective_tool_names = list(fixed_tool_names)
     tool_registry = RuntimeToolRegistry(
         image_session,
         LocalPythonExecutor(),
-        allowed_tools=skill_context.tool_names or None,
+        allowed_tools=skill_context.effective_tool_names or None,
     )
     system_prompt = _build_system_prompt(benchmark_name)
     user_prompt = _build_task_prompt(case, include_image=bool(image_refs), skill_context=skill_context)
@@ -429,8 +444,9 @@ def run_function_calling_vqa_case(
     final_answer = ""
 
     for turn in range(1, runtime_config.max_iterations + 1):
+        request_messages = list(messages)
         raw_response, _ = client.chat_with_tools(
-            messages,
+            request_messages,
             tools=tool_registry.schemas() if runtime_config.enable_tools else None,
             settings=runtime_config.model_settings,
             raw_response=True,
@@ -438,6 +454,10 @@ def run_function_calling_vqa_case(
         assistant_message = _normalize_assistant_message(raw_response, turn)
         thought = assistant_message.content or ""
         tool_calls = getattr(assistant_message, "tool_calls", None) or []
+        if runtime_config.enable_tools and not tool_calls and not thought.strip():
+            fallback_text, _ = client.chat(request_messages, runtime_config.model_settings)
+            assistant_message = SimpleNamespace(content=fallback_text, tool_calls=None)
+            thought = fallback_text or ""
         messages.append(_assistant_message_to_dict(assistant_message))
 
         if not runtime_config.enable_tools or not tool_calls:
@@ -521,6 +541,13 @@ def run_function_calling_vqa_case(
         success=bool(final_answer),
         messages=visible_messages,
         all_artifacts=all_artifacts,
+        debug_info={
+            "skill_names": [skill.name for skill in skill_context.matched_skills],
+            "foundation_skill_names": [skill.name for skill in skill_context.foundation_skills],
+            "preferred_tool_names": list(skill_context.preferred_tool_names),
+            "effective_tool_names": list(skill_context.effective_tool_names),
+            "tool_schema_names": [schema["function"]["name"] for schema in tool_registry.schemas()],
+        },
     )
 
 
@@ -565,8 +592,31 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
             lines.append(f"- {note}")
         for block in skill_context.prompt_blocks:
             lines.extend(["", block])
-    if dataset_name == "vstar":
+    if dataset_name in {"vstar", "hrbench"}:
         lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
+    elif dataset_name == "mathvista" and choices:
+        lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
+    elif dataset_name == "chartqa":
+        lines.extend(
+            [
+                "Read the chart carefully before answering.",
+                "If the answer is numeric, give the final numeric value or short text span directly in Final answer.",
+            ]
+        )
+    elif dataset_name == "mathvista":
+        lines.extend(
+            [
+                "Use execute_python for arithmetic or checking calculations after extracting visible quantities.",
+                "If the question is free-form, give the final numeric or textual answer directly in Final answer.",
+            ]
+        )
+    elif dataset_name == "hrbench":
+        lines.extend(
+            [
+                "Use zoom_image or crop_image when text, symbols, or local details are too small to inspect reliably.",
+                "Return the final option letter in Final answer.",
+            ]
+        )
     if family == "vstar_direct_attributes":
         lines.extend(
             [
@@ -582,6 +632,27 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
                 "Keep the global scene in mind throughout the reasoning process.",
                 "First determine the semantic left/right conclusion, then map it to the matching option in the question.",
                 "If the named objects are small or hard to localize, you may use zoom_image, but do not lose track of the full-scene left/right relationship.",
+            ]
+        )
+    elif dataset_name == "chartqa":
+        lines.extend(
+            [
+                "Focus on the chart elements that directly determine the requested value.",
+                "Use execute_python only after extracting the relevant values from the chart.",
+            ]
+        )
+    elif dataset_name == "mathvista":
+        lines.extend(
+            [
+                "Work from visible evidence in the figure, then compute if needed.",
+                "If a local region is crowded or tiny, inspect it with zoom_image before answering.",
+            ]
+        )
+    elif dataset_name == "hrbench":
+        lines.extend(
+            [
+                "Prioritize reading the exact local text or visual cue needed by the question.",
+                "If multiple answer choices are visually similar, inspect the decisive region before choosing.",
             ]
         )
     lines.extend(["", f"Question: {case.prompt}"])

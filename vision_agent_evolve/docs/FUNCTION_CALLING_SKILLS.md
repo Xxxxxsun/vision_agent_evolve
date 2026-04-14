@@ -1,6 +1,12 @@
 # Function-Calling Skills
 
 `function_calling_vqa` now supports hierarchical prompt-routing skills without enabling self-evolution.
+The runtime currently supports skill-aware function-calling on:
+
+- `vstar`
+- `chartqa`
+- `mathvista`
+- `hrbench`
 
 ## Where skills are loaded from
 
@@ -57,10 +63,21 @@ Supported fields:
 ## Runtime behavior
 
 - Skills are rendered into a compact `Skill Context` block inside the user prompt
-- `tool_names` acts as a whitelist for function-calling tool schemas
+- `references/*.md` are expanded into compact branch-detail blocks
+- `tool_names` now means preferred tools, not a hard whitelist
+- The runtime derives `effective_tool_names` by merging preferred tools with a dataset/family fallback tool pool
 - Skills are soft guidance only
   - They do not force a tool chain
   - The model still decides whether to call tools
+- For selected families, foundation skills are filtered so generic advice such as `try_direct_first` does not conflict with task-specific guidance
+
+The runtime also records debug metadata into `per_case.jsonl`:
+
+- `skill_names`
+- `foundation_skill_names`
+- `preferred_tool_names`
+- `effective_tool_names`
+- `tool_schema_names`
 
 ## Recommended layout
 
@@ -74,3 +91,18 @@ Example:
 - `skills/zoom_focus/SKILL.md`
 
 Use `references/...` docs when a skill needs extra branch detail without bloating the main prompt.
+
+The repo now also includes dataset-level skills for:
+
+- `skills/chartqa/SKILL.md`
+- `skills/mathvista/SKILL.md`
+- `skills/hrbench/SKILL.md`
+
+These are intentionally lightweight:
+
+- `chartqa`
+  - emphasizes local chart inspection and optional arithmetic with `execute_python`
+- `mathvista`
+  - emphasizes visual extraction first, then optional calculation
+- `hrbench`
+  - emphasizes zoom/crop for tiny local text or symbols, then option selection

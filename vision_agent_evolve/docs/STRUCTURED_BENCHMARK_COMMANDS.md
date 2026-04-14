@@ -23,6 +23,34 @@ export VLM_API_KEY="..."
 export VLM_MODEL="..."
 ```
 
+For the Alibaba internal chat route used in recent runs:
+
+```bash
+export VLM_API_STYLE="alibaba_chat"
+export VLM_BASE_URL="https://llm-chat-api.alibaba-inc.com/v1/api/chat"
+export VLM_USER_ID="506759"
+export VLM_ACCESS_KEY="9101ac974ab20f60f668dcf099bc6a10"
+export VLM_QUOTA_ID="dd95187c-29dd-464d-9b96-8f62e6ab8eb5"
+export VLM_APP="model_train_vlm"
+```
+
+## 0. Materialize Stable Local Raw Data
+
+The helper below downloads Hugging Face benchmark data into stable local directories under
+`/root/vqa_datasets/datasets/...`, so later experiments do not depend on transient cache paths.
+
+```bash
+python scripts/materialize_hf_benchmark_data.py --dataset chartqa --chartqa-splits val
+python scripts/materialize_hf_benchmark_data.py --dataset hrbench
+python scripts/materialize_hf_benchmark_data.py --dataset mathvista --mathvista-splits testmini
+```
+
+Resulting raw roots used by the current repo:
+
+- `ChartQA`: `/root/vqa_datasets/datasets/chartqa_hf`
+- `HRBench`: `/root/vqa_datasets/datasets/hr_bench`
+- `MathVista`: `/root/vqa_datasets/datasets/mathvista`
+
 ## GTA Official Formal Run
 
 For strict GTA-aligned formal runs, use the dedicated workflow in [GTA_OFFICIAL_EXPERIMENT.md](/root/vision_agent_evolve/vision_agent_evolve/docs/GTA_OFFICIAL_EXPERIMENT.md).
@@ -100,12 +128,25 @@ python scripts/eval_structured_frozen.py \
 ```bash
 VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
   --dataset chartqa \
-  --raw-data-root "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset" \
+  --raw-data-root "/root/vqa_datasets/datasets/chartqa_hf" \
   --normalized-data-root "./datasets/structured_chartqa" \
-  --subset-id chartqa_direct_gpt4o_val_full_v1 \
+  --subset-id chartqa_reasoned_gpt4o_val_full_v3 \
   --evolve-split val \
   --train-subset-size 1920 \
-  --settings direct_vlm
+  --settings reasoned_vlm
+```
+
+### 1.5 Function-calling + skills
+
+```bash
+VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
+  --dataset chartqa \
+  --raw-data-root "/root/vqa_datasets/datasets/chartqa_hf" \
+  --normalized-data-root "./datasets/structured_chartqa" \
+  --subset-id chartqa_fc_gpt4o_val_full_v4 \
+  --evolve-split val \
+  --train-subset-size 1920 \
+  --settings function_calling_vqa
 ```
 
 ## 2. HRBench4K
@@ -165,13 +206,26 @@ VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
   --dataset hrbench \
   --raw-data-root /root/vqa_datasets/datasets/hr_bench \
   --normalized-data-root ./datasets/structured_multibench \
-  --subset-id hrbench_direct_gpt4o_val_full_v2 \
+  --subset-id hrbench_reasoned_gpt4o_val_full_v3 \
   --evolve-split val \
   --train-subset-size 700 \
-  --settings direct_vlm
+  --settings reasoned_vlm
 ```
 
-### 2.5 Frozen eval only
+### 2.5 Function-calling + skills
+
+```bash
+VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
+  --dataset hrbench \
+  --raw-data-root /root/vqa_datasets/datasets/hr_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id hrbench_fc_gpt4o_val_full_v4 \
+  --evolve-split val \
+  --train-subset-size 700 \
+  --settings function_calling_vqa
+```
+
+### 2.6 Frozen eval only
 
 ```bash
 python scripts/eval_structured_frozen.py \
@@ -182,7 +236,7 @@ python scripts/eval_structured_frozen.py \
   --held-out-split val
 ```
 
-### 2.6 Test the manually added HRBench tool directly
+### 2.7 Test the manually added HRBench tool directly
 
 ```bash
 export VISION_AGENT_LEARNED_DIR=learned/hrbench4k_train100_v1/active
@@ -461,17 +515,30 @@ python scripts/run_structured_experiment.py \
   --settings agent_train_adaptive frozen_inference
 ```
 
-### 5.4 Direct GPT-4o on val
+### 5.4 Reasoned GPT-4o on val
 
 ```bash
 VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
   --dataset mathvista \
   --raw-data-root /root/vqa_datasets/datasets/mathvista \
   --normalized-data-root ./datasets/structured_multibench \
-  --subset-id mathvista_direct_gpt4o_val_v1 \
+  --subset-id mathvista_reasoned_gpt4o_val_full_v2 \
   --evolve-split val \
-  --train-subset-size 200 \
-  --settings direct_vlm
+  --train-subset-size 900 \
+  --settings reasoned_vlm
+```
+
+### 5.5 Function-calling + skills
+
+```bash
+VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
+  --dataset mathvista \
+  --raw-data-root /root/vqa_datasets/datasets/mathvista \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id mathvista_fc_gpt4o_val_full_v3 \
+  --evolve-split val \
+  --train-subset-size 900 \
+  --settings function_calling_vqa
 ```
 
 ## 6. GTA

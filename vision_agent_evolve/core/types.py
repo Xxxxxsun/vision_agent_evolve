@@ -108,6 +108,7 @@ class AgentResult:
     error: str | None = None
     messages: list[Message] = field(default_factory=list)
     all_artifacts: list[str] = field(default_factory=list)  # All artifacts from all steps
+    debug_info: dict[str, Any] = field(default_factory=dict)
 
     def get_image_artifacts(self) -> list[str]:
         """Get only image artifacts (png, jpg, jpeg)."""
