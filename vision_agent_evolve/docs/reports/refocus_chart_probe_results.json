@@ -1,0 +1,1691 @@
+{
+  "direct": {
+    "counts": {
+      "other_wrong": 80,
+      "correct": 557,
+      "truncated_output": 21,
+      "overlong_reasoning_or_truncation": 100,
+      "ratio_or_time_format_confusion": 57,
+      "boolean_polarity_error": 2,
+      "contains_expected_but_extra_text": 8,
+      "empty_answer": 1
+    },
+    "per_family": {
+      "refocus_chart_chartqa_h_bar_comparison": {
+        "correct": 23,
+        "overlong_reasoning_or_truncation": 3,
+        "other_wrong": 2,
+        "ratio_or_time_format_confusion": 1
+      },
+      "refocus_chart_chartqa_h_bar_count_or_total": {
+        "other_wrong": 15,
+        "truncated_output": 8,
+        "correct": 62,
+        "overlong_reasoning_or_truncation": 17,
+        "contains_expected_but_extra_text": 1,
+        "ratio_or_time_format_confusion": 1
+      },
+      "refocus_chart_chartqa_h_bar_extrema": {
+        "correct": 38,
+        "ratio_or_time_format_confusion": 8,
+        "overlong_reasoning_or_truncation": 7,
+        "other_wrong": 4
+      },
+      "refocus_chart_chartqa_h_bar_generic": {
+        "correct": 171,
+        "overlong_reasoning_or_truncation": 28,
+        "other_wrong": 27,
+        "ratio_or_time_format_confusion": 17,
+        "boolean_polarity_error": 1,
+        "truncated_output": 6,
+        "contains_expected_but_extra_text": 3,
+        "empty_answer": 1
+      },
+      "refocus_chart_chartqa_v_bar_comparison": {
+        "correct": 34,
+        "overlong_reasoning_or_truncation": 4,
+        "other_wrong": 1,
+        "ratio_or_time_format_confusion": 2,
+        "truncated_output": 1
+      },
+      "refocus_chart_chartqa_v_bar_count_or_total": {
+        "correct": 44,
+        "overlong_reasoning_or_truncation": 10,
+        "other_wrong": 6,
+        "truncated_output": 2,
+        "ratio_or_time_format_confusion": 3
+      },
+      "refocus_chart_chartqa_v_bar_extrema": {
+        "ratio_or_time_format_confusion": 8,
+        "correct": 59,
+        "overlong_reasoning_or_truncation": 13,
+        "truncated_output": 2,
+        "other_wrong": 6,
+        "contains_expected_but_extra_text": 1
+      },
+      "refocus_chart_chartqa_v_bar_generic": {
+        "correct": 126,
+        "overlong_reasoning_or_truncation": 18,
+        "ratio_or_time_format_confusion": 17,
+        "other_wrong": 19,
+        "truncated_output": 2,
+        "contains_expected_but_extra_text": 3,
+        "boolean_polarity_error": 1
+      }
+    },
+    "samples": {
+      "other_wrong": [
+        {
+          "case_id": "00339007006077",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "5.95",
+          "answer": "16.55",
+          "tool_names": []
+        },
+        {
+          "case_id": "05705464003774_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.1",
+          "answer": "Colombia's data shows that its government expenditure on pre-primary education was 0.",
+          "tool_names": []
+        },
+        {
+          "case_id": "05810070001466_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1931",
+          "answer": "1.93 t",
+          "tool_names": []
+        },
+        {
+          "case_id": "1304",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "37",
+          "answer": "35",
+          "tool_names": []
+        },
+        {
+          "case_id": "1304_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "4",
+          "answer": "2",
+          "tool_names": []
+        },
+        {
+          "case_id": "1366",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "21.6",
+          "answer": "21.7",
+          "tool_names": []
+        },
+        {
+          "case_id": "16763327006454",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "252.65",
+          "answer": "5,497.4 billion",
+          "tool_names": []
+        },
+        {
+          "case_id": "18179062004443_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "3.0238",
+          "answer": "302.38%",
+          "tool_names": []
+        },
+        {
+          "case_id": "22143392000229_2",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "Teal Blue",
+          "answer": "Teal/Turquoise",
+          "tool_names": []
+        },
+        {
+          "case_id": "24427049001318",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "6.2",
+          "answer": "2.6%",
+          "tool_names": []
+        },
+        {
+          "case_id": "29035673000697_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "gray",
+          "answer": "Dark blue",
+          "tool_names": []
+        },
+        {
+          "case_id": "2993",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.414285714",
+          "answer": "70/100 or 0.70",
+          "tool_names": []
+        }
+      ],
+      "truncated_output": [
+        {
+          "case_id": "01001540004402",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "No",
+          "answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the values for each region:**\n   - **Georgia:** 79.84 g\n   - **Western Asia:** 69.62 g\n   - **Finland:** 175.09 g\n\n2. **Calculate the sum of Georgia and Western Asia:**\n   \\[\n   79.84 \\, \\text{g} + 69.62 \\, \\text{g} = 149.46 \\, \\text{g}\n   \\]\n\n3. **Compare the sum to Finland's value:**\n   - Sum of Georgia and Western Asia: 149.46 g\n   - Finland: 175.09 g\n\n4. **Determine if the sum is greater than Finland's value:**\n   - 149.46 g (",
+          "tool_names": []
+        },
+        {
+          "case_id": "13001955010627",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "0.02",
+          "answer": "To determine the total value of all three bars, let's analyze the image step by step:\n\n1. **Egypt**: The bar for Egypt extends to approximately 0.01% on the x-axis.\n2. **Namibia**: The bar for Namibia is labeled as \"<0.01%\", indicating it is less than 0.01% but not zero.\n3. **Luxembourg**: The bar for Luxembourg is at 0%, meaning it has no value.\n\n### Reasoning:\n- The value for Egypt is clearly 0.01%.\n- The value for Namibia is less than 0.01%, but since we need a precise sum, we can approximate it as close to 0.01% for calculation purposes (though it is technically less).\n- The value for Luxembourg is 0%.\n\n### Calculation:\n- Egypt: 0.01%\n- Namibia: ~0.01% (approximation)\n- Luxembourg:",
+          "tool_names": []
+        },
+        {
+          "case_id": "1392_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "29",
+          "answer": "The image provided is a bar chart from the Pew Research Center, showing the percentage of tweets from legislators created by the top 25% and bottom 75% of tweeters in various countries. However, this image does not provide any information related to the sequence of numbers mentioned in the question. Therefore, we need to analyze the sequence independently of the image.\n\n### Analyzing the Sequence:\nThe given sequence is: \\( 24, \\_, 32, 33, 42 \\).\n\n#### Step 1: Identify Patterns\n- The sequence starts at 24.\n- The next number after the blank is 32.\n- The subsequent numbers are 33 and 42.\n\n#### Step 2: Look for Arithmetic or Logical Patterns\n- From 24 to 32: The difference is \\( 32 - 24 = 8 \\).\n- From 32 to 33: The difference is \\(",
+          "tool_names": []
+        },
+        {
+          "case_id": "2950",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "44",
+          "answer": "To answer the question, let's analyze the data provided in the image:\n\n1. The image shows a breakdown of responses by age group regarding how well people know their neighbors.\n2. The age groups are divided into:\n   - Ages 18-29\n   - Ages 30-49\n   - Ages 50-64\n   - Ages 65+\n3. For the age group \"Ages 18-29,\" the percentage of people who say they know \"Most\" of their neighbors is 20%.\n4. For the age group \"Ages 30-49,\" the percentage of people who say they know \"Most\" of their neighbors is 24%.\n\nSince the question asks about young people between 18 and 49, we need to combine these two age groups:\n\n- Ages 18-29: 20%\n- Ages 30-49:",
+          "tool_names": []
+        },
+        {
+          "case_id": "302",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "98",
+          "answer": "To answer this question, let's follow these steps:\n\n1. **Identify the values for the blue and green bars**:\n   - For \"IR scholars\":\n     - Blue bar (Prioritize economic relations with China): 24%\n     - Green bar (Promote human rights in China): 76%\n   - For \"U.S.\":\n     - Blue bar (Prioritize economic relations with China): 23%\n     - Green bar (Promote human rights in China): 73%\n\n2. **Calculate the average value for each color**:\n   - Average value of blue bars:\n     \\[\n     \\text{Average blue} = \\frac{\\text{Blue for IR scholars} + \\text{Blue for U.S.}}{2} = \\frac{24 + 23}{2} = \\frac{47}{2} = 23.5\n     \\]\n   - Average value of green bars:",
+          "tool_names": []
+        },
+        {
+          "case_id": "33055146000034",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "0.11",
+          "answer": "To determine the sum of the smallest two bars in the image:\n\n1. Identify the values of all the bars:\n   - 70+ years old: 1,289.43\n   - 50-69 years old: 201.38\n   - All ages: 190.65\n   - Age-standardized: 119.23\n   - 15-49 years old: 16.4\n   - 5-14 years old: 0.07\n   - Under-5s: 0.04\n\n2. Identify the two smallest bars:\n   - The smallest bar is \"Under-5s\" with a value of 0.04.\n   - The second smallest bar is \"5-14 years old\" with a value of 0.07.\n\n3. Sum the values of these two smallest bars:",
+          "tool_names": []
+        },
+        {
+          "case_id": "36773128002975",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "No",
+          "answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the values for the last three places**:\n   - Philippines: 6.67 t\n   - Net Food Importing Developing Countries: 5.8 t\n   - Gabon: 5.63 t\n\n2. **Sum the values of the last three places**:\n   \\[\n   6.67 + 5.8 + 5.63 = 18.10 \\text{ t}\n   \\]\n\n3. **Compare the sum to Oceania's value**:\n   - Oceania: 18.18 t\n   - Sum of the last three places: 18.10 t\n\n4. **Determine if the sum is more than Oceania's value**:\n   - 18.10 t (sum) is less than 18.18 t (",
+          "tool_names": []
+        },
+        {
+          "case_id": "3854_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "18",
+          "answer": "The image provided is a bar chart from the Pew Research Center, showing concerns about mobile phones' impact on children across 11 emerging economies. However, this image does not contain any information related to the sequence of numbers in the question. Therefore, we need to analyze the sequence independently:\n\nThe sequence given is: \\( 6, 16, 14, \\_, 16, 22 \\).\n\n### Step-by-Step Analysis:\n1. **Identify Patterns**: Look for patterns or rules governing the sequence.\n   - The first term is \\( 6 \\).\n   - The second term is \\( 16 \\), which is \\( 10 \\) more than the first term.\n   - The third term is \\( 14 \\), which is \\( 2 \\) less than the second term.\n   - The fourth term (missing) needs to be determined.\n   - The fifth term is \\( 16 \\), which is \\(",
+          "tool_names": []
+        },
+        {
+          "case_id": "4495_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "3",
+          "answer": "To answer the question \"How many values in the 'More strict' category are below 50?\", let's analyze the data step by step:\n\n1. **Identify the 'More strict' values**:\n   - All adults: 57\n   - Rep/Lean Rep: 28\n   - Dem/Lean Dem: 80\n   - Among Rep/Lean Rep (Gun owner): 15\n   - Among Rep/Lean Rep (Non-gun owner): 40\n   - Among Dem/Lean Dem (Gun owner): 64\n   - Among Dem/Lean Dem (Non-gun owner): 84\n\n2. **Count the values below 50**:\n   - Rep/Lean Rep: 28 (below 50)\n   - Among Rep/Lean Rep (Gun owner): 15 (below 50)\n   - Among Rep/Lean Rep (Non-gun owner): 40 (",
+          "tool_names": []
+        },
+        {
+          "case_id": "47613048005879",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "No",
+          "answer": "To answer this question, let's follow these steps:\n\n1. **Identify the smallest two bars**:\n   - The smallest bar is for \"5-14 years old\" at 0.04%.\n   - The second smallest bar is for \"10-14 years old\" at 0.07%.\n\n2. **Calculate the sum of the smallest two bars**:\n   - Sum = 0.04% + 0.07% = 0.11%.\n\n3. **Identify the 9th largest bar**:\n   - The bars are ordered from largest to smallest as follows:\n     1. 30-34 years old (1.9%)\n     2. 25-29 years old (1.8%)\n     3. 15-49 years old (1.65%)\n     4. 50-69 years old (",
+          "tool_names": []
+        },
+        {
+          "case_id": "5116",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "No",
+          "answer": "To determine if the median of all blue bars is greater than 50, let's follow these steps:\n\n1. **Identify the values represented by the blue bars**: The percentages shown for each issue are:\n   - Cost of treatments makes quality care unaffordable: 83%\n   - People rely too much on prescription meds that may not be necessary: 65%\n   - Prescription med side effects create as many problems as they solve: 59%\n   - Evaluation of safety/effectiveness of new medical treatments is too slow: 49%\n   - Health care providers are too quick to order tests/procedures: 46%\n   - New treatments made available before we fully understand their health effects: 44%\n   - New treatments are so complex that patients cannot make informed decisions: 42%\n\n2. **List the values in ascending order**:\n   - 42%, 44%, 46%, 49%,",
+          "tool_names": []
+        },
+        {
+          "case_id": "6310",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.111111111",
+          "answer": "To answer this question, let's follow these steps:\n\n1. **Identify the green bars**: The green bars represent the percentage of respondents who believe human rights organizations have \"A great deal\" of influence on the way things are going in their country.\n\n2. **Locate the largest green bar**:\n   - Indonesia: 27%\n   - Kenya: 30%\n   - Mexico: 30%\n   - India: 23%\n   - The largest green bar is for both Kenya and Mexico at 30%.\n\n3. **Identify the first green bar from the top**:\n   - The first green bar from the top corresponds to Indonesia, which has a value of 27%.\n\n4. **Calculate the ratio**:\n   - Largest green bar: 30%\n   - First green bar from the top: 27%\n   - Ratio = 30 / 27 = 10 / 9\n\nFinal answer:",
+          "tool_names": []
+        }
+      ],
+      "overlong_reasoning_or_truncation": [
+        {
+          "case_id": "02534409005100",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "To determine if the median value of all the bars is greater than 30, let's follow these steps:\n\n1. **Identify the values of each bar**:\n   - Heart disease: 371.7\n   - Cancers: 155.3\n   - Stroke: 104.7\n   - Accidents: 58.1\n   - Pneumonia and influenza: 32.5\n   - Road accidents: 27.1\n   - Diabetes: 17.7\n   - Suicide: 10.9\n   - Tuberculosis: 3.9\n\n2. **Arrange the values in ascending order**:\n   - Tuberculosis: 3.9\n   - Suicide: 10.9\n   - Diabetes: 17.7\n   - Road accidents: 27.1\n   - Pneumonia and influenza: 3",
+          "tool_names": []
+        },
+        {
+          "case_id": "03672594001226",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "To determine if the average value of the Philippines and North America is greater than 2500 MW, let's follow these steps:\n\n1. **Identify the values for each region:**\n   - North America: 3,245 MW\n   - Philippines: 1,846.5 MW\n\n2. **Calculate the sum of these values:**\n   \\[\n   3,245 + 1,846.5 = 5,091.5 \\text{ MW}\n   \\]\n\n3. **Calculate the average:**\n   \\[\n   \\text{Average} = \\frac{\\text{Sum}}{\\text{Number of regions}} = \\frac{5,091.5}{2} = 2,545.75 \\text{ MW}\n   \\]\n\n4. **Compare the average to 2500 MW:**\n   - The calculated average (2",
+          "tool_names": []
+        },
+        {
+          "case_id": "08263936005626",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "No",
+          "answer": "To answer this question, let's follow these steps:\n\n1. **Identify the values for Milk and Cheese**:\n   - Milk: 27.1 m²\n   - Cheese: 39.8 m²\n\n2. **Calculate the sum of Milk and Cheese**:\n   \\[\n   27.1 + 39.8 = 66.9 \\text{ m}^2\n   \\]\n\n3. **Identify the value for Lamb & Mutton**:\n   - Lamb & Mutton: 184.8 m²\n\n4. **Compare the sum of Milk and Cheese with Lamb & Mutton**:\n   - Sum of Milk and Cheese: 66.9 m²\n   - Lamb & Mutton: 184.8 m²\n\n5. **Determine if the sum of Milk and Cheese is greater than Lamb & Mutton**:\n   - 66.9 m",
+          "tool_names": []
+        },
+        {
+          "case_id": "10222",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "4",
+          "answer": "To answer this question, let's analyze the chart step by step:\n\n1. **Identify the median age of \"The Daily Show\"**: The chart shows that the median age of \"The Daily Show\" viewers is 36.\n\n2. **Compare with other shows**:\n   - **The Colbert Report**: Median age is 33 (younger than \"The Daily Show\").\n   - **Anderson Cooper 360**: Median age is 47 (older than \"The Daily Show\").\n   - **NBC Nightly News**: Median age is 52 (older than \"The Daily Show\").\n   - **The Rachel Maddow Show**: Median age is 53 (older than \"The Daily Show\").\n   - **The O'Reilly Factor**: Median age is 54 (older than \"The Daily Show\").\n\n3. **Count the shows with older viewers**:\n   - Anderson Cooper 360\n   - NBC Nightly News\n   -",
+          "tool_names": []
+        },
+        {
+          "case_id": "11234",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "Yes",
+          "answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the values for \"Using a landline\":**\n   - Very secure: 16%\n   - Somewhat secure: 51%\n\n2. **Calculate the sum of \"Very secure\" and \"Somewhat secure\" for \"Using a landline\":**\n   \\[\n   16\\% + 51\\% = 67\\%\n   \\]\n\n3. **Identify the value for \"Calling on your cell phone\":**\n   - The total percentage for \"Calling on your cell phone\" is given as 9% (Very secure) + 43% (Somewhat secure) + 29% (Not very secure) + 17% (Not at all secure). However, we only need the sum of \"Very secure\" and \"Somewhat secure\":\n   \\[\n   9\\% + 43\\% =",
+          "tool_names": []
+        },
+        {
+          "case_id": "12097783003404",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.475",
+          "answer": "To determine the average value of the smallest two bars and the longest two bars in the given chart, let's follow these steps:\n\n1. **Identify the values of all bars:**\n   - Land Locked Developing Countries: 0.6 t\n   - Low Income Food Deficit Countries: 0.58 t\n   - World: 0.52 t\n   - Least Developed Countries: 0.43 t\n   - Brazil: 0.29 t\n\n2. **Determine the smallest two bars:**\n   - The smallest bar is Brazil at 0.29 t.\n   - The second smallest bar is Least Developed Countries at 0.43 t.\n\n3. **Determine the longest two bars:**\n   - The longest bar is Land Locked Developing Countries at 0.6 t.\n   - The second longest bar is Low Income Food Deficit Countries at 0.58 t.\n\n4. **Calculate the",
+          "tool_names": []
+        },
+        {
+          "case_id": "1319",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "No",
+          "answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the Bars for China**:\n   - The chart shows three categories for China: \"More,\" \"About the same,\" and \"Less.\"\n   - The values for these categories are:\n     - More: 17%\n     - About the same: 31%\n     - Less: 50%\n\n2. **Determine the Median**:\n   - To find the median, we need to arrange the values in ascending order: 17%, 31%, 50%.\n   - The median is the middle value in this ordered list, which is 31%.\n\n3. **Identify the Largest Value of the Green Bar**:\n   - The green bar represents the \"More\" category.\n   - The value for the green bar (More) is 17%.\n\n4. **Compare the Median to the Largest Value of the Green Bar**:\n   -",
+          "tool_names": []
+        },
+        {
+          "case_id": "1362",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "No",
+          "answer": "To answer this question, let's analyze the image step by step:\n\n1. **Identify the Light Green Bars**: The light green bars represent the category \"A fair amount\" for trust in information about the coronavirus outbreak from different sources (EU, WHO, and Chinese government).\n\n2. **Extract Values for Each Category**:\n   - For the EU: The light green bar shows 51%.\n   - For the WHO: The light green bar shows 40%.\n   - For the Chinese government: The light green bar shows 13%.\n\n3. **Calculate the Median Value**:\n   - To find the median, we need to arrange these values in ascending order: 13%, 40%, 51%.\n   - The median is the middle value in this ordered list, which is 40%.\n\n4. **Compare the Median to 45**:\n   - The median value is 40%, which is less than 4",
+          "tool_names": []
+        },
+        {
+          "case_id": "1392",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "1.216666667",
+          "answer": "To determine the ratio of the lowest value of green bars to blue bars, let's follow these steps:\n\n1. **Identify the values for green and blue bars:**\n   - Green bars represent the \"Top 25% of tweeters.\"\n   - Blue bars represent the \"Bottom 75% of tweeters.\"\n\n2. **Find the lowest value for each color:**\n   - The lowest value for the green bars is 58 (U.S.).\n   - The lowest value for the blue bars is 24 (New Zealand).\n\n3. **Calculate the ratio:**\n   - The ratio of the lowest green bar value to the lowest blue bar value is \\( \\frac{58}{24} \\).\n\n4. **Simplify the ratio:**\n   - Simplify \\( \\frac{58}{24} \\) by dividing both numerator and denominator by their greatest common divisor, which is 2:\n     \\[\n     \\frac{",
+          "tool_names": []
+        },
+        {
+          "case_id": "14354115005935",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "No",
+          "answer": "To answer this question, let's follow these steps:\n\n1. **Identify the extreme values**: \n   - The highest value (extreme high) is Thailand at 73.3%.\n   - The lowest value (extreme low) is Lesotho at 35%.\n\n2. **Calculate the average of the two extreme values**:\n   \\[\n   \\text{Average} = \\frac{\\text{Highest value} + \\text{Lowest value}}{2} = \\frac{73.3 + 35}{2} = \\frac{108.3}{2} = 54.15\n   \\]\n\n3. **Identify the middle bar value**:\n   - The middle bar value is Nicaragua at 55.7%.\n\n4. **Compare the average of the extreme values to the middle bar value**:\n   - Average of extreme values: 54.15%\n   - Middle",
+          "tool_names": []
+        },
+        {
+          "case_id": "16690723024387",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "To answer this question, let's analyze the image step by step:\n\n1. **Identify the Data**: The image shows the tuberculosis incidence per 100,000 people for three countries: Ghana, Vietnam, and Nepal, as of the year 2000.\n\n2. **Extract Values**:\n   - Ghana: 216 cases per 100,000 people\n   - Vietnam: 197 cases per 100,000 people\n   - Nepal: 163 cases per 100,000 people\n\n3. **Compare Ghana and Vietnam**:\n   - Ghana has 216 cases per 100,000 people.\n   - Vietnam has 197 cases per 100,000 people.\n   - Clearly, 216 is greater than 197.\n\n4. **Conclusion**: Based on the data",
+          "tool_names": []
+        },
+        {
+          "case_id": "18179062004443",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "0.1922",
+          "answer": "To determine the sum of the smallest three bars in the image, let's follow these steps:\n\n1. **Identify the values of each bar**:\n   - Net open position in foreign exchange to capital: 302.38%\n   - Non-performing loans net of provisions to capital: 103.88%\n   - Liquid assets to short term liabilities: 52.42%\n   - Non-performing loans to total gross loans: 15.12%\n   - Regulatory capital to assets: 4%\n   - Return on assets: 0.1%\n\n2. **Sort the values from smallest to largest**:\n   - Return on assets: 0.1%\n   - Regulatory capital to assets: 4%\n   - Non-performing loans to total gross loans: 15.12%\n   - Liquid assets to short term liabilities: 52.42%\n   - Non-performing loans net of",
+          "tool_names": []
+        }
+      ],
+      "ratio_or_time_format_confusion": [
+        {
+          "case_id": "10227",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "64",
+          "answer": "To analyze the difference between the maximum and minimum values for \"right\" and \"wrong\" decisions based on the provided chart:\n\n1. **Identify Maximum and Minimum Values for \"Right Decision\":**\n   - Maximum: 76% (Black respondents)\n   - Minimum: 43% (Republican respondents)\n\n2. **Calculate the Difference for \"Right Decision\":**\n   - Difference = Maximum - Minimum = 76% - 43% = 33%\n\n3. **Identify Maximum and Minimum Values for \"Wrong Decision\":**\n   - Maximum: 49% (Republican respondents)\n   - Minimum: 12% (Black respondents)\n\n4. **Calculate the Difference for \"Wrong Decision\":**\n   - Difference = Maximum - Minimum = 49% - 12% = 37%\n\n5. **Compare the Differences:**\n   - The difference for \"right decision\" is 33%.\n   - The difference for \"",
+          "tool_names": []
+        },
+        {
+          "case_id": "10505",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "2.13",
+          "answer": "62:2",
+          "tool_names": []
+        },
+        {
+          "case_id": "11128",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "50.25",
+          "answer": "To determine the average of the last four countries' data, we need to:\n\n1. Identify the last four countries listed in the chart.\n2. Extract their corresponding values.\n3. Calculate the average of these values.\n\n### Step 1: Identify the last four countries\nThe last four countries listed in the chart are:\n- France\n- Spain\n- UK\n\n### Step 2: Extract their corresponding values\n- France: 54\n- Spain: 48\n- UK: 37\n\n### Step 3: Calculate the average\nThe formula for the average is:\n\\[\n\\text{Average} = \\frac{\\text{Sum of values}}{\\text{Number of values}}\n\\]\n\nSum of values:\n\\[\n54 + 48 + 37 = 139\n\\]\n\nNumber of values:\n\\[\n3\n\\]\n\nCalculate the average:\n\\[\n\\text{Average} = \\frac{139}{",
+          "tool_names": []
+        },
+        {
+          "case_id": "1201",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.684722222",
+          "answer": "20:13",
+          "tool_names": []
+        },
+        {
+          "case_id": "26027711018261",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "51.04",
+          "answer": "To find the average of the bottom two countries in terms of scheduled teaching time, we need to:\n\n1. Identify the bottom two countries based on the percentage of scheduled teaching time.\n2. Calculate the average of their percentages.\n\n### Step 1: Identify the Bottom Two Countries\nFrom the bar chart:\n- **Mozambique**: 44% (2012)\n- **Madagascar**: 58.09% (no year specified)\n\nThese are the two countries with the lowest percentages.\n\n### Step 2: Calculate the Average\nThe formula for the average is:\n\\[\n\\text{Average} = \\frac{\\text{Sum of the values}}{\\text{Number of values}}\n\\]\n\nHere:\n- Value for Mozambique: 44%\n- Value for Madagascar: 58.09%\n\n\\[\n\\text{Average} = \\frac{44 + 58.09}{2} = \\frac{10",
+          "tool_names": []
+        },
+        {
+          "case_id": "32511750001973",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "32.115",
+          "answer": "To find the average of the bottom two air pollutants, we need to:\n\n1. Identify the bottom two pollutants based on their emission levels.\n2. Calculate the average of their values.\n\n### Step 1: Identify the bottom two pollutants\nFrom the chart:\n- Nitrogen oxides (NOx): 51.53\n- Carbon Monoxide (CO): 48.01\n- Sulphur oxides (SO₂): 16.22\n\nThe bottom two pollutants are:\n- Sulphur oxides (SO₂): 16.22\n- Carbon Monoxide (CO): 48.01\n\n### Step 2: Calculate the average\nThe formula for the average is:\n\\[\n\\text{Average} = \\frac{\\text{Sum of the values}}{\\text{Number of values}}\n\\]\n\nSum of the bottom two pollutants:\n\\[\n16.22 + 48.01",
+          "tool_names": []
+        },
+        {
+          "case_id": "4444",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.051388889",
+          "answer": "7:4",
+          "tool_names": []
+        },
+        {
+          "case_id": "53962594007840",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "389.82",
+          "answer": "### Analysis of the Image:\nThe image is a bar chart showing \"General government procurement as a percentage of GDP\" for four OECD countries in 2015. The countries and their respective percentages are:\n\n- **Slovakia**: 17.28%\n- **Germany**: 15.05%\n- **Poland**: 12.17%\n- **Switzerland**: 8.76%\n\n### Question Breakdown:\n1. **Identify the three largest government procurements in GDP**:\n   - From the chart, the three largest values are:\n     - Slovakia: 17.28%\n     - Germany: 15.05%\n     - Poland: 12.17%\n\n2. **Sum these three values**:\n   \\[\n   17.28\\% + 15.05\\% + 12.17\\% = 44.50",
+          "tool_names": []
+        },
+        {
+          "case_id": "5983",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.431818182",
+          "answer": "19:44",
+          "tool_names": []
+        },
+        {
+          "case_id": "619",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "U.S.",
+          "answer": "To determine in which country the difference between the \"Bad\" and \"Good\" bars is maximum, we need to calculate the difference for each category:\n\n1. **Our country**:\n   - Bad: 25%\n   - Good: 74%\n   - Difference: \\( 74\\% - 25\\% = 49\\% \\)\n\n2. **WHO**:\n   - Bad: 34%\n   - Good: 64%\n   - Difference: \\( 64\\% - 34\\% = 30\\% \\)\n\n3. **EU**:\n   - Bad: 39%\n   - Good: 57%\n   - Difference: \\( 57\\% - 39\\% = 18\\% \\)\n\n4. **China**:\n   - Bad: 60%\n   - Good: 37%\n   - Difference: \\( 60\\",
+          "tool_names": []
+        },
+        {
+          "case_id": "64197743003167",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "14153.35",
+          "answer": "To determine the sum of the lowest value and the second lowest value in the bar chart:\n\n1. **Identify the values for each country:**\n   - Denmark: $14,868.49\n   - Germany: $13,633.5\n   - Australia: $9,546.35\n   - Greece: $8,484.68\n   - Slovakia: $5,668.67\n\n2. **Determine the lowest value:**\n   - The lowest value is for Slovakia: $5,668.67\n\n3. **Determine the second lowest value:**\n   - The second lowest value is for Greece: $8,484.68\n\n4. **Calculate the sum of the lowest and second lowest values:**\n   - Sum = $5,668.67 + $8,484.68 =",
+          "tool_names": []
+        },
+        {
+          "case_id": "689_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "To analyze whether the gray bar (representing \"Not a threat\") always has a smaller value compared to the other bars:\n\n1. **Examine the gray bars (\"Not a threat\")**:\n   - Global climate change: 5%\n   - The spread of infectious diseases: 3%\n   - Terrorism: 4%\n   - Cyberattacks from other countries: 4%\n   - The spread of nuclear weapons: 9%\n   - The condition of the global economy: 6%\n   - Global poverty: 9%\n   - Long-standing conflict between countries or ethnic groups: 9%\n   - Large numbers of people moving from one country to another: 18%\n\n2. **Compare with other bars**:\n   - For each category, the gray bar (\"Not a threat\") is consistently smaller than the green bar (\"Major threat\") and the light green bar (\"Minor threat\").\n\n3. **Conclusion**:\n   - The gray bar (\"Not a threat\") is",
+          "tool_names": []
+        }
+      ],
+      "boolean_polarity_error": [
+        {
+          "case_id": "1362_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No",
+          "tool_names": []
+        },
+        {
+          "case_id": "multi_col_80194_2",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No",
+          "tool_names": []
+        }
+      ],
+      "contains_expected_but_extra_text": [
+        {
+          "case_id": "15017697005003",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.2",
+          "answer": "To answer the question, we need to identify the land use per 100 kilocalories for both Wheat and Milk production from the provided chart and then calculate their average.\n\n### Step 1: Identify the land use values for Wheat and Milk\n- **Wheat (non-organic)**: The chart shows that the land use per 100 kilocalories for Wheat (non-organic) is **0.17 m²**.\n- **Milk (non-organic)**: The chart shows that the land use per 100 kilocalories for Milk (non-organic) is **0.23 m²**.\n\n### Step 2: Calculate the average land use\nThe average land use per 100 kilocalories for Wheat and Milk is calculated as follows:\n\\[\n\\text{Average} = \\frac{\\text{Land use for Wheat} + \\text{Land use for Milk}}{2}\n\\]\nSub",
+          "tool_names": []
+        },
+        {
+          "case_id": "23355169003897",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.346",
+          "answer": "1.3467",
+          "tool_names": []
+        },
+        {
+          "case_id": "52159158000443",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "2.54",
+          "answer": "2.545",
+          "tool_names": []
+        },
+        {
+          "case_id": "87738735021629_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Pink",
+          "answer": "Magenta (pinkish-red)",
+          "tool_names": []
+        },
+        {
+          "case_id": "multi_col_20940_2",
+          "family": "refocus_chart_chartqa_v_bar_extrema",
+          "question_type": "extrema",
+          "expected": "Female",
+          "answer": "Females",
+          "tool_names": []
+        },
+        {
+          "case_id": "multi_col_60799",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "4.2",
+          "answer": "4.23",
+          "tool_names": []
+        },
+        {
+          "case_id": "multi_col_60949_2",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "Year",
+          "answer": "Academic years (e.g., 2004/05, 2005/06, etc.)",
+          "tool_names": []
+        },
+        {
+          "case_id": "two_col_101170",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "17.3",
+          "answer": "17.33",
+          "tool_names": []
+        }
+      ],
+      "empty_answer": [
+        {
+          "case_id": "7812",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "65+",
+          "answer": "",
+          "tool_names": []
+        }
+      ]
+    }
+  },
+  "manual": {
+    "counts": {
+      "tool_guided_wrong_answer": 168,
+      "correct": 410,
+      "empty_answer": 223,
+      "contains_expected_but_extra_text": 9,
+      "boolean_polarity_error": 5,
+      "ratio_or_time_format_confusion": 11
+    },
+    "per_family": {
+      "refocus_chart_chartqa_h_bar_comparison": {
+        "empty_answer": 8,
+        "correct": 14,
+        "tool_guided_wrong_answer": 7
+      },
+      "refocus_chart_chartqa_h_bar_count_or_total": {
+        "tool_guided_wrong_answer": 29,
+        "correct": 52,
+        "empty_answer": 22,
+        "boolean_polarity_error": 1
+      },
+      "refocus_chart_chartqa_h_bar_extrema": {
+        "contains_expected_but_extra_text": 1,
+        "empty_answer": 21,
+        "correct": 25,
+        "tool_guided_wrong_answer": 10
+      },
+      "refocus_chart_chartqa_h_bar_generic": {
+        "correct": 131,
+        "boolean_polarity_error": 3,
+        "empty_answer": 63,
+        "tool_guided_wrong_answer": 50,
+        "ratio_or_time_format_confusion": 6,
+        "contains_expected_but_extra_text": 1
+      },
+      "refocus_chart_chartqa_v_bar_comparison": {
+        "contains_expected_but_extra_text": 2,
+        "correct": 14,
+        "empty_answer": 18,
+        "tool_guided_wrong_answer": 8
+      },
+      "refocus_chart_chartqa_v_bar_count_or_total": {
+        "empty_answer": 20,
+        "correct": 31,
+        "tool_guided_wrong_answer": 13,
+        "contains_expected_but_extra_text": 1
+      },
+      "refocus_chart_chartqa_v_bar_extrema": {
+        "tool_guided_wrong_answer": 20,
+        "empty_answer": 31,
+        "correct": 38
+      },
+      "refocus_chart_chartqa_v_bar_generic": {
+        "correct": 105,
+        "empty_answer": 40,
+        "tool_guided_wrong_answer": 31,
+        "ratio_or_time_format_confusion": 5,
+        "contains_expected_but_extra_text": 4,
+        "boolean_polarity_error": 1
+      }
+    },
+    "samples": {
+      "tool_guided_wrong_answer": [
+        {
+          "case_id": "00339007006077",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "5.95",
+          "answer": "16.55",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05810070001466_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1931",
+          "answer": "1.93 t",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "07019431002493_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "27.5",
+          "answer": "I cannot determine the percentage value of Mali due to the inability to locate the image file. Please provide the correct path to the image file so I can continue with the analysis. ACTION: TASK_COMPLETE",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08263936005626_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "16",
+          "answer": "13",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10160_2",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "89",
+          "answer": "The task cannot be completed due to the absence of a valid image file. Please provide a valid image file for analysis.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "12097783003404",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.475",
+          "answer": "The average value of the smallest two bars is (0.29 t + 0.43 t) / 2 = 0.36 t, and the average value of the longest two bars is (0.6 t + 0.58 t) / 2 = 0.59 t.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "13001955010627",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "0.02",
+          "answer": "0.01%",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1304",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "37",
+          "answer": "23.5%",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1304_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "4",
+          "answer": "Three colors are used to represent the bar graph.",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1325",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "25",
+          "answer": "Due to repeated errors in locating the image file, I am unable to proceed with the analysis. Please ensure the image file exists and provide the correct path for further assistance.",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1392",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "1.216666667",
+          "answer": "The ratio of the lowest value of green bars (U.S.) to blue bars (UK) is 58% / 33% ≈ 1.76. This means the lowest green bar is approximately 1.76 times the size of the lowest blue bar.",
+          "tool_names": [
+            "focus_on_y_values_with_draw",
+            "refocus_chart_region_crop"
+          ]
+        },
+        {
+          "case_id": "1392_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "29",
+          "answer": "31",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ],
+      "empty_answer": [
+        {
+          "case_id": "01499440003158",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "question_type": "comparison",
+          "expected": "0.08",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "03672594001226",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "03672594001226_2",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "North America",
+          "answer": "",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "04214944001005",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "question_type": "comparison",
+          "expected": "203",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05705464003774",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "5",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "06236926002285_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Low bone mineral density",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08546788003698",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "question_type": "comparison",
+          "expected": "0.77",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08546788003698_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "2.42",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10099_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "21",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10593",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Independent",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10669853002985",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "question_type": "comparison",
+          "expected": "5",
+          "answer": "",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "11128_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "UK",
+          "answer": "",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ],
+      "contains_expected_but_extra_text": [
+        {
+          "case_id": "01729694006399",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "question_type": "extrema",
+          "expected": "No",
+          "answer": "Based on the visual inspection of the chart, the two lowest bars are Armenia and Israel, both at 0%. The largest bar is Ecuador at 0.02%. The sum of the two lowest bars (0% + 0%) is 0%, which is less than the largest bar (0.02%). Therefore, the sum of the two lowest bars is not greater than the largest bar.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "26027711018261",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "51.04",
+          "answer": "51.045",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "OECD_AGRICULTURAL_LAND_CAN_ESP_KAZ_KOR_LUX_000017",
+          "family": "refocus_chart_chartqa_v_bar_comparison",
+          "question_type": "comparison",
+          "expected": "151",
+          "answer": "151000",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "OECD_DEATHS_FROM_CANCER_COL_CRI_SVN_000015",
+          "family": "refocus_chart_chartqa_v_bar_comparison",
+          "question_type": "comparison",
+          "expected": "No",
+          "answer": "I am unable to proceed with the analysis as the image file cannot be found. Please ensure the image file 'Deaths from cancer Total, Per 100 000 persons, 2002.png' is accessible and retry the process.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_20522",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "39.9",
+          "answer": "The average of multiple purchase days in all years is approximately 39.96%.",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_60799",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "4.2",
+          "answer": "The average unemployment rate for women in the last three years (2018, 2019, and 2020) is 4.23%.",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_60949",
+          "family": "refocus_chart_chartqa_v_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "7",
+          "answer": "Based on the visible chart, there are 6 bars that exceed the 750,000 mark.",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "two_col_101170",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "17.3",
+          "answer": "The average annual income from sponsorship deals is approximately 17.33 million U.S. dollars.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "two_col_62141",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "59.8",
+          "answer": "The percentage increase is 59.81%.",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        }
+      ],
+      "boolean_polarity_error": [
+        {
+          "case_id": "02534409005100",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "3641",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "question_type": "count_or_total",
+          "expected": "Yes",
+          "answer": "No, the sum of all values in 'Rep/Lean Rep' is not more than 'Dem/Lean Dem'.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "7780_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No, the color of the right-side bars is not the lightest. The lightest color appears to be used for the 'Major' argument category across all groups.",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "92809156000331_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No, it is not correct. The bars do not show the same values. Each country has a different length of the bar, indicating different emission levels relative to 1990.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_80194_2",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "Yes",
+          "answer": "No",
+          "tool_names": [
+            "focus_on_x_values_with_draw"
+          ]
+        }
+      ],
+      "ratio_or_time_format_confusion": [
+        {
+          "case_id": "10505",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "2.13",
+          "answer": "The ratio of people who approve to those who disapprove about Putin's handling of Corruption is approximately 2.14:1.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1201",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.684722222",
+          "answer": "20:13",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "4444",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.051388889",
+          "answer": "The ratio is 63:36, which simplifies to approximately 1.75:1.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "632",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "1.058333333",
+          "answer": "The ratio of bars in the 'Dem/Lean Dem' category is 50:48.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "7334",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "0.75",
+          "answer": "Based on the information provided in the task description, the ratio between the two options for Democrats is 39:52. This represents the percentage of Democrats who believe the U.S. should not use force (39%) versus those who believe it should (52%).",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_100960",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "92.02",
+          "answer": "Based on the chart, in 2024, 4G/5G makes up approximately 540 billion U.S. dollars. However, since the question asks for a percentage, we need to calculate the total revenue for 2024 and then find the percentage that 4G/5G represents. The total revenue for 2024 is the sum of all technology segments: 2G + 3G + 4G + 5G = 40 + 40 + 540 + 210 = 830 billion U.S. dollars. Therefore, the percentage that 4G/5G makes up is (540 + 210) / 830 * 100 ≈ 90.96%. \n\nSo, the final answer is approximately 90.96%.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_20953",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "34.98",
+          "answer": "To calculate the average upper income class population, I'll sum the upper income class values for each year and divide by the number of years:\n\n- 1971: 18.4 million\n- 1981: 24.6 million\n- 1991: 31.0 million\n- 2001: 38.3 million\n- 2011: 46.6 million\n- 2015: 51.0 million\n\nSum = 18.4 + 24.6 + 31.0 + 38.3 + 46.6 + 51.0 = 210.9 million\n\nAverage = Sum / Number of years = 210.9 / 6 ≈ 35.15 million\n\nThe average upper income class population is approximately 35.15 million.",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_60453",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "32.66",
+          "answer": "The average of all the bars in 2014 is (32 + 34 + 32) / 3 = 32.67%. Since the question asks for the shortest exact final answer string, I'll round it to 33%.\n\nFinal Answer: 33%",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "multi_col_60979",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "0.05",
+          "answer": "Based on the provided image, the percentage of adults affected by Bulimia Nervosa is 0.1% for both males and females. The percentage of adults affected by Anorexia nervosa* is also 0.1%. Therefore, the average of Bulimia Nervosa for both genders is 0.1%, and the average of Anorexia nervosa* is 0.1%. Subtracting the average of Anorexia nervosa* from the average of Bulimia Nervosa yields 0.1% - 0.1% = 0%.\n\nFinal Answer: 0%",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "two_col_24236_2",
+          "family": "refocus_chart_chartqa_v_bar_generic",
+          "question_type": "generic",
+          "expected": "28.49",
+          "answer": "Due to repeated download failures and a 404 error, I am unable to proceed with the refocus operation. Please provide the correct image file or URL to continue with the task. ACTION: TASK_COMPLETE",
+          "tool_names": [
+            "refocus_chart_region_crop",
+            "focus_on_x_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "two_col_42998",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "question_type": "generic",
+          "expected": "3.38",
+          "answer": "The average is 23.94 and the median is 18.6. To find the difference, subtract the median from the average: 23.94 - 18.6 = 5.34.",
+          "tool_names": [
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "quadrants": {
+      "direct_wrong__manual_wrong": 185,
+      "direct_correct__manual_correct": 326,
+      "direct_wrong__manual_correct": 84,
+      "direct_correct__manual_wrong": 231
+    },
+    "examples": {
+      "direct_wrong__manual_wrong": [
+        {
+          "case_id": "00339007006077",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "5.95",
+          "direct_answer": "16.55",
+          "manual_answer": "16.55",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "02534409005100",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Yes",
+          "direct_answer": "To determine if the median value of all the bars is greater than 30, let's follow these steps:\n\n1. **Identify the values of each bar**:\n   - Heart disease: 371.7\n   - Cancers: 155.3\n   - Stroke: 104.7\n   - Accidents: 58.1\n   - Pneumonia and influenza: 32.5\n   - Road accidents: 27.1\n   - Diabetes: 17.7\n   - Suicide: 10.9\n   - Tuberculosis: 3.9\n\n2. **Arrange the values in ascending order**:\n   - Tuberculosis: 3.9\n   - Suicide: 10.9\n   - Diabetes: 17.7\n   - Road accidents: 27.1\n   - Pneumonia and influenza: 3",
+          "manual_answer": "No",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "03672594001226",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Yes",
+          "direct_answer": "To determine if the average value of the Philippines and North America is greater than 2500 MW, let's follow these steps:\n\n1. **Identify the values for each region:**\n   - North America: 3,245 MW\n   - Philippines: 1,846.5 MW\n\n2. **Calculate the sum of these values:**\n   \\[\n   3,245 + 1,846.5 = 5,091.5 \\text{ MW}\n   \\]\n\n3. **Calculate the average:**\n   \\[\n   \\text{Average} = \\frac{\\text{Sum}}{\\text{Number of regions}} = \\frac{5,091.5}{2} = 2,545.75 \\text{ MW}\n   \\]\n\n4. **Compare the average to 2500 MW:**\n   - The calculated average (2",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05810070001466_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "1931",
+          "direct_answer": "1.93 t",
+          "manual_answer": "1.93 t",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10505",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "2.13",
+          "direct_answer": "62:2",
+          "manual_answer": "The ratio of people who approve to those who disapprove about Putin's handling of Corruption is approximately 2.14:1.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1201",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "1.684722222",
+          "direct_answer": "20:13",
+          "manual_answer": "20:13",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "12097783003404",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "0.475",
+          "direct_answer": "To determine the average value of the smallest two bars and the longest two bars in the given chart, let's follow these steps:\n\n1. **Identify the values of all bars:**\n   - Land Locked Developing Countries: 0.6 t\n   - Low Income Food Deficit Countries: 0.58 t\n   - World: 0.52 t\n   - Least Developed Countries: 0.43 t\n   - Brazil: 0.29 t\n\n2. **Determine the smallest two bars:**\n   - The smallest bar is Brazil at 0.29 t.\n   - The second smallest bar is Least Developed Countries at 0.43 t.\n\n3. **Determine the longest two bars:**\n   - The longest bar is Land Locked Developing Countries at 0.6 t.\n   - The second longest bar is Low Income Food Deficit Countries at 0.58 t.\n\n4. **Calculate the",
+          "manual_answer": "The average value of the smallest two bars is (0.29 t + 0.43 t) / 2 = 0.36 t, and the average value of the longest two bars is (0.6 t + 0.58 t) / 2 = 0.59 t.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "13001955010627",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "0.02",
+          "direct_answer": "To determine the total value of all three bars, let's analyze the image step by step:\n\n1. **Egypt**: The bar for Egypt extends to approximately 0.01% on the x-axis.\n2. **Namibia**: The bar for Namibia is labeled as \"<0.01%\", indicating it is less than 0.01% but not zero.\n3. **Luxembourg**: The bar for Luxembourg is at 0%, meaning it has no value.\n\n### Reasoning:\n- The value for Egypt is clearly 0.01%.\n- The value for Namibia is less than 0.01%, but since we need a precise sum, we can approximate it as close to 0.01% for calculation purposes (though it is technically less).\n- The value for Luxembourg is 0%.\n\n### Calculation:\n- Egypt: 0.01%\n- Namibia: ~0.01% (approximation)\n- Luxembourg:",
+          "manual_answer": "0.01%",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1304",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "37",
+          "direct_answer": "35",
+          "manual_answer": "23.5%",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1304_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "4",
+          "direct_answer": "2",
+          "manual_answer": "Three colors are used to represent the bar graph.",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1319",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the Bars for China**:\n   - The chart shows three categories for China: \"More,\" \"About the same,\" and \"Less.\"\n   - The values for these categories are:\n     - More: 17%\n     - About the same: 31%\n     - Less: 50%\n\n2. **Determine the Median**:\n   - To find the median, we need to arrange the values in ascending order: 17%, 31%, 50%.\n   - The median is the middle value in this ordered list, which is 31%.\n\n3. **Identify the Largest Value of the Green Bar**:\n   - The green bar represents the \"More\" category.\n   - The value for the green bar (More) is 17%.\n\n4. **Compare the Median to the Largest Value of the Green Bar**:\n   -",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1362_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Yes",
+          "direct_answer": "No",
+          "manual_answer": "",
+          "manual_tools": [
+            "focus_on_y_values_with_draw",
+            "extract_embedded_image_from_message",
+            "save_embedded_image_from_message"
+          ]
+        }
+      ],
+      "direct_correct__manual_correct": [
+        {
+          "case_id": "00339007006077_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "5.32",
+          "direct_answer": "Libya (5.32%)",
+          "manual_answer": "5.32%",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "01001540004402_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "Finland",
+          "direct_answer": "To determine which color bar shows the greatest meat consumer, let's analyze the image step by step:\n\n1. **Identify the colors and their meanings**:\n   - Red: Countries with daily meat consumption greater than 165g per person.\n   - Yellow: Countries with daily meat consumption between 40g and 165g per person.\n   - Blue: Countries with daily meat consumption below 40g per person.\n\n2. **Examine the bars for each country**:\n   - **Finland**: The bar is blue, indicating daily meat consumption of 175.09g per person.\n   - **Georgia**: The bar is gray, indicating daily meat consumption of 79.84g per person.\n   - **Western Asia**: The bar is red, indicating daily meat consumption of 69.62g per person.\n\n3. **Compare the values**:\n   - Finland has the highest value at 17",
+          "manual_answer": "Finland",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "01499440003158_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "1",
+          "direct_answer": "1 GPI",
+          "manual_answer": "1 GPI",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "01729694006399_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Pink",
+          "direct_answer": "Pink/Magenta",
+          "manual_answer": "The color representing China in the chart is pink.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "02534409005100_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Heart disease",
+          "direct_answer": "The image shows a bar chart titled \"Death rates through the 20th century, United States, 1966.\" It lists various causes of death along with their corresponding mortality rates per 100,000 population. The causes are ranked from highest to lowest based on these rates:\n\n1. **Heart disease**: 371.7 deaths per 100,000 population.\n2. **Cancers**: 155.3 deaths per 100,000 population.\n3. **Stroke**: 104.7 deaths per 100,000 population.\n4. **Accidents**: 58.1 deaths per 100,000 population.\n5. **Pneumonia and influenza**: 32.5 deaths per 100,000 population.\n6. **Road accidents**: 27.1 deaths per 10",
+          "manual_answer": "Heart disease",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "04214944001005_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Obesity",
+          "direct_answer": "Obesity",
+          "manual_answer": "Obesity",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "04675954001679",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "51.33",
+          "direct_answer": "51.33%",
+          "manual_answer": "51.33",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "04675954001679_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "2",
+          "direct_answer": "2",
+          "manual_answer": "Based on the original image, there are 2 distinct colors represented in the bar chart: magenta and brown.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05114418009630",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Yes",
+          "direct_answer": "Yes, the value of Gabon is more than Tonga.",
+          "manual_answer": "Yes, the value of Gabon is more than Tonga.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05114418009630_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "2",
+          "direct_answer": "2",
+          "manual_answer": "2",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05810070001466",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "2.88",
+          "direct_answer": "2.88",
+          "manual_answer": "2.88",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "06236926002285",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "No",
+          "direct_answer": "To analyze the question, let's follow these steps:\n\n1. **Identify the smallest two bars**:\n   - The smallest bar is \"Low bone mineral density\" with a value of 13,135.\n   - The second smallest bar is \"Low physical activity\" with a value of 48,930.\n\n2. **Sum the values of the smallest two bars**:\n   - Sum = 13,135 + 48,930 = 62,065.\n\n3. **Identify the third smallest bar**:\n   - The third smallest bar is \"No access to handwashing facility\" with a value of 68,467.\n\n4. **Compare the sum of the smallest two bars with the value of the third smallest bar**:\n   - Sum of smallest two bars: 62,065.\n   - Value of third smallest bar: 68,46",
+          "manual_answer": "No",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ],
+      "direct_wrong__manual_correct": [
+        {
+          "case_id": "01001540004402",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the values for each region:**\n   - **Georgia:** 79.84 g\n   - **Western Asia:** 69.62 g\n   - **Finland:** 175.09 g\n\n2. **Calculate the sum of Georgia and Western Asia:**\n   \\[\n   79.84 \\, \\text{g} + 69.62 \\, \\text{g} = 149.46 \\, \\text{g}\n   \\]\n\n3. **Compare the sum to Finland's value:**\n   - Sum of Georgia and Western Asia: 149.46 g\n   - Finland: 175.09 g\n\n4. **Determine if the sum is greater than Finland's value:**\n   - 149.46 g (",
+          "manual_answer": "No, the sum of Georgia and Western Asia is not more than Finland.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05705464003774_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "0.1",
+          "direct_answer": "Colombia's data shows that its government expenditure on pre-primary education was 0.",
+          "manual_answer": "0.1%",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08263936005626",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's follow these steps:\n\n1. **Identify the values for Milk and Cheese**:\n   - Milk: 27.1 m²\n   - Cheese: 39.8 m²\n\n2. **Calculate the sum of Milk and Cheese**:\n   \\[\n   27.1 + 39.8 = 66.9 \\text{ m}^2\n   \\]\n\n3. **Identify the value for Lamb & Mutton**:\n   - Lamb & Mutton: 184.8 m²\n\n4. **Compare the sum of Milk and Cheese with Lamb & Mutton**:\n   - Sum of Milk and Cheese: 66.9 m²\n   - Lamb & Mutton: 184.8 m²\n\n5. **Determine if the sum of Milk and Cheese is greater than Lamb & Mutton**:\n   - 66.9 m",
+          "manual_answer": "No",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10222",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "4",
+          "direct_answer": "To answer this question, let's analyze the chart step by step:\n\n1. **Identify the median age of \"The Daily Show\"**: The chart shows that the median age of \"The Daily Show\" viewers is 36.\n\n2. **Compare with other shows**:\n   - **The Colbert Report**: Median age is 33 (younger than \"The Daily Show\").\n   - **Anderson Cooper 360**: Median age is 47 (older than \"The Daily Show\").\n   - **NBC Nightly News**: Median age is 52 (older than \"The Daily Show\").\n   - **The Rachel Maddow Show**: Median age is 53 (older than \"The Daily Show\").\n   - **The O'Reilly Factor**: Median age is 54 (older than \"The Daily Show\").\n\n3. **Count the shows with older viewers**:\n   - Anderson Cooper 360\n   - NBC Nightly News\n   -",
+          "manual_answer": "4",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10227",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "expected": "64",
+          "direct_answer": "To analyze the difference between the maximum and minimum values for \"right\" and \"wrong\" decisions based on the provided chart:\n\n1. **Identify Maximum and Minimum Values for \"Right Decision\":**\n   - Maximum: 76% (Black respondents)\n   - Minimum: 43% (Republican respondents)\n\n2. **Calculate the Difference for \"Right Decision\":**\n   - Difference = Maximum - Minimum = 76% - 43% = 33%\n\n3. **Identify Maximum and Minimum Values for \"Wrong Decision\":**\n   - Maximum: 49% (Republican respondents)\n   - Minimum: 12% (Black respondents)\n\n4. **Calculate the Difference for \"Wrong Decision\":**\n   - Difference = Maximum - Minimum = 49% - 12% = 37%\n\n5. **Compare the Differences:**\n   - The difference for \"right decision\" is 33%.\n   - The difference for \"",
+          "manual_answer": "The difference between the maximum \"Right decision\" value (76) and the minimum \"Wrong decision\" value (12) is 64.",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "11128",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "50.25",
+          "direct_answer": "To determine the average of the last four countries' data, we need to:\n\n1. Identify the last four countries listed in the chart.\n2. Extract their corresponding values.\n3. Calculate the average of these values.\n\n### Step 1: Identify the last four countries\nThe last four countries listed in the chart are:\n- France\n- Spain\n- UK\n\n### Step 2: Extract their corresponding values\n- France: 54\n- Spain: 48\n- UK: 37\n\n### Step 3: Calculate the average\nThe formula for the average is:\n\\[\n\\text{Average} = \\frac{\\text{Sum of values}}{\\text{Number of values}}\n\\]\n\nSum of values:\n\\[\n54 + 48 + 37 = 139\n\\]\n\nNumber of values:\n\\[\n3\n\\]\n\nCalculate the average:\n\\[\n\\text{Average} = \\frac{139}{",
+          "manual_answer": "50.25",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "11234",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "Yes",
+          "direct_answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the values for \"Using a landline\":**\n   - Very secure: 16%\n   - Somewhat secure: 51%\n\n2. **Calculate the sum of \"Very secure\" and \"Somewhat secure\" for \"Using a landline\":**\n   \\[\n   16\\% + 51\\% = 67\\%\n   \\]\n\n3. **Identify the value for \"Calling on your cell phone\":**\n   - The total percentage for \"Calling on your cell phone\" is given as 9% (Very secure) + 43% (Somewhat secure) + 29% (Not very secure) + 17% (Not at all secure). However, we only need the sum of \"Very secure\" and \"Somewhat secure\":\n   \\[\n   9\\% + 43\\% =",
+          "manual_answer": "Yes",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1362",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's analyze the image step by step:\n\n1. **Identify the Light Green Bars**: The light green bars represent the category \"A fair amount\" for trust in information about the coronavirus outbreak from different sources (EU, WHO, and Chinese government).\n\n2. **Extract Values for Each Category**:\n   - For the EU: The light green bar shows 51%.\n   - For the WHO: The light green bar shows 40%.\n   - For the Chinese government: The light green bar shows 13%.\n\n3. **Calculate the Median Value**:\n   - To find the median, we need to arrange these values in ascending order: 13%, 40%, 51%.\n   - The median is the middle value in this ordered list, which is 40%.\n\n4. **Compare the Median to 45**:\n   - The median value is 40%, which is less than 4",
+          "manual_answer": "No",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "14354115005935",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's follow these steps:\n\n1. **Identify the extreme values**: \n   - The highest value (extreme high) is Thailand at 73.3%.\n   - The lowest value (extreme low) is Lesotho at 35%.\n\n2. **Calculate the average of the two extreme values**:\n   \\[\n   \\text{Average} = \\frac{\\text{Highest value} + \\text{Lowest value}}{2} = \\frac{73.3 + 35}{2} = \\frac{108.3}{2} = 54.15\n   \\]\n\n3. **Identify the middle bar value**:\n   - The middle bar value is Nicaragua at 55.7%.\n\n4. **Compare the average of the extreme values to the middle bar value**:\n   - Average of extreme values: 54.15%\n   - Middle",
+          "manual_answer": "Based on the provided image, the extreme values are Thailand (73.3%) and Lesotho (35%). The middle bar value is Nicaragua (55.7%). The average of the two extreme values is (73.3% + 35%) / 2 = 54.15%. Since 54.15% is less than 55.7%, the answer is no.",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "1890",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "No",
+          "direct_answer": "To answer this question, let's break it down step by step:\n\n1. **Identify the blue bars**: The blue bars represent the percentage of respondents who prioritize relations with Russia. In the \"East\" category, the blue bar value is 38%.\n\n2. **Calculate the average of the blue bars**: Since there is only one blue bar in the \"East\" category, the average of the blue bars is simply 38%.\n\n3. **Identify all the bars in the \"East\" category**: The bars in the \"East\" category are:\n   - U.S.: 23%\n   - Both (VOL): 36%\n   - Russia: 38%\n\n4. **Calculate the median of all the bars in the \"East\" category**:\n   - Arrange the values in ascending order: 23%, 36%, 38%\n   - The median is the middle value, which is 36%.\n\n5. **",
+          "manual_answer": "No",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "21881727007008",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "expected": "Yes",
+          "direct_answer": "To determine if the average percentage share of primary energy from fossil fuels for the three countries (Algeria, Indonesia, and Portugal) is more than 90%, let's follow these steps:\n\n1. **Identify the percentages for each country:**\n   - Algeria: 99.67%\n   - Indonesia: 96.4%\n   - Portugal: 87.63%\n\n2. **Calculate the average percentage:**\n   \\[\n   \\text{Average} = \\frac{\\text{Sum of percentages}}{\\text{Number of countries}}\n   \\]\n   \\[\n   \\text{Average} = \\frac{99.67 + 96.4 + 87.63}{3}\n   \\]\n\n3. **Perform the calculation:**\n   \\[\n   \\text{Sum of percentages} = 99.67 + 96.4 + 87.63 =",
+          "manual_answer": "Yes, the average percentage share of primary energy from fossil fuels of all three countries is more than 90%.",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "26535003011580",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Yes",
+          "direct_answer": "To determine if the average percentage of all three bars is greater than 6%, let's follow these steps:\n\n1. **Identify the percentages for each bar:**\n   - Morocco: 7.19%\n   - Portugal: 6.85%\n   - Saint Lucia: 6.2%\n\n2. **Calculate the sum of the percentages:**\n   \\[\n   7.19\\% + 6.85\\% + 6.2\\% = 20.24\\%\n   \\]\n\n3. **Calculate the average percentage:**\n   \\[\n   \\text{Average} = \\frac{\\text{Sum of percentages}}{\\text{Number of bars}} = \\frac{20.24\\%}{3} \\approx 6.75\\%\n   \\]\n\n4. **Compare the average to 6%:**\n   - The calculated average is approximately 6.75%, which",
+          "manual_answer": "Yes",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ],
+      "direct_correct__manual_wrong": [
+        {
+          "case_id": "01499440003158",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "expected": "0.08",
+          "direct_answer": "0.08",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "01729694006399",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "expected": "No",
+          "direct_answer": "No",
+          "manual_answer": "Based on the visual inspection of the chart, the two lowest bars are Armenia and Israel, both at 0%. The largest bar is Ecuador at 0.02%. The sum of the two lowest bars (0% + 0%) is 0%, which is less than the largest bar (0.02%). Therefore, the sum of the two lowest bars is not greater than the largest bar.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "03672594001226_2",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "expected": "North America",
+          "direct_answer": "North America",
+          "manual_answer": "",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "04214944001005",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "expected": "203",
+          "direct_answer": "203",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "05705464003774",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "5",
+          "direct_answer": "5",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "06236926002285_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "Low bone mineral density",
+          "direct_answer": "Low bone mineral density",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "07019431002493_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "27.5",
+          "direct_answer": "27.5%",
+          "manual_answer": "I cannot determine the percentage value of Mali due to the inability to locate the image file. Please provide the correct path to the image file so I can continue with the analysis. ACTION: TASK_COMPLETE",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08263936005626_2",
+          "family": "refocus_chart_chartqa_h_bar_count_or_total",
+          "expected": "16",
+          "direct_answer": "16",
+          "manual_answer": "13",
+          "manual_tools": [
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08546788003698",
+          "family": "refocus_chart_chartqa_h_bar_comparison",
+          "expected": "0.77",
+          "direct_answer": "0.77 t",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "08546788003698_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "2.42",
+          "direct_answer": "2.42 t",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10099_2",
+          "family": "refocus_chart_chartqa_h_bar_generic",
+          "expected": "21",
+          "direct_answer": "21%",
+          "manual_answer": "",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        },
+        {
+          "case_id": "10160_2",
+          "family": "refocus_chart_chartqa_h_bar_extrema",
+          "expected": "89",
+          "direct_answer": "To determine the highest value of the blue bar in the image:\n\n1. **Identify the Bars**: The image shows a horizontal bar chart with various activities related to cell phone usage during social gatherings.\n2. **Examine the Values**: Each bar has a corresponding percentage value next to it.\n3. **Locate the Highest Value**: The percentages listed are:\n   - Did at least one of these activities below: 89%\n   - Read a message such as text or email: 61%\n   - Took a photo or video: 58%\n   - Sent a message such as a text or email: 52%\n   - Received an incoming call: 52%\n   - Checked to see if you've received any alerts: 34%\n   - Placed a call: 33%\n   - Used an app: 29%\n   - Searched or browsed the web: 25%\n\n4. **Determine the",
+          "manual_answer": "The task cannot be completed due to the absence of a valid image file. Please provide a valid image file for analysis.",
+          "manual_tools": [
+            "refocus_chart_region_crop",
+            "focus_on_y_values_with_draw"
+          ]
+        }
+      ]
+    }
+  }
+}

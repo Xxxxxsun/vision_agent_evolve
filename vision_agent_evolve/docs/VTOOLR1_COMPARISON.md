@@ -168,11 +168,13 @@ Result note:
 - the handwritten `skill + tool` stack underperformed the direct model
 - this suggests the current handwritten SOP/tool orchestration is weaker than the base model on this benchmark
 - the result should be treated as a manual baseline, not as a competitive row against `VTool-R1`
+- a later per-case probe showed the dominant handwritten failure modes were `empty_answer` and `tool_guided_wrong_answer`, while `direct_vlm` was hurt more by long or truncated responses than by pure visual failure
 
 See:
 
 - [docs/REFOCUS_CHART_QWEN32B_RESULTS.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_QWEN32B_RESULTS.md)
 - [docs/reports/refocus_chart_qwen32b_results.json](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/reports/refocus_chart_qwen32b_results.json)
+- [docs/REFOCUS_CHART_PROBE.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_PROBE.md)
 
 The handwritten `Refocus_Chart` capability inventory itself is documented in:
 

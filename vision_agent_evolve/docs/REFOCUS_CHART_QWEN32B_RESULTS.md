@@ -79,6 +79,39 @@ This means the current handwritten capability root should be treated as:
 - a debugging artifact for tool-policy design
 - not yet a competitive same-benchmark replacement for the direct model
 
+## Probe Findings
+
+We ran a per-case probe on the `direct_vlm` and handwritten `skill + tool` outputs to locate where the losses actually come from.
+
+Probe artifacts:
+
+- [docs/REFOCUS_CHART_PROBE.md](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/REFOCUS_CHART_PROBE.md)
+- [docs/reports/refocus_chart_probe_results.json](/root/vision_agent_evolve_rl/vision_agent_evolve/docs/reports/refocus_chart_probe_results.json)
+- [scripts/probe_refocus_chart_failures.py](/root/vision_agent_evolve_rl/vision_agent_evolve/scripts/probe_refocus_chart_failures.py)
+
+Main findings:
+
+- `direct_vlm` is mainly losing on:
+  - overlong reasoning or truncation: `100`
+  - ratio/time/format confusion: `57`
+  - truncated output: `21`
+- handwritten `skill + tool` is mainly losing on:
+  - empty answers: `223`
+  - tool-guided wrong answers: `168`
+
+Direct vs handwritten quadrant counts:
+
+- `direct_correct__manual_wrong`: `231`
+- `direct_wrong__manual_correct`: `84`
+- `direct_correct__manual_correct`: `326`
+- `direct_wrong__manual_wrong`: `185`
+
+Interpretation of the probe:
+
+- the current handwritten stack is not failing because bbox metadata or tools are missing
+- it is failing because the SOP/tool flow often does not collapse the evidence into a short stable final answer
+- the next fix target should be answer-format control and simpler post-tool decision rules, not more tool coverage
+
 ## Manual Capability Inventory
 
 The handwritten capability root used in this experiment lives at:
