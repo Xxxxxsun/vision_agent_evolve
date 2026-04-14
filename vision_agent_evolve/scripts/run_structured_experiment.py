@@ -67,6 +67,7 @@ def main() -> None:
         default=["reasoned_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
         help="Subset of settings to run. Choices: direct_vlm reasoned_vlm pure_react function_calling_vqa toolpool_prompt_baseline agent_train_adaptive skill_only_train_adaptive preset_tools_only same_tool_preset_tools_only frozen_inference skill_only_frozen_inference frozen_inference_forced_skill scratch_skill_train_adaptive scratch_skill_frozen_inference scratch_skill_frozen_forced self_evolve online_evolve frozen_transfer all",
     )
+    parser.add_argument("--num-workers", type=int, default=1, help="Number of parallel threads for direct_vlm inference.")
     args = parser.parse_args()
 
     settings = _normalize_settings(args.settings)
@@ -95,6 +96,7 @@ def main() -> None:
         disable_generated_tools=args.disable_generated_tools,
         capability_root=None if args.capability_root is None else Path(args.capability_root),
         use_skills=not args.disable_skills,
+        num_workers=args.num_workers,
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()

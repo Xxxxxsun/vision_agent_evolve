@@ -6,6 +6,7 @@ import hashlib
 import inspect
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -49,6 +50,7 @@ class StructuredExperimentConfig:
     disable_generated_tools: bool = False
     capability_root: Path | None = None
     use_skills: bool = True
+    num_workers: int = 1
 
 
 @dataclass
@@ -432,8 +434,8 @@ class StructuredBenchmarkRunner:
         return self.run_frozen_inference(snapshot_name=snapshot_name, subset_id=subset_id, cases=cases)
 
     def _run_direct_vlm(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
-        records: list[StructuredCaseRecord] = []
-        for index, case in enumerate(cases, start=1):
+        def _process(index_case: tuple[int, TaskCase]) -> StructuredCaseRecord:
+            index, case = index_case
             answer = ""
             direct_error = ""
             try:
@@ -460,12 +462,27 @@ class StructuredBenchmarkRunner:
             )
             if direct_error:
                 record.metadata["runtime_error"] = direct_error
-            self._append_record(record)
-            records.append(record)
             print(
                 f"[{index:03d}/{len(cases):03d}] "
                 f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={answer!r}"
             )
+            return record
+
+        num_workers = self.config.num_workers
+        indexed = list(enumerate(cases, start=1))
+        if num_workers > 1:
+            result_map: dict[int, StructuredCaseRecord] = {}
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = {executor.submit(_process, item): item[0] for item in indexed}
+                for future in as_completed(futures):
+                    idx = futures[future]
+                    result_map[idx] = future.result()
+            records = [result_map[i] for i in range(1, len(cases) + 1)]
+        else:
+            records = [_process(item) for item in indexed]
+
+        for record in records:
+            self._append_record(record)
         return records
 
     def _run_reasoned_vlm(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
