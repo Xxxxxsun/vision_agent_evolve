@@ -15,7 +15,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from .skill_routing import ResolvedSkillContext, SkillResolver, resolve_skill_roots
 from .types import AgentAction, AgentResult, AgentStep, Message, TaskCase
@@ -46,6 +46,10 @@ class ToolCallingRuntimeConfig:
     static_skills_dir: Path | None = None
     use_skills: bool = True
     skill_mode: str = "function_calling_router"
+    # Chart bbox tools: pre-loaded from case metadata so model only passes label name
+    chart_bbox: dict[str, Any] = field(default_factory=dict)
+    # Override skill content directly instead of resolving via capability_root routing
+    forced_skill_content: str = ""
 
 
 class LocalPythonExecutor:
@@ -204,10 +208,12 @@ class RuntimeToolRegistry:
         image_session: RuntimeImageSession,
         python_executor: LocalPythonExecutor,
         allowed_tools: list[str] | None = None,
+        chart_bbox: dict[str, Any] | None = None,
     ):
         self.image_session = image_session
         self.python_executor = python_executor
         self.allowed_tools = {name.strip() for name in (allowed_tools or []) if str(name).strip()}
+        self._chart_bbox = chart_bbox or {}
         self._handlers = {
             "execute_python": self._execute_python,
             "list_images": self._list_images,
@@ -216,6 +222,11 @@ class RuntimeToolRegistry:
             "zoom_image": self._zoom_image,
             "resize_image": self._resize_image,
         }
+        # Register chart bbox tools when bbox data is provided
+        if self._chart_bbox.get("y_values_bbox"):
+            self._handlers["focus_on_y_values"] = self._focus_on_y_values
+        if self._chart_bbox.get("x_values_bbox"):
+            self._handlers["focus_on_x_values"] = self._focus_on_x_values
 
     def schemas(self) -> list[dict[str, Any]]:
         schemas = [
@@ -301,6 +312,56 @@ class RuntimeToolRegistry:
                 },
             },
         ]
+        # Add chart bbox tools when available
+        y_bbox = self._chart_bbox.get("y_values_bbox", {})
+        x_bbox = self._chart_bbox.get("x_values_bbox", {})
+        if y_bbox:
+            y_labels = list(y_bbox.keys())
+            schemas.append({
+                "type": "function",
+                "function": {
+                    "name": "focus_on_y_values",
+                    "description": (
+                        "Highlight specific y-axis rows in the chart image to make their bar values easier to read precisely. "
+                        f"Available labels: {y_labels}"
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "One or more y-axis label names to highlight. Must match exactly.",
+                            }
+                        },
+                        "required": ["labels"],
+                    },
+                },
+            })
+        if x_bbox:
+            x_labels = list(x_bbox.keys())
+            schemas.append({
+                "type": "function",
+                "function": {
+                    "name": "focus_on_x_values",
+                    "description": (
+                        "Highlight specific x-axis columns in the chart image. "
+                        f"Available labels: {x_labels}"
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "One or more x-axis label names to highlight.",
+                            }
+                        },
+                        "required": ["labels"],
+                    },
+                },
+            })
+
         if not self.allowed_tools:
             return schemas
         return [
@@ -377,6 +438,72 @@ class RuntimeToolRegistry:
         }
         return self._image_result(payload)
 
+    def _focus_on_y_values(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        labels = arguments.get("labels", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        y_bbox = self._chart_bbox.get("y_values_bbox", {})
+        original_info = self.image_session.get_image_info("image_0")
+        image_path = original_info["path"]
+        result_image: Image.Image | None = None
+        # Try the real VTool-R1 module first (available on training server)
+        try:
+            from tools.builtin_tools import _load_vtool_tools_module  # type: ignore
+            module = _load_vtool_tools_module()
+            tool_fn = getattr(module, "focus_on_y_values_with_draw")
+            img = Image.open(image_path).convert("RGBA")
+            result_image = tool_fn(img, labels, y_bbox).convert("RGB")
+        except Exception:
+            pass
+        if result_image is None:
+            # Fallback: simple PIL orange-highlight drawing
+            img = Image.open(image_path).convert("RGBA")
+            overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+            for label in labels:
+                if label in y_bbox:
+                    b = y_bbox[label]
+                    x1, y1 = int(b["x1"]), int(b["y1"])
+                    x2, y2 = int(b["x2"]), int(b["y2"])
+                    draw.rectangle([x1, y1, x2, y2], fill=(255, 165, 0, 80))
+                    draw.rectangle([x1, y1, x2, y2], outline=(255, 165, 0, 255), width=3)
+            result_image = Image.alpha_composite(img, overlay).convert("RGB")
+        record = self.image_session._save_generated(result_image, source_type="focus_y", source_image_id="image_0")
+        payload = {"ok": True, "focused_labels": labels, **record}
+        return self._image_result(payload)
+
+    def _focus_on_x_values(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        labels = arguments.get("labels", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        x_bbox = self._chart_bbox.get("x_values_bbox", {})
+        original_info = self.image_session.get_image_info("image_0")
+        image_path = original_info["path"]
+        result_image: Image.Image | None = None
+        try:
+            from tools.builtin_tools import _load_vtool_tools_module  # type: ignore
+            module = _load_vtool_tools_module()
+            tool_fn = getattr(module, "focus_on_x_values_with_draw")
+            img = Image.open(image_path).convert("RGBA")
+            result_image = tool_fn(img, labels, x_bbox).convert("RGB")
+        except Exception:
+            pass
+        if result_image is None:
+            img = Image.open(image_path).convert("RGBA")
+            overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+            for label in labels:
+                if label in x_bbox:
+                    b = x_bbox[label]
+                    x1, y1 = int(b["x1"]), int(b["y1"])
+                    x2, y2 = int(b["x2"]), int(b["y2"])
+                    draw.rectangle([x1, y1, x2, y2], fill=(255, 165, 0, 80))
+                    draw.rectangle([x1, y1, x2, y2], outline=(255, 165, 0, 255), width=3)
+            result_image = Image.alpha_composite(img, overlay).convert("RGB")
+        record = self.image_session._save_generated(result_image, source_type="focus_x", source_image_id="image_0")
+        payload = {"ok": True, "focused_labels": labels, **record}
+        return self._image_result(payload)
+
     @staticmethod
     def _image_result(payload: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -414,6 +541,7 @@ def run_function_calling_vqa_case(
         image_session,
         LocalPythonExecutor(),
         allowed_tools=skill_context.tool_names or None,
+        chart_bbox=runtime_config.chart_bbox or {},
     )
     system_prompt = _build_system_prompt(benchmark_name)
     user_prompt = _build_task_prompt(case, include_image=bool(image_refs), skill_context=skill_context)
@@ -599,6 +727,12 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
 
 
 def _resolve_skill_context(case: TaskCase, config: ToolCallingRuntimeConfig) -> ResolvedSkillContext:
+    if config.forced_skill_content:
+        return ResolvedSkillContext(
+            prompt_blocks=[config.forced_skill_content],
+            routing_notes=["Using forced skill"],
+            tool_names=None,
+        )
     if not config.use_skills:
         return ResolvedSkillContext()
     skill_roots = resolve_skill_roots(config.capability_root, config.static_skills_dir)

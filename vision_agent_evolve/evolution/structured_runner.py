@@ -369,6 +369,10 @@ class StructuredBenchmarkRunner:
                 )
             )
 
+        if "frozen_inference_fc_forced_skill" in self.config.settings:
+            print(f"\n=== Frozen inference FC with forced skill on {self.config.held_out_split} ===")
+            records.extend(self._run_frozen_inference_fc(held_out_cases))
+
         summary = self._write_summary(records, snapshot_name=snapshot_name)
         return summary
 
@@ -575,6 +579,57 @@ class StructuredBenchmarkRunner:
             record = self._record_from_agent_result(
                 setting="function_calling_vqa",
                 split=self.config.evolve_split,
+                case=case,
+                result=result,
+                correct=self._check_answer(result.final_answer, case),
+                chain_trace=[],
+            )
+            self._append_record(record)
+            records.append(record)
+            print(
+                f"[{index:03d}/{len(cases):03d}] "
+                f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
+            )
+        return records
+
+    def _run_frozen_inference_fc(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
+        """Run function-calling VQA with a forced skill loaded from capability_root."""
+        forced_skill_content = ""
+        if self.config.capability_root:
+            skill_name = (self.config.forced_skill_name or "").strip()
+            if skill_name:
+                candidates = [Path(self.config.capability_root) / "skills" / skill_name / "SKILL.md"]
+            else:
+                skills_dir = Path(self.config.capability_root) / "skills"
+                candidates = sorted(skills_dir.glob("*/SKILL.md")) if skills_dir.exists() else []
+            for candidate in candidates:
+                if candidate.exists():
+                    forced_skill_content = candidate.read_text(encoding="utf-8")
+                    break
+
+        records: list[StructuredCaseRecord] = []
+        for index, case in enumerate(cases, start=1):
+            work_dir = self.output_dir / "frozen_inference_fc" / f"case_{case.case_id}"
+            chart_bbox = {
+                "x_values_bbox": case.metadata.get("x_values_bbox") or {},
+                "y_values_bbox": case.metadata.get("y_values_bbox") or {},
+            }
+            try:
+                result = run_function_calling_vqa_case(
+                    self.vlm_client,
+                    case,
+                    benchmark_name=case.dataset_name(),
+                    config=ToolCallingRuntimeConfig(
+                        work_dir=work_dir,
+                        chart_bbox=chart_bbox,
+                        forced_skill_content=forced_skill_content,
+                    ),
+                )
+            except Exception as exc:
+                result = self._runtime_failure_result(case, exc)
+            record = self._record_from_agent_result(
+                setting="frozen_inference_fc_forced_skill",
+                split=self.config.held_out_split,
                 case=case,
                 result=result,
                 correct=self._check_answer(result.final_answer, case),
@@ -1230,6 +1285,7 @@ class StructuredBenchmarkRunner:
             "scratch_skill_post_evolve_recovery_accuracy": settings_summary.get("scratch_skill_train_adaptive", {}).get("post_evolve_recovery_accuracy", 0.0),
             "scratch_skill_frozen_accuracy": settings_summary.get("scratch_skill_frozen_inference", {}).get("accuracy", 0.0),
             "scratch_skill_forced_accuracy": settings_summary.get("scratch_skill_frozen_forced", {}).get("accuracy", 0.0),
+            "forced_skill_fc_accuracy": settings_summary.get("frozen_inference_fc_forced_skill", {}).get("accuracy", 0.0),
         }
         self.summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
         return summary
