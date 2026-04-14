@@ -1,0 +1,496 @@
+{
+  "baseline_summary": {
+    "total_cases": 51,
+    "correct_cases": 36,
+    "primary_score": 0.7058823529411765,
+    "per_dataset_scores": {
+      "gta": 0.7058823529411765
+    },
+    "per_family_scores": {
+      "gta_perception": 0.5238095238095238,
+      "gta_perception+logic": 0.8888888888888888,
+      "gta_perception+operation": 0.8571428571428571,
+      "gta_perception+operation+logic": 0.6
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::short",
+      "total_cases": 7,
+      "case_ids": [
+        "gta_161",
+        "gta_165",
+        "gta_210",
+        "gta_54",
+        "gta_55",
+        "gta_60",
+        "gta_63"
+      ],
+      "representative_case_ids": [
+        "gta_161",
+        "gta_165"
+      ],
+      "summary_lines": [
+        "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=This photo was taken at an NBA basketball game. The two oppo",
+        "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=The white egg in the center of the picture has a surprised o"
+      ],
+      "common_failure_signals": [
+        "tool_used (7/7)"
+      ],
+      "shared_tool_patterns": [
+        "localized_text_zoom (6/7)",
+        "localized_region_zoom (1/7)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (7/7)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "cluster_key": "gta::perception+operation+logic::long",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_20",
+        "gta_22"
+      ],
+      "representative_case_ids": [
+        "gta_20",
+        "gta_22"
+      ],
+      "summary_lines": [
+        "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=140.98 grams",
+        "case_id=gta_22; prompt=I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- ; expected=1.06; answer=0.99"
+      ],
+      "common_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "localized_region_zoom (1/2)",
+        "localized_text_zoom (1/2)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (2/2)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_3",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::single",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "representative_case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "summary_lines": [
+        "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=This picture is about the 2020 U.S. Presidential Election de",
+        "case_id=gta_163; prompt= What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descri; expected=ingredients of a coconut cake; answer=Baking a coconut cake or dessert."
+      ],
+      "common_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "localized_text_zoom (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (2/2)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_7",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::long",
+      "total_cases": 1,
+      "case_ids": [
+        "gta_3"
+      ],
+      "representative_case_ids": [
+        "gta_3"
+      ],
+      "summary_lines": [
+        "case_id=gta_3; prompt= I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can rec; expected=2; answer=1"
+      ],
+      "common_failure_signals": [
+        "tool_used (1/1)"
+      ],
+      "shared_tool_patterns": [
+        "localized_text_zoom (1/1)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (1/1)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "gta_perception",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 21,
+      "failed_cases": 10,
+      "baseline_score": 0.5238095238095238,
+      "common_question_patterns": [
+        "free_form (21/21)",
+        "perception (21/21)",
+        "counting (9/21)",
+        "generic_question (8/21)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (10/10)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (13/21)",
+        "count_support_view (6/21)",
+        "localized_region_zoom (1/21)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::short",
+          "total_cases": 7,
+          "case_ids": [
+            "gta_161",
+            "gta_165",
+            "gta_210",
+            "gta_54",
+            "gta_55",
+            "gta_60",
+            "gta_63"
+          ],
+          "representative_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "common_failure_signals": [
+            "tool_used (7/7)"
+          ],
+          "shared_tool_patterns": [
+            "localized_text_zoom (6/7)",
+            "localized_region_zoom (1/7)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (7/7)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=This photo was taken at an NBA basketball game. The two oppo",
+            "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=The white egg in the center of the picture has a surprised o"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_3",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::single",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "representative_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "common_failure_signals": [
+            "tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "localized_text_zoom (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=This picture is about the 2020 U.S. Presidential Election de",
+            "case_id=gta_163; prompt= What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descri; expected=ingredients of a coconut cake; answer=Baking a coconut cake or dessert."
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_7",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::long",
+          "total_cases": 1,
+          "case_ids": [
+            "gta_3"
+          ],
+          "representative_case_ids": [
+            "gta_3"
+          ],
+          "common_failure_signals": [
+            "tool_used (1/1)"
+          ],
+          "shared_tool_patterns": [
+            "localized_text_zoom (1/1)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (1/1)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_3; prompt= I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can rec; expected=2; answer=1"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "supported_patterns": [
+            "generic_question (7/7)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_3"
+          ],
+          "target_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "supported_patterns": [
+            "generic_question (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_7"
+          ],
+          "target_case_ids": [
+            "gta_3"
+          ],
+          "supported_patterns": [
+            "counting (1/1)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 18,
+      "failed_cases": 2,
+      "baseline_score": 0.8888888888888888,
+      "common_question_patterns": [
+        "free_form (18/18)",
+        "perception+logic (18/18)",
+        "counting (7/18)",
+        "generic_question (7/18)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (12/18)",
+        "count_support_view (5/18)",
+        "count_support_view -> localized_text_zoom (1/18)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 7,
+      "failed_cases": 1,
+      "baseline_score": 0.8571428571428571,
+      "common_question_patterns": [
+        "free_form (7/7)",
+        "perception+operation (7/7)",
+        "counting (3/7)",
+        "direct_lookup (2/7)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (1/1)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (6/7)",
+        "localized_region_zoom (1/7)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 5,
+      "failed_cases": 2,
+      "baseline_score": 0.6,
+      "common_question_patterns": [
+        "free_form (5/5)",
+        "perception+operation+logic (5/5)",
+        "counting (4/5)",
+        "selection (1/5)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (3/5)",
+        "count_support_view (1/5)",
+        "localized_region_zoom (1/5)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+operation+logic",
+          "cluster_key": "gta::perception+operation+logic::long",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "representative_case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "common_failure_signals": [
+            "tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "localized_region_zoom (1/2)",
+            "localized_text_zoom (1/2)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=140.98 grams",
+            "case_id=gta_22; prompt=I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- ; expected=1.06; answer=0.99"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+operation+logic.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "supported_patterns": [
+            "counting (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "gta_161",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the in"
+    },
+    {
+      "case_id": "gta_165",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe the attribute of a region of the input im"
+    },
+    {
+      "case_id": "gta_20",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n\nYou have access to the following tools:"
+    },
+    {
+      "case_id": "gta_22",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A c"
+    },
+    {
+      "case_id": "gta_162",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descr"
+    },
+    {
+      "case_id": "gta_163",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": " What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief description of the input image.\n\nImages provid"
+    },
+    {
+      "case_id": "gta_3",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": " I need to prepare twelve servings of this dish. How many boxes of eggs will I need in total?\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the input image.\n- Co"
+    }
+  ],
+  "recent_rejected_plans": [],
+  "mastery_profiles": {}
+}

@@ -1,0 +1,545 @@
+{
+  "baseline_summary": {
+    "total_cases": 51,
+    "correct_cases": 36,
+    "primary_score": 0.7058823529411765,
+    "per_dataset_scores": {
+      "gta": 0.7058823529411765
+    },
+    "per_family_scores": {
+      "gta_perception": 0.5714285714285714,
+      "gta_perception+logic": 0.8888888888888888,
+      "gta_perception+operation": 0.7142857142857143,
+      "gta_perception+operation+logic": 0.6
+    }
+  },
+  "failure_clusters": [
+    {
+      "cluster_id": "cluster_1",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::short",
+      "total_cases": 7,
+      "case_ids": [
+        "gta_161",
+        "gta_165",
+        "gta_210",
+        "gta_54",
+        "gta_55",
+        "gta_60",
+        "gta_63"
+      ],
+      "representative_case_ids": [
+        "gta_161",
+        "gta_165"
+      ],
+      "summary_lines": [
+        "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=This photo was taken at an NBA basketball game. The two oppo",
+        "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=The white egg in the picture appears to be shocked or surpri"
+      ],
+      "common_failure_signals": [
+        "tool_used (7/7)"
+      ],
+      "shared_tool_patterns": [
+        "localized_text_zoom (6/7)",
+        "localized_region_zoom (1/7)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (7/7)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_2",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "cluster_key": "gta::perception+operation+logic::long",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_20",
+        "gta_22"
+      ],
+      "representative_case_ids": [
+        "gta_20",
+        "gta_22"
+      ],
+      "summary_lines": [
+        "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=You would need to consume approximately 141 grams of orange ",
+        "case_id=gta_22; prompt=I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- ; expected=1.06; answer=0.99"
+      ],
+      "common_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "localized_region_zoom (1/2)",
+        "localized_text_zoom (1/2)"
+      ],
+      "shared_prompt_patterns": [
+        "counting (2/2)"
+      ]
+    },
+    {
+      "cluster_id": "cluster_4",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "cluster_key": "gta::perception::single",
+      "total_cases": 2,
+      "case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "representative_case_ids": [
+        "gta_162",
+        "gta_163"
+      ],
+      "summary_lines": [
+        "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=The picture is about a CNN poll regarding the 2020 president",
+        "case_id=gta_163; prompt= What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descri; expected=ingredients of a coconut cake; answer=Baking a coconut cake or dessert."
+      ],
+      "common_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "shared_tool_patterns": [
+        "localized_text_zoom (2/2)"
+      ],
+      "shared_prompt_patterns": [
+        "generic_question (2/2)"
+      ]
+    }
+  ],
+  "family_memories": [
+    {
+      "capability_family": "gta_perception",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 21,
+      "failed_cases": 9,
+      "baseline_score": 0.5714285714285714,
+      "common_question_patterns": [
+        "free_form (21/21)",
+        "perception (21/21)",
+        "counting (9/21)",
+        "generic_question (8/21)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (9/9)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (14/21)",
+        "count_support_view (6/21)",
+        "localized_region_zoom (1/21)"
+      ],
+      "recent_revision_briefs": [
+        "unknown: Rejected candidate because score delta was -0.0196",
+        "unknown: Rejected candidate because score delta was -0.0196"
+      ],
+      "recent_coverage_notes": [
+        "pattern=Visual question answering requiring high-resolution inspection of localized text or fine-grained attributes (mood, logos, team names) that are illegible in global views. | supported=Identification of entities via small-scale text/logos; Attribute description of specific small objects (e.g., facial expressions on eggs)",
+        "pattern=Identification of specific entities (teams, events, participants) in complex visual scenes where critical identifying information is contained in small-scale text or logos. | supported=sports event identification; opposing team name extraction"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_1",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::short",
+          "total_cases": 7,
+          "case_ids": [
+            "gta_161",
+            "gta_165",
+            "gta_210",
+            "gta_54",
+            "gta_55",
+            "gta_60",
+            "gta_63"
+          ],
+          "representative_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "common_failure_signals": [
+            "tool_used (7/7)"
+          ],
+          "shared_tool_patterns": [
+            "localized_text_zoom (6/7)",
+            "localized_region_zoom (1/7)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (7/7)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_161; prompt=What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: Th; expected=lakers vs suns basketball game; answer=This photo was taken at an NBA basketball game. The two oppo",
+            "case_id=gta_165; prompt=What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe t; expected=astonished; answer=The white egg in the picture appears to be shocked or surpri"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        },
+        {
+          "cluster_id": "cluster_4",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception",
+          "cluster_key": "gta::perception::single",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "representative_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "common_failure_signals": [
+            "tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "localized_text_zoom (2/2)"
+          ],
+          "shared_prompt_patterns": [
+            "generic_question (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_162; prompt=What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: ; expected=Trump-Biden debate; answer=The picture is about a CNN poll regarding the 2020 president",
+            "case_id=gta_163; prompt= What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descri; expected=ingredients of a coconut cake; answer=Baking a coconut cake or dessert."
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_1"
+          ],
+          "target_case_ids": [
+            "gta_161",
+            "gta_165"
+          ],
+          "supported_patterns": [
+            "generic_question (7/7)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        },
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception.",
+          "target_cluster_ids": [
+            "cluster_4"
+          ],
+          "target_case_ids": [
+            "gta_162",
+            "gta_163"
+          ],
+          "supported_patterns": [
+            "generic_question (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 18,
+      "failed_cases": 2,
+      "baseline_score": 0.8888888888888888,
+      "common_question_patterns": [
+        "free_form (18/18)",
+        "perception+logic (18/18)",
+        "counting (7/18)",
+        "generic_question (7/18)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (12/18)",
+        "count_support_view (6/18)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 7,
+      "failed_cases": 2,
+      "baseline_score": 0.7142857142857143,
+      "common_question_patterns": [
+        "free_form (7/7)",
+        "perception+operation (7/7)",
+        "counting (3/7)",
+        "direct_lookup (2/7)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (6/7)",
+        "localized_region_zoom (1/7)"
+      ],
+      "recent_revision_briefs": [],
+      "recent_coverage_notes": [],
+      "cluster_memories": [],
+      "toolbox_gaps": [],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    },
+    {
+      "capability_family": "gta_perception+operation+logic",
+      "dataset_names": [
+        "gta"
+      ],
+      "total_cases": 5,
+      "failed_cases": 2,
+      "baseline_score": 0.6,
+      "common_question_patterns": [
+        "free_form (5/5)",
+        "perception+operation+logic (5/5)",
+        "counting (4/5)",
+        "selection (1/5)"
+      ],
+      "recurring_failure_signals": [
+        "tool_used (2/2)"
+      ],
+      "tool_usage_patterns": [
+        "localized_text_zoom (3/5)",
+        "count_support_view (1/5)",
+        "localized_region_zoom (1/5)"
+      ],
+      "recent_revision_briefs": [
+        "unknown: Rejected candidate because score delta was -0.0196"
+      ],
+      "recent_coverage_notes": [
+        "pattern=Multimodal quantitative reasoning requiring extraction of nutritional/textual data from images followed by demographic-specific mathematical constraints. | supported=Nutritional label extraction for specific daily value calculations; Menu/receipt item counting with subsequent unit conversion"
+      ],
+      "cluster_memories": [
+        {
+          "cluster_id": "cluster_2",
+          "dataset_name": "gta",
+          "capability_family": "gta_perception+operation+logic",
+          "cluster_key": "gta::perception+operation+logic::long",
+          "total_cases": 2,
+          "case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "representative_case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "common_failure_signals": [
+            "tool_used (2/2)"
+          ],
+          "shared_tool_patterns": [
+            "localized_region_zoom (1/2)",
+            "localized_text_zoom (1/2)"
+          ],
+          "shared_prompt_patterns": [
+            "counting (2/2)"
+          ],
+          "example_case_summaries": [
+            "case_id=gta_20; prompt=I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n; expected=127; answer=You would need to consume approximately 141 grams of orange ",
+            "case_id=gta_22; prompt=I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- ; expected=1.06; answer=0.99"
+          ],
+          "primitive_category": "localized_text_zoom",
+          "toolability": "high"
+        }
+      ],
+      "toolbox_gaps": [
+        {
+          "primitive_category": "localized_text_zoom",
+          "summary": "Need a reusable localized_text_zoom primitive for gta_perception+operation+logic.",
+          "target_cluster_ids": [
+            "cluster_2"
+          ],
+          "target_case_ids": [
+            "gta_20",
+            "gta_22"
+          ],
+          "supported_patterns": [
+            "counting (2/2)"
+          ],
+          "blocked_by": [],
+          "recommended_action": "generate_tool"
+        }
+      ],
+      "family_toolbox": [],
+      "cross_cluster_validation_history": [],
+      "mastery_profiles": [],
+      "mastery_history": []
+    }
+  ],
+  "representative_cases": [
+    {
+      "case_id": "gta_161",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What sports event was this photo taken at？Please provide the names of the two opposing teams in your answer.\n\nYou have access to the following tools:\n- OCR(image:image) -> text: This tool can recognize all text on the in"
+    },
+    {
+      "case_id": "gta_165",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What is the mood of the white eggs in the picture?\n\nYou have access to the following tools:\n- RegionAttributeDescription(image:image, bbox:text, attribute:text) -> text: Describe the attribute of a region of the input im"
+    },
+    {
+      "case_id": "gta_20",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I'm a 23-year-old female. How many grams of this kind fruit can I meet the vitamin C intake according to USDA in 2021? You can look for vitamin C content of oranges in Healthline.\n\nYou have access to the following tools:"
+    },
+    {
+      "case_id": "gta_22",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception+operation+logic",
+      "prompt": "I'm an adult. According to WHO, how many grams of Na can I take in at most on this day if I have taken the food in the picture as lunch?\n\nYou have access to the following tools:\n- Calculator(expression:text) -> text: A c"
+    },
+    {
+      "case_id": "gta_162",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": "What event was this picture about? Please provide the names of the opposing sides in your answer.\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief descr"
+    },
+    {
+      "case_id": "gta_163",
+      "dataset_name": "gta",
+      "capability_family": "gta_perception",
+      "prompt": " What might be the use of the materials in this picture?\n\nYou have access to the following tools:\n- ImageDescription(image:image) -> text: A useful tool that returns a brief description of the input image.\n\nImages provid"
+    }
+  ],
+  "recent_rejected_plans": [
+    {
+      "run_id": "round_20260401_032309_967467",
+      "reason": "Rejected candidate because score delta was -0.0196",
+      "target_family": "gta_perception+operation+logic",
+      "target_cluster_ids": [
+        "cluster_2"
+      ],
+      "baseline_score": 0.7058823529411765,
+      "candidate_score": 0.6862745098039216,
+      "coverage_contract": {
+        "target_family": "gta_perception+operation+logic",
+        "target_cluster_ids": [
+          "cluster_2"
+        ],
+        "problem_pattern": "Multimodal quantitative reasoning requiring extraction of nutritional/textual data from images followed by demographic-specific mathematical constraints.",
+        "supported_variations": [
+          "Nutritional label extraction for specific daily value calculations",
+          "Menu/receipt item counting with subsequent unit conversion",
+          "Health guideline mapping based on visual evidence and user profile"
+        ],
+        "unsupported_variations": [
+          "Abstract medical diagnosis from visual symptoms",
+          "Real-time dynamic video tracking of food consumption"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not assume fixed USDA/WHO threshold values",
+          "Do not hardcode specific fruit or food item names",
+          "Do not assume static image coordinates for nutritional labels"
+        ],
+        "primitive_category": "localized_text_zoom",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_skill",
+        "why_this_should_generalize": "The logic for mapping visual data to external health standards is a symbolic reasoning task that benefits from a structured skill rather than a rigid tool, allowing for flexible integration of OCR results with varying demographic logic."
+      }
+    },
+    {
+      "run_id": "round_20260401_030955_670107",
+      "reason": "Rejected candidate because score delta was -0.0196",
+      "target_family": "gta_perception",
+      "target_cluster_ids": [
+        "cluster_1"
+      ],
+      "baseline_score": 0.7058823529411765,
+      "candidate_score": 0.6862745098039216,
+      "coverage_contract": {
+        "target_family": "gta_perception",
+        "target_cluster_ids": [
+          "cluster_1",
+          "cluster_3",
+          "cluster_7"
+        ],
+        "problem_pattern": "Visual question answering requiring high-resolution inspection of localized text or fine-grained attributes (mood, logos, team names) that are illegible in global views.",
+        "supported_variations": [
+          "Identification of entities via small-scale text/logos",
+          "Attribute description of specific small objects (e.g., facial expressions on eggs)",
+          "Counting small objects requiring zoomed verification"
+        ],
+        "unsupported_variations": [
+          "Global scene classification without local dependencies",
+          "Abstract reasoning not grounded in visible visual evidence"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "Do not assume specific team names or sports types",
+          "Do not hardcode bounding boxes for specific image IDs",
+          "Do not assume a fixed number of objects to count"
+        ],
+        "primitive_category": "localized_text_zoom",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_tool",
+        "why_this_should_generalize": "A localized zoom tool addresses the recurring failure where the model attempts to answer based on low-resolution global features; providing a crop-and-inspect primitive allows the agent to resolve fine-grained details across any perception task."
+      }
+    },
+    {
+      "run_id": "round_20260401_025513_101101",
+      "reason": "Rejected candidate because score delta was -0.0196",
+      "target_family": "gta_perception",
+      "target_cluster_ids": [
+        "cluster_1",
+        "cluster_3"
+      ],
+      "baseline_score": 0.7058823529411765,
+      "candidate_score": 0.6862745098039216,
+      "coverage_contract": {
+        "target_family": "gta_perception",
+        "target_cluster_ids": [
+          "cluster_1",
+          "cluster_3",
+          "cluster_7"
+        ],
+        "problem_pattern": "Identification of specific entities (teams, events, participants) in complex visual scenes where critical identifying information is contained in small-scale text or logos.",
+        "supported_variations": [
+          "sports event identification",
+          "opposing team name extraction",
+          "political or corporate event recognition",
+          "text-heavy scene parsing"
+        ],
+        "unsupported_variations": [
+          "abstract art interpretation",
+          "video-based temporal tracking",
+          "non-textual facial recognition"
+        ],
+        "forbidden_case_specific_assumptions": [
+          "do not assume specific sports like soccer or basketball",
+          "do not hardcode specific team names or jersey colors",
+          "do not assume text is always at the top or bottom of the frame"
+        ],
+        "primitive_category": "localized_text_zoom",
+        "tool_validation_scope": "family",
+        "recommended_action": "generate_tool",
+        "why_this_should_generalize": "A localized text zoom tool addresses the recurring failure where standard OCR or global descriptions miss small, high-entropy identifiers like team names on jerseys or banners."
+      }
+    }
+  ],
+  "mastery_profiles": {}
+}
