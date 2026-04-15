@@ -132,6 +132,7 @@ def _normalize_settings(raw_settings: list[str]) -> list[str]:
             "scratch_skill_train_adaptive",
             "scratch_skill_frozen_inference",
             "scratch_skill_frozen_forced",
+            "frozen_inference_fc_forced_skill",
         }:
             raise SystemExit(f"Unknown setting: {setting}")
         if normalized not in expanded:
