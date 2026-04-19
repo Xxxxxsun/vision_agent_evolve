@@ -630,21 +630,29 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
         lines.extend(
             [
                 "Read the chart carefully before answering.",
-                "If the answer is numeric, give the final numeric value or short text span directly in Final answer.",
+                "Identify which chart region (bar, line, legend, axis label) contains the needed value.",
+                "Use zoom_image with center_x/center_y targeting that region — legends are often top-right (center_y≈0.1), x-axis labels at the bottom (center_y≈0.9), y-axis labels at the left (center_x≈0.08).",
+                "Extract the numeric values first, then use execute_python for arithmetic.",
+                "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
             ]
         )
     elif dataset_name == "mathvista":
         lines.extend(
             [
-                "Use execute_python for arithmetic or checking calculations after extracting visible quantities.",
-                "If the question is free-form, give the final numeric or textual answer directly in Final answer.",
+                "Identify the relevant values or geometric properties in the figure.",
+                "Use zoom_image with center_x/center_y if tick marks, annotations, or diagram labels are too small to read.",
+                "Use execute_python after extracting all needed values — always print() the result.",
+                "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
             ]
         )
     elif dataset_name == "hrbench":
         lines.extend(
             [
-                "Use zoom_image or crop_image when text, symbols, or local details are too small to inspect reliably.",
-                "Return the final option letter in Final answer.",
+                "HRBench images are high-resolution — always use zoom_image before answering.",
+                "Estimate where the target text or symbol is located and set center_x/center_y accordingly (do not default to 0.5 if the target is off-center).",
+                "Use factor=3 or higher for small or distant text; use a two-pass zoom if the target location is uncertain.",
+                "Use crop_image after zoom if surrounding distractors make the target hard to identify.",
+                "Return the matching option letter in Final answer.",
             ]
         )
     if family == "vstar_direct_attributes":
@@ -669,22 +677,25 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
     elif dataset_name == "chartqa":
         lines.extend(
             [
-                "Focus on the chart elements that directly determine the requested value.",
-                "Use execute_python only after extracting the relevant values from the chart.",
+                "Do not zoom to the image center if the target (legend, axis label, specific bar) is in a corner or edge.",
+                "Confirm the category or series label before reading the numeric value to avoid confusing adjacent bars or lines.",
+                "For comparisons or differences, extract both values explicitly before computing.",
             ]
         )
     elif dataset_name == "mathvista":
         lines.extend(
             [
-                "Work from visible evidence in the figure, then compute if needed.",
-                "If a local region is crowded or tiny, inspect it with zoom_image before answering.",
+                "Work from visible evidence in the figure — do not estimate values that are readable.",
+                "For geometry: zoom to vertices or edge labels where angle/length annotations appear.",
+                "For graphs and plots: x-axis labels are at center_y≈0.90, y-axis labels at center_x≈0.08.",
             ]
         )
     elif dataset_name == "hrbench":
         lines.extend(
             [
-                "Prioritize reading the exact local text or visual cue needed by the question.",
-                "If multiple answer choices are visually similar, inspect the decisive region before choosing.",
+                "If you are uncertain of the target location, do a first-pass zoom (factor=2, center=0.5) to orient yourself, then a second targeted zoom.",
+                "Prioritize reading the exact text or symbol — do not infer the answer from surrounding context alone.",
+                "After reading the target, verify it matches one of the answer options before committing.",
             ]
         )
     lines.extend(["", f"Question: {case.prompt}"])
