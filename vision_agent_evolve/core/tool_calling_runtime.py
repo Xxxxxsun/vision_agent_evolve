@@ -227,6 +227,11 @@ class RuntimeToolRegistry:
             self._handlers["focus_on_y_values"] = self._focus_on_y_values
         if self._chart_bbox.get("x_values_bbox"):
             self._handlers["focus_on_x_values"] = self._focus_on_x_values
+        # Register table bbox tools when bbox data is provided
+        if self._chart_bbox.get("rows_bbox"):
+            self._handlers["focus_on_rows"] = self._focus_on_rows
+        if self._chart_bbox.get("columns_bbox"):
+            self._handlers["focus_on_columns"] = self._focus_on_columns
 
     def schemas(self) -> list[dict[str, Any]]:
         schemas = [
@@ -355,6 +360,55 @@ class RuntimeToolRegistry:
                                 "type": "array",
                                 "items": {"type": "string"},
                                 "description": "One or more x-axis label names to highlight.",
+                            }
+                        },
+                        "required": ["labels"],
+                    },
+                },
+            })
+
+        rows_bbox = self._chart_bbox.get("rows_bbox", {})
+        cols_bbox = self._chart_bbox.get("columns_bbox", {})
+        if rows_bbox:
+            row_labels = list(rows_bbox.keys())
+            schemas.append({
+                "type": "function",
+                "function": {
+                    "name": "focus_on_rows",
+                    "description": (
+                        "Highlight specific rows in the table image to make their cell values easier to read precisely. "
+                        f"Available row labels: {row_labels}"
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "One or more row label names to highlight. Must match exactly.",
+                            }
+                        },
+                        "required": ["labels"],
+                    },
+                },
+            })
+        if cols_bbox:
+            col_labels = list(cols_bbox.keys())
+            schemas.append({
+                "type": "function",
+                "function": {
+                    "name": "focus_on_columns",
+                    "description": (
+                        "Highlight specific columns in the table image to make their cell values easier to read precisely. "
+                        f"Available column labels: {col_labels}"
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "labels": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "One or more column label names to highlight. Must match exactly.",
                             }
                         },
                         "required": ["labels"],
@@ -501,6 +555,70 @@ class RuntimeToolRegistry:
                     draw.rectangle([x1, y1, x2, y2], outline=(255, 165, 0, 255), width=3)
             result_image = Image.alpha_composite(img, overlay).convert("RGB")
         record = self.image_session._save_generated(result_image, source_type="focus_x", source_image_id="image_0")
+        payload = {"ok": True, "focused_labels": labels, **record}
+        return self._image_result(payload)
+
+    def _focus_on_rows(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        labels = arguments.get("labels", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        rows_bbox = self._chart_bbox.get("rows_bbox", {})
+        original_info = self.image_session.get_image_info("image_0")
+        image_path = original_info["path"]
+        result_image: Image.Image | None = None
+        try:
+            from tools.builtin_tools import _load_vtool_tools_module  # type: ignore
+            module = _load_vtool_tools_module()
+            tool_fn = getattr(module, "focus_on_rows_with_draw")
+            img = Image.open(image_path).convert("RGBA")
+            result_image = tool_fn(img, labels, rows_bbox).convert("RGB")
+        except Exception:
+            pass
+        if result_image is None:
+            img = Image.open(image_path).convert("RGBA")
+            overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+            for label in labels:
+                if label in rows_bbox:
+                    b = rows_bbox[label]
+                    x1, y1 = int(b["x1"]), int(b["y1"])
+                    x2, y2 = int(b["x2"]), int(b["y2"])
+                    draw.rectangle([x1, y1, x2, y2], fill=(255, 165, 0, 80))
+                    draw.rectangle([x1, y1, x2, y2], outline=(255, 165, 0, 255), width=3)
+            result_image = Image.alpha_composite(img, overlay).convert("RGB")
+        record = self.image_session._save_generated(result_image, source_type="focus_row", source_image_id="image_0")
+        payload = {"ok": True, "focused_labels": labels, **record}
+        return self._image_result(payload)
+
+    def _focus_on_columns(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        labels = arguments.get("labels", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        cols_bbox = self._chart_bbox.get("columns_bbox", {})
+        original_info = self.image_session.get_image_info("image_0")
+        image_path = original_info["path"]
+        result_image: Image.Image | None = None
+        try:
+            from tools.builtin_tools import _load_vtool_tools_module  # type: ignore
+            module = _load_vtool_tools_module()
+            tool_fn = getattr(module, "focus_on_columns_with_draw")
+            img = Image.open(image_path).convert("RGBA")
+            result_image = tool_fn(img, labels, cols_bbox).convert("RGB")
+        except Exception:
+            pass
+        if result_image is None:
+            img = Image.open(image_path).convert("RGBA")
+            overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            draw = ImageDraw.Draw(overlay)
+            for label in labels:
+                if label in cols_bbox:
+                    b = cols_bbox[label]
+                    x1, y1 = int(b["x1"]), int(b["y1"])
+                    x2, y2 = int(b["x2"]), int(b["y2"])
+                    draw.rectangle([x1, y1, x2, y2], fill=(255, 165, 0, 80))
+                    draw.rectangle([x1, y1, x2, y2], outline=(255, 165, 0, 255), width=3)
+            result_image = Image.alpha_composite(img, overlay).convert("RGB")
+        record = self.image_session._save_generated(result_image, source_type="focus_col", source_image_id="image_0")
         payload = {"ok": True, "focused_labels": labels, **record}
         return self._image_result(payload)
 

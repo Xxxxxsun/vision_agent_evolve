@@ -613,6 +613,8 @@ class StructuredBenchmarkRunner:
             chart_bbox = {
                 "x_values_bbox": case.metadata.get("x_values_bbox") or {},
                 "y_values_bbox": case.metadata.get("y_values_bbox") or {},
+                "columns_bbox": case.metadata.get("columns_bbox") or {},
+                "rows_bbox": case.metadata.get("row_starters") or {},
             }
             try:
                 result = run_function_calling_vqa_case(
