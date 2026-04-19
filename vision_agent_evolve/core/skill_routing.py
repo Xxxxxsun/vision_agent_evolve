@@ -119,17 +119,14 @@ class SkillResolver:
     def _select_foundation_skills(self, case: TaskCase, skill_pool: dict[str, Skill]) -> list[Skill]:
         family = case.capability_family().strip().lower()
         foundation = [skill for skill in skill_pool.values() if skill.level == "foundation"]
+        _skip_try_direct = {"vstar_direct_attributes", "vstar_relative_position", "chartqa"}
         selected: list[Skill] = []
         for skill in foundation:
-            if family in {
-                "vstar_direct_attributes",
-                "vstar_relative_position",
-                "chartqa",
-                "mathvista_generic_multi_choice",
-                "mathvista_generic_free_form",
-                "hrbench_single",
-                "hrbench_cross",
-            } and skill.name == "try_direct_first":
+            if skill.name == "try_direct_first" and (
+                family in _skip_try_direct
+                or family.startswith("hrbench_")
+                or family.startswith("mathvista_")
+            ):
                 continue
             selected.append(skill)
         return selected
