@@ -30,7 +30,7 @@ Read the exact value from the cell or count. Be careful with:
 - Numeric value: digits only, e.g. `4` or `3.14`. No units.
 - Yes/No: exactly `Yes` or `No`.
 - Single text value: exact text from the cell, no extra words.
-- Multiple values listed together: separate with ` | ` (space-pipe-space), e.g. `A | B | C`.
+- Multiple values listed together: separate with `|` (pipe, no spaces), e.g. `A|B|C`.
 - Do NOT add explanations, units, or full sentences.
 
 Final answer: <answer>
