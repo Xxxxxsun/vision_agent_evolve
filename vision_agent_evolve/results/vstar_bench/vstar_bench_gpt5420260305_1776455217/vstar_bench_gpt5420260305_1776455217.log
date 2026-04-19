@@ -1,0 +1,41 @@
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO - Logging initialized - 2026-04-17T19:46:57.317476
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO - Log directory: /root/vision_agent_evolve/vision_agent_evolve/results/vstar_bench/vstar_bench_gpt5420260305_1776455217
+2026-04-17 19:46:57,317 - hal.cli - INFO - HAL Harness
+2026-04-17 19:46:57,317 - hal.cli - WARNING - Model 'gpt-5.4-2026-03-05' not found in pricing dictionary. Cost tracking will be unavailable for this model.
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO - === Run Configuration ===
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Run ID: vstar_bench_gpt5420260305_1776455217
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Benchmark: vstar_bench
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Agent Name: gpt-5.4-2026-03-05
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Agent Function: main.run
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Agent Directory: /root/agentic_eval_hal_harness/agents/vstar_bench_agent
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Log Directory: results/vstar_bench/vstar_bench_gpt5420260305_1776455217
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Max Concurrent: 1
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Upload Results: No
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   VM Execution: No
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Docker Execution: No
+2026-04-17 19:46:57,317 - hal.utils.logging_utils - INFO -   Continue Previous Run: No
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -   Ignore Errors: No
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -   Prompt Sensitivity: No
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -   Agent Arguments:
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     model_name: gpt-5.4-2026-03-05
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     model_mode: proxy
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     proxy_api_style: responses
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     proxy_responses_url: https://routify.alibaba-inc.com/protocol/openai/v1/responses
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     proxy_responses_api_key: sk-a8355bd4355e4e76be80981c0887b669
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     enable_tools: False
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     empty_answer_retries: 3
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     max_iterations: 8
+2026-04-17 19:46:57,318 - hal.utils.logging_utils - INFO -     benchmark_name: vstar_bench
+2026-04-17 19:46:57,318 - hal.cli - INFO - Initializing agent runner...
+2026-04-17 19:46:57,502 - numexpr.utils - INFO - Note: NumExpr detected 32 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-04-17 19:46:57,502 - numexpr.utils - INFO - NumExpr defaulting to 16 threads.
+2026-04-17 19:47:41,658 - hal.benchmarks.vstar_bench - INFO - Loaded 191 V* benchmark tasks
+2026-04-17 19:47:41,659 - hal.cli - INFO - Running evaluation with custom agent and HAL harness...
+2026-04-17 19:47:41,659 - hal.agent_runner - INFO - WANDB_API_KEY not configured, skipping W&B Weave initialization
+2026-04-17 19:47:41,662 - hal.utils.local_runner - INFO - Starting task 0 (active tasks: 1)
+2026-04-17 19:47:50,486 - hal.utils.local_runner - INFO - Completed task 0
+2026-04-17 19:47:50,486 - hal.utils.local_runner - INFO - Starting task 1 (active tasks: 1)
+2026-04-17 19:48:00,481 - hal.utils.local_runner - INFO - Completed task 1
+2026-04-17 19:48:00,481 - hal.utils.local_runner - INFO - Starting task 2 (active tasks: 1)
+2026-04-17 19:48:08,905 - hal.utils.local_runner - INFO - Completed task 2
+2026-04-17 19:48:08,906 - hal.utils.local_runner - INFO - Starting task 3 (active tasks: 1)

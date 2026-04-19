@@ -1,0 +1,32 @@
+2026-04-17 19:43:28,430 - hal.utils.logging_utils - INFO - Logging initialized - 2026-04-17T19:43:28.430898
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO - Log directory: /root/vision_agent_evolve/vision_agent_evolve/results/vstar_bench/vstar_bench_gpt5420260305_1776455008
+2026-04-17 19:43:28,431 - hal.cli - INFO - HAL Harness
+2026-04-17 19:43:28,431 - hal.cli - WARNING - Model 'gpt-5.4-2026-03-05' not found in pricing dictionary. Cost tracking will be unavailable for this model.
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO - === Run Configuration ===
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Run ID: vstar_bench_gpt5420260305_1776455008
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Benchmark: vstar_bench
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Agent Name: gpt-5.4-2026-03-05
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Agent Function: main.run
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Agent Directory: agents/vstar_bench_agent
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Log Directory: results/vstar_bench/vstar_bench_gpt5420260305_1776455008
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Max Concurrent: 1
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Upload Results: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   VM Execution: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Docker Execution: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Continue Previous Run: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Ignore Errors: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Prompt Sensitivity: No
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -   Agent Arguments:
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     model_name: gpt-5.4-2026-03-05
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     model_mode: proxy
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     proxy_api_style: responses
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     proxy_responses_url: https://routify.alibaba-inc.com/protocol/openai/v1/responses
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     proxy_responses_api_key: sk-a8355bd4355e4e76be80981c0887b669
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     enable_tools: False
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     empty_answer_retries: 3
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     max_iterations: 8
+2026-04-17 19:43:28,431 - hal.utils.logging_utils - INFO -     benchmark_name: vstar_bench
+2026-04-17 19:43:28,431 - hal.cli - INFO - Initializing agent runner...
+2026-04-17 19:43:28,431 - hal.cli - ERROR - Error running evaluation: No requirements.txt found in agent directory: agents/vstar_bench_agent
+2026-04-17 19:43:28,432 - hal.cli - ERROR - An error occurred: No requirements.txt found in agent directory: agents/vstar_bench_agent
+2026-04-17 19:43:28,432 - hal.cli - ERROR - For detailed error information, check: results/vstar_bench/vstar_bench_gpt5420260305_1776455008/vstar_bench_gpt5420260305_1776455008_verbose.log

@@ -1,21 +1,12 @@
 {
   "dataset": "chartqa",
-  "raw_data_root": "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset",
+  "raw_data_root": "/root/vqa_datasets/datasets/chartqa_hf",
   "normalized_data_root": "datasets/structured_chartqa/chartqa",
   "splits": {
-    "train": {
-      "count": 28299,
-      "annotation_files": [
-        "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset/train/train_augmented.json",
-        "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset/train/train_human.json"
-      ],
-      "output_file": "datasets/structured_chartqa/chartqa/train.jsonl"
-    },
     "val": {
       "count": 1920,
       "annotation_files": [
-        "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset/val/val_augmented.json",
-        "/root/vqa_datasets/datasets/chartqa_official/ChartQA Dataset/val/val_human.json"
+        "/root/vqa_datasets/datasets/chartqa_hf/val.json"
       ],
       "output_file": "datasets/structured_chartqa/chartqa/val.jsonl"
     }

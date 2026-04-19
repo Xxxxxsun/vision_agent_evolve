@@ -162,6 +162,130 @@ class VLMClientAlibabaTests(unittest.TestCase):
             self.assertEqual(urlopen_mock.call_count, 2)
             sleep_mock.assert_called_once()
 
+    def test_responses_api_uses_input_field_and_extracts_output_text(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "VLM_API_STYLE": "responses",
+                "VLM_API_KEY": "resp-key",
+                "VLM_MODEL": "gpt-5.4-2026-03-05",
+            },
+            clear=False,
+        ):
+            client = VLMClient(base_url="https://routify.alibaba-inc.com/protocol/openai/v1/responses")
+
+            with mock.patch("core.vlm_client.request.urlopen") as urlopen_mock:
+                urlopen_mock.return_value = FakeHTTPResponse(
+                    {
+                        "output": [
+                            {
+                                "role": "assistant",
+                                "content": [{"type": "output_text", "text": "I’m ChatGPT."}],
+                            }
+                        ],
+                        "usage": {
+                            "input_tokens": 16,
+                            "output_tokens": 9,
+                            "total_tokens": 25,
+                        },
+                    }
+                )
+                reply, usage = client.chat([{"role": "user", "content": "who are you?"}])
+
+            self.assertEqual(reply, "I’m ChatGPT.")
+            self.assertEqual(usage.prompt_tokens, 16)
+            self.assertEqual(usage.completion_tokens, 9)
+            self.assertEqual(usage.total_tokens, 25)
+            request_obj = urlopen_mock.call_args.args[0]
+            payload = json.loads(request_obj.data.decode("utf-8"))
+            self.assertEqual(payload["input"], [{"role": "user", "content": "who are you?"}])
+            self.assertEqual(request_obj.headers["Authorization"], "Bearer resp-key")
+
+    def test_responses_api_preserves_multimodal_content(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "VLM_API_STYLE": "responses",
+                "VLM_API_KEY": "resp-key",
+                "VLM_MODEL": "gpt-5.4-2026-03-05",
+            },
+            clear=False,
+        ):
+            client = VLMClient(base_url="https://routify.alibaba-inc.com/protocol/openai/v1/responses")
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "what is in this image?"},
+                        {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc"}},
+                    ],
+                }
+            ]
+
+            with mock.patch("core.vlm_client.request.urlopen") as urlopen_mock:
+                urlopen_mock.return_value = FakeHTTPResponse(
+                    {
+                        "output": [
+                            {
+                                "role": "assistant",
+                                "content": [{"type": "output_text", "text": "A chart."}],
+                            }
+                        ]
+                    }
+                )
+                reply, _ = client.chat(messages)
+
+            self.assertEqual(reply, "A chart.")
+            request_obj = urlopen_mock.call_args.args[0]
+            payload = json.loads(request_obj.data.decode("utf-8"))
+            self.assertEqual(
+                payload["input"],
+                [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": "what is in this image?"},
+                            {"type": "input_image", "image_url": "data:image/png;base64,abc"},
+                        ],
+                    }
+                ],
+            )
+
+    def test_anthropic_messages_api_extracts_text(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "VLM_API_STYLE": "anthropic_messages",
+                "VLM_API_KEY": "anthropic-key",
+                "VLM_MODEL": "claude-opus-4-6-20260205",
+            },
+            clear=False,
+        ):
+            client = VLMClient(base_url="https://routify.alibaba-inc.com/protocol/anthropic/v1/messages")
+
+            with mock.patch("core.vlm_client.request.urlopen") as urlopen_mock:
+                urlopen_mock.return_value = FakeHTTPResponse(
+                    {
+                        "content": [
+                            {"type": "text", "text": "I am Claude, an AI assistant made by Anthropic."}
+                        ],
+                        "usage": {
+                            "input_tokens": 18,
+                            "output_tokens": 16,
+                        },
+                    }
+                )
+                reply, usage = client.chat([{"role": "user", "content": "who are you?"}])
+
+            self.assertEqual(reply, "I am Claude, an AI assistant made by Anthropic.")
+            self.assertEqual(usage.prompt_tokens, 18)
+            self.assertEqual(usage.completion_tokens, 16)
+            self.assertEqual(usage.total_tokens, 34)
+            request_obj = urlopen_mock.call_args.args[0]
+            payload = json.loads(request_obj.data.decode("utf-8"))
+            self.assertEqual(payload["messages"], [{"role": "user", "content": "who are you?"}])
+            self.assertEqual(request_obj.headers["Authorization"], "Bearer anthropic-key")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -695,7 +695,7 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
     lines.extend(
         [
             "",
-            "End with a final line in the format: Final answer: <answer>",
+            "End with a final line in the format: Final answer: your answer",
         ]
     )
     return "\n".join(lines)

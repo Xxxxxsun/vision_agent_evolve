@@ -1,0 +1,23 @@
+{
+  "dataset": "mathvista",
+  "raw_data_root": "/root/vqa_datasets/datasets/mathvista",
+  "normalized_data_root": "datasets/structured_multibench/mathvista",
+  "splits": {
+    "train": {
+      "count": 100,
+      "source_split": "testmini",
+      "source_files": [
+        "/root/vqa_datasets/datasets/mathvista/mathvista_testmini.jsonl"
+      ],
+      "output_file": "datasets/structured_multibench/mathvista/train.jsonl"
+    },
+    "val": {
+      "count": 900,
+      "source_split": "testmini",
+      "source_files": [
+        "/root/vqa_datasets/datasets/mathvista/mathvista_testmini.jsonl"
+      ],
+      "output_file": "datasets/structured_multibench/mathvista/val.jsonl"
+    }
+  }
+}

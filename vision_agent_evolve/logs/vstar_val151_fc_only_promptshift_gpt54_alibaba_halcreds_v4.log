@@ -1,0 +1,241 @@
+
+=== Function-calling VQA baseline on val[:151] ===
+[001/151] OK case=0 answer='A'
+[002/151] OK case=10 answer='C'
+[003/151] OK case=101 answer='B'
+[004/151] OK case=102 answer='C'
+[005/151] OK case=103 answer='B'
+[006/151] OK case=104 answer='B'
+[007/151] OK case=105 answer='D'
+[008/151] OK case=106 answer='A'
+[009/151] OK case=107 answer='A'
+[010/151] FAIL case=109 answer='C'
+[011/151] OK case=110 answer='D'
+[012/151] OK case=111 answer='B'
+[013/151] OK case=112 answer='D'
+[014/151] OK case=113 answer='A'
+[015/151] OK case=114 answer='C'
+[016/151] OK case=115 answer='A'
+[017/151] OK case=116 answer='A'
+[018/151] OK case=117 answer='A'
+[019/151] OK case=119 answer='A'
+[020/151] OK case=12 answer='C'
+[021/151] FAIL case=120 answer='A'
+[022/151] OK case=121 answer='A'
+[023/151] OK case=123 answer='B'
+[024/151] OK case=124 answer='A'
+[025/151] OK case=128 answer='B'
+[026/151] OK case=129 answer='B'
+[027/151] OK case=13 answer='A'
+[028/151] OK case=131 answer='B'
+[029/151] FAIL case=132 answer='cannot determine'
+[030/151] OK case=133 answer='B'
+[031/151] OK case=134 answer='B'
+[032/151] OK case=135 answer='B'
+[033/151] OK case=136 answer='B'
+[034/151] OK case=137 answer='A'
+[035/151] OK case=138 answer='A'
+[036/151] FAIL case=139 answer='B'
+[037/151] OK case=14 answer='B'
+[038/151] OK case=140 answer='A'
+[039/151] OK case=141 answer='A'
+[040/151] OK case=143 answer='A'
+[041/151] OK case=144 answer='B'
+[042/151] OK case=145 answer='A'
+[043/151] OK case=146 answer='B'
+[044/151] OK case=147 answer='B'
+[045/151] OK case=148 answer='B'
+[046/151] FAIL case=15 answer='C'
+[047/151] FAIL case=151 answer='A'
+[048/151] OK case=152 answer='A'
+[049/151] OK case=153 answer='B'
+[050/151] OK case=155 answer='A'
+[051/151] OK case=156 answer='A'
+[052/151] OK case=158 answer='B'
+[053/151] FAIL case=159 answer='B'
+[054/151] OK case=160 answer='A'
+[055/151] FAIL case=162 answer='A'
+[056/151] OK case=163 answer='B'
+[057/151] OK case=164 answer='A'
+[058/151] OK case=165 answer='B'
+[059/151] OK case=166 answer='B'
+[060/151] OK case=167 answer='B'
+[061/151] FAIL case=168 answer='A'
+[062/151] OK case=170 answer='A'
+[063/151] OK case=171 answer='B'
+[064/151] FAIL case=172 answer='B'
+[065/151] OK case=173 answer='B'
+[066/151] OK case=174 answer='B'
+[067/151] OK case=176 answer='B'
+[068/151] OK case=179 answer='A'
+[069/151] OK case=18 answer='C'
+[070/151] OK case=180 answer='A'
+[071/151] OK case=181 answer='A'
+[072/151] OK case=182 answer='A'
+[073/151] OK case=183 answer='A'
+[074/151] FAIL case=184 answer='B'
+[075/151] OK case=185 answer='A'
+[076/151] OK case=186 answer='B'
+[077/151] OK case=187 answer='A'
+[078/151] OK case=188 answer='A'
+[079/151] OK case=189 answer='B'
+[080/151] OK case=19 answer='A'
+[081/151] OK case=2 answer='A'
+[082/151] OK case=20 answer='C'
+[083/151] OK case=21 answer='A'
+[084/151] OK case=23 answer='B'
+[085/151] FAIL case=24 answer='A'
+[086/151] FAIL case=25 answer='A'
+[087/151] OK case=26 answer='B'
+[088/151] FAIL case=27 answer='D'
+[089/151] OK case=29 answer='B'
+[090/151] OK case=3 answer='B'
+[091/151] OK case=31 answer='C'
+[092/151] OK case=32 answer='B'
+[093/151] OK case=33 answer='C'
+[094/151] FAIL case=34 answer='C'
+[095/151] OK case=35 answer='C'
+[096/151] OK case=36 answer='D'
+[097/151] OK case=37 answer='C'
+[098/151] OK case=38 answer='B'
+[099/151] OK case=39 answer='C'
+[100/151] OK case=40 answer='B'
+[101/151] OK case=41 answer='C'
+[102/151] FAIL case=42 answer='B'
+[103/151] FAIL case=44 answer='C'
+[104/151] FAIL case=45 answer='B'
+[105/151] FAIL case=46 answer='D'
+[106/151] OK case=47 answer='A'
+[107/151] OK case=48 answer='B'
+[108/151] OK case=5 answer='D'
+[109/151] FAIL case=50 answer='D'
+[110/151] OK case=51 answer='A'
+[111/151] OK case=52 answer='A'
+[112/151] OK case=53 answer='C'
+[113/151] OK case=54 answer='A'
+[114/151] OK case=55 answer='D'
+[115/151] FAIL case=56 answer='C'
+[116/151] FAIL case=57 answer='D'
+[117/151] OK case=58 answer='B'
+[118/151] OK case=59 answer='A'
+[119/151] OK case=6 answer='B'
+[120/151] OK case=60 answer='D'
+[121/151] OK case=61 answer='A'
+[122/151] OK case=62 answer='D'
+[123/151] OK case=63 answer='D'
+[124/151] FAIL case=64 answer='B'
+[125/151] OK case=66 answer='B'
+[126/151] OK case=67 answer='B'
+[127/151] OK case=68 answer='A'
+[128/151] FAIL case=69 answer='D'
+[129/151] OK case=7 answer='A'
+[130/151] OK case=70 answer='B'
+[131/151] OK case=71 answer='B'
+[132/151] FAIL case=72 answer='D'
+[133/151] FAIL case=75 answer='D'
+[134/151] OK case=76 answer='D'
+[135/151] OK case=77 answer='C'
+[136/151] FAIL case=78 answer='D'
+[137/151] OK case=79 answer='B'
+[138/151] OK case=8 answer='B'
+[139/151] FAIL case=80 answer='D'
+[140/151] FAIL case=82 answer='B'
+[141/151] FAIL case=83 answer='C'
+[142/151] FAIL case=84 answer='B'
+[143/151] OK case=86 answer='A'
+[144/151] FAIL case=87 answer='A'
+[145/151] OK case=88 answer='C'
+[146/151] OK case=91 answer='B'
+[147/151] OK case=92 answer='D'
+[148/151] FAIL case=95 answer='D'
+[149/151] OK case=96 answer='C'
+[150/151] OK case=97 answer='B'
+[151/151] OK case=99 answer='D'
+{
+  "config": {
+    "dataset": "vstar",
+    "datasets": [
+      "vstar"
+    ],
+    "raw_data_root": "/root/vqa_datasets/datasets/vstar_bench",
+    "normalized_data_root": "datasets/structured_multibench",
+    "subset_id": "vstar_val151_fc_only_promptshift_gpt54_alibaba_halcreds_v4",
+    "evolve_split": "val",
+    "held_out_split": "val",
+    "k": 200,
+    "train_subset_size": 151,
+    "held_out_limit": 0,
+    "max_attempts": 10,
+    "max_planning_rounds": 5,
+    "families_per_round_limit": 3,
+    "representatives_per_cluster": 3,
+    "tool_preference": "balanced",
+    "readability_judge_enabled": false,
+    "forced_skill_name": null,
+    "fixed_tool_names": [],
+    "disable_generated_tools": false,
+    "vlm_base_url": "https://llm-chat-api.alibaba-inc.com/v1/api/chat",
+    "vlm_model": "gpt-5.4-0305-global",
+    "vlm_api_style": "alibaba_chat",
+    "vlm_api_key_present": false,
+    "vlm_user_id_present": true,
+    "vlm_access_key_present": true,
+    "vlm_quota_id_present": true,
+    "uses_alibaba_chat_api": true,
+    "gta_tool_mode": "",
+    "gta_tool_server": "",
+    "gta_official_repo": "",
+    "gta_device": "",
+    "serper_api_key_present": false,
+    "mathpix_app_id_present": false,
+    "mathpix_app_key_present": false
+  },
+  "snapshot_name": "",
+  "records_path": "/root/vision_agent_evolve/vision_agent_evolve/artifacts/structured_benchmarks/vstar_val151_fc_only_promptshift_gpt54_alibaba_halcreds_v4/per_case.jsonl",
+  "subset_evolution_rounds": [],
+  "settings": {
+    "function_calling_vqa": {
+      "split": "val",
+      "total": 151,
+      "correct": 118,
+      "accuracy": 0.7814569536423841,
+      "per_dataset_accuracy": {
+        "vstar": 0.7814569536423841
+      },
+      "per_family_accuracy": {
+        "vstar_direct_attributes": 0.7391304347826086,
+        "vstar_relative_position": 0.847457627118644
+      },
+      "full_agent_accuracy": 0.0,
+      "post_evolve_recovery_accuracy": 0.0,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.0,
+      "avg_tool_calls_per_case": 0.0,
+      "artifact_production_rate": 0.5894039735099338,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    }
+  },
+  "full_agent_accuracy": 0.0,
+  "post_evolve_recovery_accuracy": 0.0,
+  "skill_only_full_agent_accuracy": 0.0,
+  "skill_only_post_evolve_recovery_accuracy": 0.0,
+  "preset_tools_only_accuracy": 0.0,
+  "same_tool_preset_tools_only_accuracy": 0.0,
+  "reasoned_vlm_accuracy": 0.0,
+  "function_calling_vqa_accuracy": 0.7814569536423841,
+  "frozen_inference_accuracy": 0.0,
+  "skill_only_frozen_inference_accuracy": 0.0,
+  "forced_skill_frozen_accuracy": 0.0,
+  "scratch_skill_full_agent_accuracy": 0.0,
+  "scratch_skill_post_evolve_recovery_accuracy": 0.0,
+  "scratch_skill_frozen_accuracy": 0.0,
+  "scratch_skill_forced_accuracy": 0.0
+}

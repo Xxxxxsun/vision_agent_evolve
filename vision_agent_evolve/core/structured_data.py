@@ -1555,11 +1555,18 @@ def normalize_choice_answer(value: str, choices: dict[str, str]) -> str:
         return letter
 
     normalized = _normalize_answer_text(text)
+    exact_label = ""
     for label, choice_text in choices.items():
         if normalized == _normalize_answer_text(choice_text):
             return label
         if _contains_expected_text(normalized, _normalize_answer_text(choice_text)):
-            return label
+            exact_label = exact_label or label
+    if exact_label:
+        return exact_label
+
+    resolved_from_tail = _resolve_choice_from_long_text(normalized, choices)
+    if resolved_from_tail:
+        return resolved_from_tail
     return ""
 
 
@@ -1569,6 +1576,40 @@ def _choice_letter(text: str) -> str:
         return match.group(1)
     compact = re.sub(r"[^A-Z]", "", str(text).upper())
     return compact if compact in {"A", "B", "C", "D"} else ""
+
+
+def _resolve_choice_from_long_text(normalized_text: str, choices: dict[str, str]) -> str:
+    if not normalized_text or not choices:
+        return ""
+
+    best_label = ""
+    best_index = -1
+    tie = False
+    for label, choice_text in choices.items():
+        normalized_choice = _normalize_answer_text(choice_text)
+        if not normalized_choice:
+            continue
+        index = normalized_text.rfind(normalized_choice)
+        if index > best_index:
+            best_label = label
+            best_index = index
+            tie = False
+        elif index != -1 and index == best_index:
+            tie = True
+
+    if best_index >= 0 and not tie:
+        return best_label
+
+    segments = [segment.strip() for segment in re.split(r"[\n\r]+|(?<=[.!?])\s+", normalized_text) if segment.strip()]
+    for segment in reversed(segments):
+        matches = []
+        for label, choice_text in choices.items():
+            normalized_choice = _normalize_answer_text(choice_text)
+            if normalized_choice and _contains_expected_text(segment, normalized_choice):
+                matches.append(label)
+        if len(matches) == 1:
+            return matches[0]
+    return ""
 
 
 def _materialize_image(item: dict[str, Any], raw_data_root: Path, assets_dir: Path, source_id: str) -> Path:

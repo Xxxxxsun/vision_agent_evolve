@@ -1,0 +1,23 @@
+{
+  "dataset": "hrbench",
+  "raw_data_root": "/root/vqa_datasets/datasets/hr_bench",
+  "normalized_data_root": "datasets/structured_multibench/hrbench",
+  "splits": {
+    "train": {
+      "count": 100,
+      "source_split": "hrbench_4k",
+      "source_files": [
+        "/root/vqa_datasets/datasets/hr_bench/hrbench_4k.jsonl"
+      ],
+      "output_file": "datasets/structured_multibench/hrbench/train.jsonl"
+    },
+    "val": {
+      "count": 700,
+      "source_split": "hrbench_4k",
+      "source_files": [
+        "/root/vqa_datasets/datasets/hr_bench/hrbench_4k.jsonl"
+      ],
+      "output_file": "datasets/structured_multibench/hrbench/val.jsonl"
+    }
+  }
+}

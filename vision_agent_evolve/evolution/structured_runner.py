@@ -12,7 +12,12 @@ from typing import Any
 import os
 
 from core.agent import AgentConfig, ReActAgent
-from core.structured_data import check_chartqa_case_answer, load_normalized_cases
+from core.structured_data import (
+    _normalize_answer_text,
+    check_chartqa_case_answer,
+    load_normalized_cases,
+    normalize_choice_answer,
+)
 from core.tool_calling_runtime import ToolCallingRuntimeConfig, run_function_calling_vqa_case
 from core.types import AgentResult, AgentStep, TaskCase
 from core.vlm_client import ModelSettings, VLMClient
@@ -787,11 +792,21 @@ class StructuredBenchmarkRunner:
             choice_block = f"\nChoices:\n{choice_lines}"
         family = str(case.metadata.get("capability_family", "")).strip().lower()
         dataset_name = str(case.metadata.get("dataset_name", "")).strip().lower()
+        model_name = str(getattr(self.vlm_client, "model", "")).strip().lower()
+        is_qwen = "qwen" in model_name
         instruction_lines = [
             "Analyze the image and question briefly before answering.",
             "Keep the reasoning concise and grounded in visible evidence.",
-            "End with a final line exactly in the format: Final answer: <answer>",
+            "End with a final line exactly in the format: Final answer: your answer",
         ]
+        if is_qwen:
+            instruction_lines.extend(
+                [
+                    "Keep any internal reasoning private.",
+                    "Do not output <think> or </think> tags.",
+                    "Do not continue after the Final answer line.",
+                ]
+            )
         if dataset_name == "vstar":
             instruction_lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
         if family == "vstar_relative_position":
@@ -812,8 +827,9 @@ class StructuredBenchmarkRunner:
                 "content": VLMClient.image_message_parts(case.image_path, prompt),
             }
         ]
-        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=200))
-        return _extract_final_answer_text(response)
+        max_tokens = 18000 if is_qwen else 200
+        response, _ = self.vlm_client.chat(messages, ModelSettings(temperature=0.0, max_tokens=max_tokens))
+        return _resolve_reasoned_answer_text(response, choices)
 
     def _create_plain_react_agent(self, case: TaskCase, phase: str) -> ReActAgent:
         work_dir = self.output_dir / "pure_react" / phase / f"case_{case.case_id}"
@@ -1405,3 +1421,38 @@ def _extract_final_answer_text(text: str) -> str:
     if match:
         return match.group(1).strip()
     return (text or "").strip()
+
+
+def _clean_extracted_answer_text(text: str) -> str:
+    cleaned = str(text or "").strip()
+    cleaned = cleaned.strip("`").strip()
+    cleaned = cleaned.strip('"').strip("'").strip()
+    cleaned = re.sub(r"^\*+", "", cleaned).strip()
+    cleaned = re.sub(r"\*+$", "", cleaned).strip()
+    cleaned = cleaned.rstrip(".,:;").strip()
+    placeholder_forms = {
+        "<answer>",
+        "answer",
+        "<answer>\"",
+        "\"<answer>",
+    }
+    if cleaned.lower() in placeholder_forms:
+        return ""
+    return cleaned
+
+
+def _resolve_reasoned_answer_text(text: str, choices: dict[str, str] | None = None) -> str:
+    extracted = _clean_extracted_answer_text(_extract_final_answer_text(text))
+    choice_map = choices if isinstance(choices, dict) else {}
+    if choice_map:
+        normalized = normalize_choice_answer(extracted, choice_map)
+        if normalized:
+            return normalized
+        normalized_from_full = normalize_choice_answer(text or "", choice_map)
+        if normalized_from_full:
+            return normalized_from_full
+        if extracted:
+            for label, choice_text in choice_map.items():
+                if _normalize_answer_text(extracted) == _normalize_answer_text(choice_text):
+                    return label
+    return extracted

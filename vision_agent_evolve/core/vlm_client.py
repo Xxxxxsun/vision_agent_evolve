@@ -1,4 +1,4 @@
-"""VLM client for OpenAI-compatible APIs and Alibaba internal chat API."""
+"""VLM client for OpenAI-compatible APIs, Anthropic Messages, and Alibaba chat."""
 
 from __future__ import annotations
 import os
@@ -75,7 +75,7 @@ class VLMClient:
         self.access_key = os.getenv("VLM_ACCESS_KEY", "").strip()
         self.quota_id = os.getenv("VLM_QUOTA_ID", "").strip()
         self.app = os.getenv("VLM_APP", "").strip() or "llm_application"
-        self.client = None if self.api_style == "alibaba_chat" else OpenAI(base_url=self.base_url, api_key=self.api_key)
+        self.client = None if self.api_style in {"alibaba_chat", "responses", "anthropic_messages"} else OpenAI(base_url=self.base_url, api_key=self.api_key)
 
     def chat(
         self,
@@ -90,6 +90,10 @@ class VLMClient:
             try:
                 if self.api_style == "alibaba_chat":
                     return self._chat_alibaba(messages, settings)
+                if self.api_style == "responses":
+                    return self._chat_responses(messages, settings)
+                if self.api_style == "anthropic_messages":
+                    return self._chat_anthropic_messages(messages, settings)
 
                 response = self.client.chat.completions.create(
                     model=self.model,
@@ -137,6 +141,10 @@ class VLMClient:
             try:
                 if self.api_style == "alibaba_chat":
                     return self._chat_alibaba_with_tools(messages, tools, settings, raw_response=raw_response)
+                if self.api_style == "responses":
+                    return self._chat_responses_with_tools(messages, tools, settings, raw_response=raw_response)
+                if self.api_style == "anthropic_messages":
+                    return self._chat_anthropic_messages_with_tools(messages, tools, settings, raw_response=raw_response)
 
                 response = self.client.chat.completions.create(
                     model=self.model,
@@ -244,6 +252,161 @@ class VLMClient:
             message = str(data.get("message", "") or "")
         return message, usage
 
+    def _chat_responses_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        settings: ModelSettings,
+        *,
+        raw_response: bool = False,
+    ) -> tuple[Any, UsageStats]:
+        """Send a request to an OpenAI Responses-style endpoint."""
+        payload: dict[str, Any] = {
+            "input": self._serialize_responses_input(messages),
+            "stream": False,
+            "model": self.model,
+            "temperature": settings.temperature,
+            "max_output_tokens": settings.max_tokens,
+        }
+        if tools:
+            payload["tools"] = tools
+
+        req = request.Request(
+            self.base_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with request.urlopen(req, timeout=settings.timeout) as resp:
+                response_body = resp.read().decode("utf-8")
+        except error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Responses API HTTP {exc.code}: {details}") from exc
+        except error.URLError as exc:
+            raise RuntimeError(f"Responses API request failed: {exc}") from exc
+
+        parsed = json.loads(response_body)
+        usage = UsageStats()
+        usage_payload = parsed.get("usage") if isinstance(parsed, dict) else None
+        if isinstance(usage_payload, dict):
+            usage.prompt_tokens = int(usage_payload.get("input_tokens", 0) or 0)
+            usage.completion_tokens = int(usage_payload.get("output_tokens", 0) or 0)
+            usage.total_tokens = int(usage_payload.get("total_tokens", usage.prompt_tokens + usage.completion_tokens) or 0)
+
+        message = self._extract_responses_text(parsed)
+        if raw_response:
+            return {
+                "data": {
+                    "message": message,
+                    "completion": {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": message,
+                                }
+                            }
+                        ]
+                    },
+                },
+                "responses": parsed,
+            }, usage
+        return message, usage
+
+    def _chat_responses(
+        self,
+        messages: list[dict[str, Any]],
+        settings: ModelSettings,
+    ) -> tuple[str, UsageStats]:
+        response, usage = self._chat_responses_with_tools(messages, tools=None, settings=settings, raw_response=False)
+        return str(response), usage
+
+    def _chat_anthropic_messages_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        settings: ModelSettings,
+        *,
+        raw_response: bool = False,
+    ) -> tuple[Any, UsageStats]:
+        """Send a request to an Anthropic Messages-style endpoint."""
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": settings.max_tokens,
+            "messages": self._serialize_anthropic_messages(messages),
+        }
+        system_prompt = self._extract_anthropic_system(messages)
+        if system_prompt:
+            payload["system"] = system_prompt
+        if settings.temperature is not None:
+            payload["temperature"] = settings.temperature
+        if tools:
+            payload["tools"] = tools
+
+        req = request.Request(
+            self.base_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "anthropic-version": os.getenv("VLM_ANTHROPIC_VERSION", "2023-06-01"),
+            },
+            method="POST",
+        )
+
+        try:
+            with request.urlopen(req, timeout=settings.timeout) as resp:
+                response_body = resp.read().decode("utf-8")
+        except error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Anthropic Messages API HTTP {exc.code}: {details}") from exc
+        except error.URLError as exc:
+            raise RuntimeError(f"Anthropic Messages API request failed: {exc}") from exc
+
+        parsed = json.loads(response_body)
+        usage = UsageStats()
+        usage_payload = parsed.get("usage") if isinstance(parsed, dict) else None
+        if isinstance(usage_payload, dict):
+            usage.prompt_tokens = int(usage_payload.get("input_tokens", 0) or 0)
+            usage.completion_tokens = int(usage_payload.get("output_tokens", 0) or 0)
+            usage.total_tokens = usage.prompt_tokens + usage.completion_tokens
+
+        message = self._extract_anthropic_text(parsed)
+        if raw_response:
+            return {
+                "data": {
+                    "message": message,
+                    "completion": {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": message,
+                                }
+                            }
+                        ]
+                    },
+                },
+                "anthropic": parsed,
+            }, usage
+        return message, usage
+
+    def _chat_anthropic_messages(
+        self,
+        messages: list[dict[str, Any]],
+        settings: ModelSettings,
+    ) -> tuple[str, UsageStats]:
+        response, usage = self._chat_anthropic_messages_with_tools(
+            messages,
+            tools=None,
+            settings=settings,
+            raw_response=False,
+        )
+        return str(response), usage
+
     def _chat_alibaba(
         self,
         messages: list[dict[str, Any]],
@@ -346,6 +509,10 @@ class VLMClient:
         normalized = base_url.strip().lower()
         if "llm-chat-api.alibaba-inc.com" in normalized and normalized.endswith("/v1/api/chat"):
             return "alibaba_chat"
+        if normalized.endswith("/v1/responses") or "/protocol/openai/v1/responses" in normalized:
+            return "responses"
+        if normalized.endswith("/v1/messages") or "/protocol/anthropic/v1/messages" in normalized:
+            return "anthropic_messages"
         return "openai"
 
     def _serialize_prompt(self, messages: list[dict[str, Any]]) -> str | list[dict[str, Any]]:
@@ -359,6 +526,138 @@ class VLMClient:
         ):
             return str(messages[0]["content"])
         return messages
+
+    def _serialize_responses_input(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Map internal chat messages to OpenAI Responses input format."""
+        serialized: list[dict[str, Any]] = []
+        for message in messages:
+            role = str(message.get("role", "user")).strip().lower() or "user"
+            content = message.get("content", "")
+            if isinstance(content, str):
+                serialized.append({"role": role, "content": content})
+                continue
+            if not isinstance(content, list):
+                serialized.append({"role": role, "content": str(content)})
+                continue
+
+            parts: list[dict[str, Any]] = []
+            for item in content:
+                if not isinstance(item, dict):
+                    parts.append({"type": "input_text", "text": str(item)})
+                    continue
+                item_type = str(item.get("type", "")).strip().lower()
+                if item_type == "text":
+                    parts.append({"type": "input_text", "text": str(item.get("text", ""))})
+                    continue
+                if item_type == "image_url":
+                    image_url = item.get("image_url") or {}
+                    url = str(image_url.get("url", ""))
+                    if url:
+                        parts.append({"type": "input_image", "image_url": url})
+                    continue
+                parts.append({"type": "input_text", "text": str(item)})
+            serialized.append({"role": role, "content": parts})
+        return serialized
+
+    def _serialize_anthropic_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Map internal chat messages to Anthropic Messages format."""
+        serialized: list[dict[str, Any]] = []
+        for message in messages:
+            role = str(message.get("role", "user")).strip().lower() or "user"
+            if role == "system":
+                continue
+            normalized_role = "assistant" if role == "assistant" else "user"
+            content = message.get("content", "")
+            if isinstance(content, str):
+                serialized.append({"role": normalized_role, "content": content})
+                continue
+            if not isinstance(content, list):
+                serialized.append({"role": normalized_role, "content": str(content)})
+                continue
+
+            parts: list[dict[str, Any]] = []
+            for item in content:
+                if not isinstance(item, dict):
+                    parts.append({"type": "text", "text": str(item)})
+                    continue
+                item_type = str(item.get("type", "")).strip().lower()
+                if item_type == "text":
+                    parts.append({"type": "text", "text": str(item.get("text", ""))})
+                    continue
+                if item_type == "image_url":
+                    image_url = item.get("image_url") or {}
+                    url = str(image_url.get("url", ""))
+                    if not url:
+                        continue
+                    if url.startswith("data:"):
+                        header, encoded = url.split(",", 1)
+                        media_type = header.split(":", 1)[1].split(";", 1)[0]
+                        parts.append(
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": encoded,
+                                },
+                            }
+                        )
+                    else:
+                        parts.append({"type": "image", "source": {"type": "url", "url": url}})
+                    continue
+                parts.append({"type": "text", "text": str(item)})
+            serialized.append({"role": normalized_role, "content": parts or [{"type": "text", "text": ""}]})
+        return serialized
+
+    @staticmethod
+    def _extract_anthropic_system(messages: list[dict[str, Any]]) -> str | None:
+        texts: list[str] = []
+        for message in messages:
+            if str(message.get("role", "")).strip().lower() != "system":
+                continue
+            content = message.get("content", "")
+            if isinstance(content, str):
+                texts.append(content)
+            elif isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict) and str(item.get("type", "")).strip().lower() == "text":
+                        texts.append(str(item.get("text", "")))
+                    else:
+                        texts.append(str(item))
+            else:
+                texts.append(str(content))
+        joined = "\n".join(part.strip() for part in texts if str(part).strip()).strip()
+        return joined or None
+
+    @staticmethod
+    def _extract_anthropic_text(parsed: dict[str, Any]) -> str:
+        content = parsed.get("content") if isinstance(parsed, dict) else None
+        if not isinstance(content, list):
+            return ""
+        texts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                texts.append(str(item.get("text", "")))
+        return "".join(texts).strip()
+
+    @staticmethod
+    def _extract_responses_text(parsed: dict[str, Any]) -> str:
+        output = parsed.get("output") if isinstance(parsed, dict) else None
+        if not isinstance(output, list):
+            return ""
+        texts: list[str] = []
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            if item.get("role") != "assistant":
+                continue
+            contents = item.get("content")
+            if not isinstance(contents, list):
+                continue
+            for content in contents:
+                if isinstance(content, dict) and content.get("type") == "output_text":
+                    texts.append(str(content.get("text", "")))
+        return "".join(texts).strip()
 
     def _is_gemini_model(self) -> bool:
         return self.api_style == "alibaba_chat" and "gemini" in self.model.strip().lower()

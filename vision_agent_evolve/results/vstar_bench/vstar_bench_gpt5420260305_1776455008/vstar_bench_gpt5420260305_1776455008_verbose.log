@@ -1,0 +1,12 @@
+
+=== ERROR TRACEBACK ===
+Timestamp: 2026-04-17 19:43:28
+Traceback (most recent call last):
+  File "/root/agentic_eval_hal_harness/hal/cli.py", line 265, in main
+    runner = AgentRunner(
+             ^^^^^^^^^^^^
+  File "/root/agentic_eval_hal_harness/hal/agent_runner.py", line 65, in __init__
+    raise ValueError(
+ValueError: No requirements.txt found in agent directory: agents/vstar_bench_agent
+
+=== END ERROR TRACEBACK ===
