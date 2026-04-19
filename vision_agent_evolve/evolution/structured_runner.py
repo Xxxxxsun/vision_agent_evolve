@@ -49,6 +49,7 @@ class StructuredExperimentConfig:
     disable_generated_tools: bool = False
     capability_root: Path | None = None
     use_skills: bool = True
+    fc_enable_tools: bool = True
 
 
 @dataclass
@@ -539,6 +540,7 @@ class StructuredBenchmarkRunner:
                     case,
                     benchmark_name=case.dataset_name(),
                     config=ToolCallingRuntimeConfig(
+                        enable_tools=self.config.fc_enable_tools,
                         work_dir=work_dir,
                         capability_root=self.config.capability_root,
                         static_skills_dir=self.project_root / "skills",

@@ -290,6 +290,17 @@ VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
 ### 3.4 Function-calling VQA on full val
 
 ```bash
+VLM_MODEL="gpt-4o" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_gpt4o_val_full_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --settings function_calling_vqa
+```
+
+```bash
 VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
   --dataset vstar \
   --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
@@ -344,6 +355,20 @@ VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
   --settings function_calling_vqa
 ```
 
+To run the pure-skill variant without exposing any tools:
+
+```bash
+VLM_MODEL="gpt-5.4-0305-global" python scripts/run_structured_experiment.py \
+  --dataset vstar \
+  --raw-data-root /root/vqa_datasets/datasets/vstar_bench \
+  --normalized-data-root ./datasets/structured_multibench \
+  --subset-id vstar_fc_skill_only_v1 \
+  --evolve-split val \
+  --train-subset-size 151 \
+  --disable-fc-tools \
+  --settings function_calling_vqa
+```
+
 ### 3.5 Reasoned vs function-calling with Alibaba proxy
 
 Use the HAL-style proxy credentials when testing `function_calling_vqa` against the Alibaba gateway. In local experiments, the original `llm_application` credentials frequently produced proxy errors or policy blocks on tool-calling requests, while the HAL defaults allowed the same requests to complete.
@@ -372,10 +397,47 @@ python scripts/run_structured_experiment.py \
 Notes:
 
 - `reasoned_vlm` is now the preferred no-tool baseline for VStar. It asks the model to reason briefly before returning `Final answer: <answer>`.
-- `function_calling_vqa` currently supports only `dataset=vstar`.
+- `function_calling_vqa` now supports `vstar`, `chartqa`, `mathvista`, and `hrbench`.
 - The current VStar tool prompt encourages `zoom_image` for small-object attribute questions.
 - `artifact_production_rate` is the reliable signal for visual tool use. `tool_usage_rate` still follows the older bash-tool extraction logic and can under-report runtime-native tool calls.
 ```
+
+## 6. Current Results Snapshot
+
+### 6.1 GPT-4o
+
+| Benchmark | Setting | Accuracy | Notes |
+| --- | --- | ---: | --- |
+| ChartQA | `reasoned_vlm` | `0.7552` | `1450 / 1920` |
+| ChartQA | `function_calling_vqa` | `0.7693` | `1477 / 1920` |
+| MathVista | `reasoned_vlm` | `0.6711` | `604 / 900` |
+| MathVista | `function_calling_vqa` | `0.6922` | `623 / 900` |
+| HRBench | `reasoned_vlm` | `0.6386` | `447 / 700` |
+| HRBench | `function_calling_vqa` | `0.6414` | `449 / 700` |
+| VStar | `reasoned_vlm` | `0.5828` | `88 / 151` |
+
+### 6.2 GPT-5.4 on VStar
+
+| Setting | Accuracy | Direct Attributes | Relative Position | Tool Usage |
+| --- | ---: | ---: | ---: | ---: |
+| `reasoned_vlm` | `0.7748` | `0.7174` | `0.8644` | `0.0000` |
+| `function_calling_vqa` | `0.7881` | `0.8043` | `0.7627` | `0.5695` artifact rate |
+| `function_calling_vqa + skills` | `0.7947` | `0.7826` | `0.8136` | `0.5960` |
+| `function_calling_vqa + no-tool skill` | `0.7086` | `0.6522` | `0.7966` | `0.0000` |
+
+Reference summaries:
+
+- `artifacts/structured_benchmarks/chartqa_reasoned_gpt4o_val_full_v3/summary.json`
+- `artifacts/structured_benchmarks/chartqa_fc_gpt4o_val_full_v4/summary.json`
+- `artifacts/structured_benchmarks/mathvista_reasoned_gpt4o_val_full_v2/summary.json`
+- `artifacts/structured_benchmarks/mathvista_fc_gpt4o_val_full_v3/summary.json`
+- `artifacts/structured_benchmarks/hrbench_reasoned_gpt4o_val_full_v3/summary.json`
+- `artifacts/structured_benchmarks/hrbench_fc_gpt4o_val_full_v4/summary.json`
+- `artifacts/structured_benchmarks/vstar_reasoned_gpt4o_val_full_v2/summary.json`
+- `artifacts/structured_benchmarks/vstar_val151_reasoned_only_vlmevalalign_gpt54_alibaba_halcreds_v6/summary.json`
+- `artifacts/structured_benchmarks/vstar_val151_fc_only_vlmevalalign_gpt54_alibaba_halcreds_v6/summary.json`
+- `artifacts/structured_benchmarks/vstar_fc_skills_gpt54_val151_rerun_v1/summary.json`
+- `artifacts/structured_benchmarks/vstar_notool_skill_gpt54_val151_v1/summary.json`
 
 ## 4. TextVQA
 
