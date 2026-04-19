@@ -1,6 +1,6 @@
 ---
 name: refocus_tablevqa
-description: "SOP for table VQA questions: crop to the relevant column before answering."
+description: "SOP for table VQA questions."
 level: mid
 depends_on: []
 applicability_conditions: "Use for any table image question."
@@ -8,33 +8,29 @@ applicability_conditions: "Use for any table image question."
 
 ## SOP
 
-### Step 1 — Identify the most relevant column
+### Step 1 — Locate the relevant cell(s)
 
-Read the question. Decide which column name contains the values you need to count, look up, or compare.
+Read the question and identify:
+- Which row (by the value in the first/leftmost column, or by row index)
+- Which column (by the column header)
 
-### Step 2 — Crop that column (always, before answering)
+Then find the cell at their intersection.
 
-Look up the pixel coordinates for that column in the "Table region coordinates" section of this message.
-Then call:
+For counting questions ("how many rows have X?"), scan the relevant column from top to bottom and count matching entries.
 
-```
-crop_image(image_id="image_0", left=<left>, top=<top>, right=<right>, bottom=<bottom>)
-```
+### Step 2 — Read and answer
 
-Use the exact coordinates from the table. This creates a narrow vertical strip showing only that column — much easier to count or scan than the full-width table.
+Read the exact value from the cell or count. Be careful with:
+- Numbers that look similar (e.g., 1 vs 7, 0 vs 6)
+- Multi-line cells (the full content may span multiple lines)
+- The question may ask about a column header itself, not a cell value
 
-- Call crop_image **exactly once**.
-- If you cannot identify a single column (e.g. the question is purely structural like "how many columns are there?"), skip this step.
+### Step 3 — Output format (strict)
 
-### Step 3 — Read and answer
-
-Read the answer from the cropped column image. Count rows, find the cell value, or compare as needed.
-
-### Step 4 — Output format (strict)
-
-- Numeric value: digits only, e.g. `4` or `3.14`.
+- Numeric value: digits only, e.g. `4` or `3.14`. No units.
 - Yes/No: exactly `Yes` or `No`.
-- Text value: exact cell text only, no extra punctuation.
-- Do NOT add units, sentences, or explanation.
+- Single text value: exact text from the cell, no extra words.
+- Multiple values listed together: separate with ` | ` (space-pipe-space), e.g. `A | B | C`.
+- Do NOT add explanations, units, or full sentences.
 
 Final answer: <answer>
