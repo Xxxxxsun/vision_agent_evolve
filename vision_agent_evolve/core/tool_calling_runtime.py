@@ -239,7 +239,12 @@ class RuntimeToolRegistry:
                 "type": "function",
                 "function": {
                     "name": "execute_python",
-                    "description": "Execute Python code in a persistent interpreter for calculations or verification.",
+                    "description": (
+                        "Execute Python code in a persistent interpreter for calculations or verification. "
+                        "Always use print() to output results — silent assignments produce no output. "
+                        "Pattern: assign values read from the image as variables, then compute. "
+                        "Example: a=45.3; b=28.7; print(round(a-b, 1))"
+                    ),
                     "parameters": {
                         "type": "object",
                         "properties": {"code": {"type": "string"}},
@@ -271,7 +276,13 @@ class RuntimeToolRegistry:
                 "type": "function",
                 "function": {
                     "name": "crop_image",
-                    "description": "Crop an image using pixel coordinates and create a new derived image.",
+                    "description": (
+                        "Crop an image to a precise pixel region and create a new derived image. "
+                        "Call get_image_info first to obtain the image dimensions, then compute "
+                        "left/top/right/bottom pixel coordinates. "
+                        "Best for isolating a specific region (chart legend, axis label block, text area) "
+                        "with exact boundaries when zoom_image is not precise enough."
+                    ),
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -461,7 +472,12 @@ def run_function_calling_vqa_case(
         allowed_tools=skill_context.effective_tool_names or None,
     )
     system_prompt = _build_system_prompt(benchmark_name)
-    user_prompt = _build_task_prompt(case, include_image=bool(image_refs), skill_context=skill_context)
+    user_prompt = _build_task_prompt(
+        case,
+        include_image=bool(image_refs),
+        skill_context=skill_context,
+        enable_tools=runtime_config.enable_tools,
+    )
     user_content: list[dict[str, Any]] = [{"type": "text", "text": user_prompt}]
     for image_ref in image_refs:
         user_content.append({"type": "image_url", "image_url": {"url": VLMClient.image_data_url(image_ref)}})
@@ -606,7 +622,12 @@ def _build_system_prompt(benchmark_name: str) -> str:
     return SYSTEM_PROMPT
 
 
-def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: ResolvedSkillContext | None = None) -> str:
+def _build_task_prompt(
+    case: TaskCase,
+    include_image: bool,
+    skill_context: ResolvedSkillContext | None = None,
+    enable_tools: bool = True,
+) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
     family = str(case.metadata.get("capability_family", "") or "").strip().lower()
     dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
@@ -627,73 +648,115 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
     elif dataset_name == "mathvista" and choices:
         lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
     elif dataset_name == "chartqa":
-        lines.extend(
-            [
-                "Read the chart carefully before answering.",
-                "Identify which chart region (bar, line, legend, axis label) contains the needed value.",
-                "Use zoom_image with center_x/center_y targeting that region — legends are often top-right (center_y≈0.1), x-axis labels at the bottom (center_y≈0.9), y-axis labels at the left (center_x≈0.08).",
-                "Extract the numeric values first, then use execute_python for arithmetic.",
-                "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
-            ]
-        )
+        if enable_tools:
+            lines.extend(
+                [
+                    "Read the chart carefully before answering.",
+                    "Identify which chart region (bar, line, legend, axis label) contains the needed value.",
+                    "Use zoom_image with center_x/center_y targeting that region — legends are often top-right (center_y≈0.1), x-axis labels at the bottom (center_y≈0.9), y-axis labels at the left (center_x≈0.08).",
+                    "Extract the numeric values first, then use execute_python for arithmetic.",
+                    "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "Read the chart values directly from the image.",
+                    "Identify the specific bar, line, or label the question refers to, then read its value from the y-axis scale.",
+                    "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
+                ]
+            )
     elif dataset_name == "mathvista":
-        lines.extend(
-            [
-                "Identify the relevant values or geometric properties in the figure.",
-                "Use zoom_image with center_x/center_y if tick marks, annotations, or diagram labels are too small to read.",
-                "Use execute_python after extracting all needed values — always print() the result.",
-                "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
-            ]
-        )
+        if enable_tools:
+            lines.extend(
+                [
+                    "Identify the relevant values or geometric properties in the figure.",
+                    "Use zoom_image with center_x/center_y if tick marks, annotations, or diagram labels are too small to read.",
+                    "Use execute_python after extracting all needed values — always print() the result.",
+                    "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "Examine the figure carefully. Identify all labeled values, angles, or data points relevant to the question.",
+                    "Show your calculation steps in the reasoning trace.",
+                    "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
+                ]
+            )
     elif dataset_name == "hrbench":
-        lines.extend(
-            [
-                "HRBench images are high-resolution — always use zoom_image before answering.",
-                "Estimate where the target text or symbol is located and set center_x/center_y accordingly (do not default to 0.5 if the target is off-center).",
-                "Use factor=3 or higher for small or distant text; use a two-pass zoom if the target location is uncertain.",
-                "Use crop_image after zoom if surrounding distractors make the target hard to identify.",
-                "Return the matching option letter in Final answer.",
-            ]
-        )
+        if enable_tools:
+            lines.extend(
+                [
+                    "HRBench images are high-resolution — always use zoom_image before answering.",
+                    "Estimate where the target text or symbol is located and set center_x/center_y accordingly (do not default to 0.5 if the target is off-center).",
+                    "Use factor=3 or higher for small or distant text; use a two-pass zoom if the target location is uncertain.",
+                    "Use crop_image after zoom if surrounding distractors make the target hard to identify.",
+                    "Return the matching option letter in Final answer.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "This image is high-resolution. Focus carefully on the region where the target text or symbol appears.",
+                    "Read it precisely before matching to an answer option.",
+                    "Return the matching option letter in Final answer.",
+                ]
+            )
     if family == "vstar_direct_attributes":
-        lines.extend(
-            [
-                "The target object is often small or off-center. Always call zoom_image unless the target is unambiguously large.",
-                "Set center_x and center_y to where the target object appears in the image (normalized 0.0–1.0). Do NOT leave them at 0.5 if the target is off-center.",
-                "Example: target in upper-right → center_x=0.75, center_y=0.25. Target lower-left → center_x=0.25, center_y=0.75.",
-                "If the first zoom does not show the target, re-estimate the position and call zoom_image again.",
-                "Verify the named object carefully before choosing among similar colors or materials.",
-            ]
-        )
+        if enable_tools:
+            lines.extend(
+                [
+                    "The target object is often small or off-center. Always call zoom_image unless the target is unambiguously large.",
+                    "Set center_x and center_y to where the target object appears in the image (normalized 0.0–1.0). Do NOT leave them at 0.5 if the target is off-center.",
+                    "Example: target in upper-right → center_x=0.75, center_y=0.25. Target lower-left → center_x=0.25, center_y=0.75.",
+                    "If the first zoom does not show the target, re-estimate the position and call zoom_image again.",
+                    "Verify the named object carefully before choosing among similar colors or materials.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "The target object may be small or off-center. Focus your visual attention on the named object.",
+                    "Carefully examine its color or material attribute — do not switch to a nearby distractor.",
+                    "Match the observed attribute to the answer options and return the option letter.",
+                ]
+            )
     elif family == "vstar_relative_position":
-        lines.extend(
-            [
-                "Judge the spatial relation from the viewer's perspective using the full image as the reference frame.",
-                "If an object is too small to localize, use zoom_image with center_x/center_y at its estimated position — then reason about the relation in the full-image frame.",
-                "Never let a zoomed patch become the new reference frame for left/right judgment.",
-                "First determine the semantic spatial conclusion, then map it to the matching option letter.",
-            ]
-        )
+        if enable_tools:
+            lines.extend(
+                [
+                    "Judge the spatial relation from the viewer's perspective using the full image as the reference frame.",
+                    "If an object is too small to localize, use zoom_image with center_x/center_y at its estimated position — then reason about the relation in the full-image frame.",
+                    "Never let a zoomed patch become the new reference frame for left/right judgment.",
+                    "First determine the semantic spatial conclusion, then map it to the matching option letter.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "Use the full image as your spatial reference frame.",
+                    "Identify both named objects and judge their relative position from the viewer's perspective — not from the objects' own orientation.",
+                    "First determine the spatial conclusion, then map it to the matching option letter.",
+                ]
+            )
     elif dataset_name == "chartqa":
         lines.extend(
             [
-                "Do not zoom to the image center if the target (legend, axis label, specific bar) is in a corner or edge.",
                 "Confirm the category or series label before reading the numeric value to avoid confusing adjacent bars or lines.",
-                "For comparisons or differences, extract both values explicitly before computing.",
+                "For comparisons or differences, read both values explicitly before computing.",
             ]
         )
     elif dataset_name == "mathvista":
         lines.extend(
             [
-                "Work from visible evidence in the figure — do not estimate values that are readable.",
-                "For geometry: zoom to vertices or edge labels where angle/length annotations appear.",
-                "For graphs and plots: x-axis labels are at center_y≈0.90, y-axis labels at center_x≈0.08.",
+                "Work from visible evidence in the figure — do not estimate values that are labeled.",
+                "Check units (degrees, cm, %) before finalizing the answer.",
             ]
         )
     elif dataset_name == "hrbench":
         lines.extend(
             [
-                "If you are uncertain of the target location, do a first-pass zoom (factor=2, center=0.5) to orient yourself, then a second targeted zoom.",
                 "Prioritize reading the exact text or symbol — do not infer the answer from surrounding context alone.",
                 "After reading the target, verify it matches one of the answer options before committing.",
             ]
