@@ -1,6 +1,6 @@
 ---
 name: refocus_tablevqa
-description: "SOP for table VQA questions using function-calling focus tools."
+description: "SOP for table VQA questions: crop to the relevant column before answering."
 level: mid
 depends_on: []
 applicability_conditions: "Use for any table image question."
@@ -8,45 +8,33 @@ applicability_conditions: "Use for any table image question."
 
 ## SOP
 
-### Step 1 — Identify the relevant column(s) and/or row(s)
+### Step 1 — Identify the most relevant column
 
-Read the question and identify:
-- Which **column** contains the values you need to read or count (e.g., "GDP column", "Score column", "Year column")
-- Which **row** you need to look at, if the question names a specific entity (e.g., "United States", "1995")
+Read the question. Decide which column name contains the values you need to count, look up, or compare.
 
-### Step 2 — Call the focus tool (call once, immediately, before answering)
+### Step 2 — Crop that column (always, before answering)
 
-**Always call a focus tool** unless the table is tiny (3 rows or fewer). Tables in this benchmark are often tall and hard to read without zooming.
+Look up the pixel coordinates for that column in the "Table region coordinates" section of this message.
+Then call:
 
-- If a specific column is relevant:
-  ```
-  focus_on_columns(labels=["ColumnName"])
-  ```
-- If a specific row is relevant AND you know the row key:
-  ```
-  focus_on_rows(labels=["RowKey"])
-  ```
-- If both row and column matter, call `focus_on_columns` first (it gives a narrower view of the full column, making counting and scanning easier).
-
-Examples:
 ```
-focus_on_columns(labels=["Supporting Actor"])
-focus_on_columns(labels=["GDP", "Population"])
-focus_on_rows(labels=["1995"])
+crop_image(image_id="image_0", left=<left>, top=<top>, right=<right>, bottom=<bottom>)
 ```
 
-Call the tool exactly once, then proceed immediately to Step 3. Do NOT retry.
+Use the exact coordinates from the table. This creates a narrow vertical strip showing only that column — much easier to count or scan than the full-width table.
+
+- Call crop_image **exactly once**.
+- If you cannot identify a single column (e.g. the question is purely structural like "how many columns are there?"), skip this step.
 
 ### Step 3 — Read and answer
 
-- If Step 2 produced a derived image: read the answer from that highlighted image.
-- Otherwise: read the answer directly from the original table image.
+Read the answer from the cropped column image. Count rows, find the cell value, or compare as needed.
 
 ### Step 4 — Output format (strict)
 
-- Numeric value: digits only, e.g. `42` or `3.14`.
+- Numeric value: digits only, e.g. `4` or `3.14`.
 - Yes/No: exactly `Yes` or `No`.
-- Text value: exact cell text only.
+- Text value: exact cell text only, no extra punctuation.
 - Do NOT add units, sentences, or explanation.
 
 Final answer: <answer>

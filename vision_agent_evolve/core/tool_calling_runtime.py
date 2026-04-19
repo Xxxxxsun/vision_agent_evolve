@@ -662,7 +662,12 @@ def run_function_calling_vqa_case(
         chart_bbox=runtime_config.chart_bbox or {},
     )
     system_prompt = _build_system_prompt(benchmark_name)
-    user_prompt = _build_task_prompt(case, include_image=bool(image_refs), skill_context=skill_context)
+    user_prompt = _build_task_prompt(
+        case,
+        include_image=bool(image_refs),
+        skill_context=skill_context,
+        chart_bbox=runtime_config.chart_bbox or {},
+    )
     user_content: list[dict[str, Any]] = [{"type": "text", "text": user_prompt}]
     for image_ref in image_refs:
         user_content.append({"type": "image_url", "image_url": {"url": VLMClient.image_data_url(image_ref)}})
@@ -795,7 +800,12 @@ def _build_system_prompt(benchmark_name: str) -> str:
     return SYSTEM_PROMPT
 
 
-def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: ResolvedSkillContext | None = None) -> str:
+def _build_task_prompt(
+    case: TaskCase,
+    include_image: bool,
+    skill_context: ResolvedSkillContext | None = None,
+    chart_bbox: dict[str, Any] | None = None,
+) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
     family = str(case.metadata.get("capability_family", "") or "").strip().lower()
     dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
@@ -811,6 +821,25 @@ def _build_task_prompt(case: TaskCase, include_image: bool, skill_context: Resol
             lines.append(f"- {note}")
         for block in skill_context.prompt_blocks:
             lines.extend(["", block])
+    # Inject table region coordinates so the model can call crop_image directly
+    _bbox = chart_bbox or {}
+    cols_bbox = _bbox.get("columns_bbox", {})
+    rows_bbox = _bbox.get("rows_bbox", {})
+    if cols_bbox or rows_bbox:
+        lines.extend(["", "Table region coordinates (pixel boundaries, for use with crop_image):"])
+        if cols_bbox:
+            lines.append("Columns (each spans the full height of the table):")
+            for col_name, b in list(cols_bbox.items())[:15]:
+                lines.append(
+                    f"  \"{col_name}\": left={int(b['x1'])}, top={int(b['y1'])}, right={int(b['x2'])}, bottom={int(b['y2'])}"
+                )
+        if rows_bbox:
+            lines.append("Row keys (each spans the full width of the table):")
+            for row_key, b in list(rows_bbox.items())[:20]:
+                lines.append(
+                    f"  \"{row_key}\": left={int(b['x1'])}, top={int(b['y1'])}, right={int(b['x2'])}, bottom={int(b['y2'])}"
+                )
+
     if dataset_name == "vstar":
         lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
     if family == "vstar_direct_attributes":
