@@ -8,33 +8,34 @@ applicability_conditions: "Use for any table image question."
 
 ## SOP
 
-### Step 1 — Identify what needs to be located
+### Step 1 — Identify the relevant column(s) and/or row(s)
 
-Look at the question:
-- If the question asks about a specific **row** (e.g., "What is the value for United States?", "How many points did Brazil score?") → identify the row label(s) and go to Step 2a.
-- If the question asks about a specific **column** (e.g., "What are the values in the GDP column?", "Which country has the highest Population?") → identify the column label(s) and go to Step 2b.
-- If the question asks about a **cell at the intersection** of a row and column → do both Step 2a and 2b.
-- If the question does NOT require locating a specific cell (e.g., "How many rows are there?", "What is the table title?") → skip to Step 3.
+Read the question and identify:
+- Which **column** contains the values you need to read or count (e.g., "GDP column", "Score column", "Year column")
+- Which **row** you need to look at, if the question names a specific entity (e.g., "United States", "1995")
 
-### Step 2a — Highlight the target row (if needed, exactly once)
+### Step 2 — Call the focus tool (call once, immediately, before answering)
 
-Call `focus_on_rows` with the target row label(s), e.g.:
+**Always call a focus tool** unless the table is tiny (3 rows or fewer). Tables in this benchmark are often tall and hard to read without zooming.
+
+- If a specific column is relevant:
+  ```
+  focus_on_columns(labels=["ColumnName"])
+  ```
+- If a specific row is relevant AND you know the row key:
+  ```
+  focus_on_rows(labels=["RowKey"])
+  ```
+- If both row and column matter, call `focus_on_columns` first (it gives a narrower view of the full column, making counting and scanning easier).
+
+Examples:
 ```
-focus_on_rows(labels=["United States"])
-```
-or for multiple rows:
-```
-focus_on_rows(labels=["Brazil", "Argentina"])
+focus_on_columns(labels=["Supporting Actor"])
+focus_on_columns(labels=["GDP", "Population"])
+focus_on_rows(labels=["1995"])
 ```
 
-### Step 2b — Highlight the target column (if needed, exactly once)
-
-Call `focus_on_columns` with the target column label(s), e.g.:
-```
-focus_on_columns(labels=["GDP"])
-```
-
-Do NOT retry even if uncertain — call each tool at most once, then proceed.
+Call the tool exactly once, then proceed immediately to Step 3. Do NOT retry.
 
 ### Step 3 — Read and answer
 
@@ -43,7 +44,7 @@ Do NOT retry even if uncertain — call each tool at most once, then proceed.
 
 ### Step 4 — Output format (strict)
 
-- Numeric value: digits only, e.g. `42` or `3.14`. No units unless the table header shows them.
+- Numeric value: digits only, e.g. `42` or `3.14`.
 - Yes/No: exactly `Yes` or `No`.
 - Text value: exact cell text only.
 - Do NOT add units, sentences, or explanation.
