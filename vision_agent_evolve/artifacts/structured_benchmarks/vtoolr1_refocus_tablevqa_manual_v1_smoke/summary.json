@@ -44,14 +44,14 @@
     "frozen_inference_fc_forced_skill": {
       "split": "val",
       "total": 10,
-      "correct": 2,
-      "accuracy": 0.2,
+      "correct": 3,
+      "accuracy": 0.3,
       "per_dataset_accuracy": {
-        "refocus_tablevqa": 0.2
+        "refocus_tablevqa": 0.3
       },
       "per_family_accuracy": {
         "refocus_tablevqa_tablevqa_count_or_total": 0.3333333333333333,
-        "refocus_tablevqa_tablevqa_generic": 0.0
+        "refocus_tablevqa_tablevqa_generic": 0.25
       },
       "full_agent_accuracy": 0.0,
       "post_evolve_recovery_accuracy": 0.0,
@@ -85,5 +85,5 @@
   "scratch_skill_post_evolve_recovery_accuracy": 0.0,
   "scratch_skill_frozen_accuracy": 0.0,
   "scratch_skill_forced_accuracy": 0.0,
-  "forced_skill_fc_accuracy": 0.2
+  "forced_skill_fc_accuracy": 0.3
 }
