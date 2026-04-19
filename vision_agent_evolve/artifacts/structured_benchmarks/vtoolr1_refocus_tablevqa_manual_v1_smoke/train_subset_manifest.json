@@ -1,0 +1,1210 @@
+{
+  "subset_id": "vtoolr1_refocus_tablevqa_manual_v1_smoke",
+  "split": "train",
+  "total_cases": 200,
+  "datasets": [
+    "refocus_tablevqa"
+  ],
+  "cases": [
+    {
+      "case_id": "refocus_tablevqa_1",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_1"
+    },
+    {
+      "case_id": "refocus_tablevqa_10",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_10"
+    },
+    {
+      "case_id": "refocus_tablevqa_100",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_100"
+    },
+    {
+      "case_id": "refocus_tablevqa_101",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_101"
+    },
+    {
+      "case_id": "refocus_tablevqa_102",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_102"
+    },
+    {
+      "case_id": "refocus_tablevqa_103",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_103"
+    },
+    {
+      "case_id": "refocus_tablevqa_104",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_104"
+    },
+    {
+      "case_id": "refocus_tablevqa_105",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_105"
+    },
+    {
+      "case_id": "refocus_tablevqa_106",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_106"
+    },
+    {
+      "case_id": "refocus_tablevqa_107",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_107"
+    },
+    {
+      "case_id": "refocus_tablevqa_108",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_108"
+    },
+    {
+      "case_id": "refocus_tablevqa_109",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_109"
+    },
+    {
+      "case_id": "refocus_tablevqa_11",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_11"
+    },
+    {
+      "case_id": "refocus_tablevqa_110",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_110"
+    },
+    {
+      "case_id": "refocus_tablevqa_111",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_111"
+    },
+    {
+      "case_id": "refocus_tablevqa_112",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_112"
+    },
+    {
+      "case_id": "refocus_tablevqa_113",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_113"
+    },
+    {
+      "case_id": "refocus_tablevqa_114",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_114"
+    },
+    {
+      "case_id": "refocus_tablevqa_115",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_115"
+    },
+    {
+      "case_id": "refocus_tablevqa_116",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_116"
+    },
+    {
+      "case_id": "refocus_tablevqa_117",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_117"
+    },
+    {
+      "case_id": "refocus_tablevqa_118",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_118"
+    },
+    {
+      "case_id": "refocus_tablevqa_119",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_119"
+    },
+    {
+      "case_id": "refocus_tablevqa_12",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_12"
+    },
+    {
+      "case_id": "refocus_tablevqa_120",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_120"
+    },
+    {
+      "case_id": "refocus_tablevqa_121",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_121"
+    },
+    {
+      "case_id": "refocus_tablevqa_122",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_122"
+    },
+    {
+      "case_id": "refocus_tablevqa_123",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_123"
+    },
+    {
+      "case_id": "refocus_tablevqa_124",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_124"
+    },
+    {
+      "case_id": "refocus_tablevqa_125",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_125"
+    },
+    {
+      "case_id": "refocus_tablevqa_126",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_126"
+    },
+    {
+      "case_id": "refocus_tablevqa_127",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_127"
+    },
+    {
+      "case_id": "refocus_tablevqa_128",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_128"
+    },
+    {
+      "case_id": "refocus_tablevqa_129",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_129"
+    },
+    {
+      "case_id": "refocus_tablevqa_13",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_13"
+    },
+    {
+      "case_id": "refocus_tablevqa_130",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_130"
+    },
+    {
+      "case_id": "refocus_tablevqa_131",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_131"
+    },
+    {
+      "case_id": "refocus_tablevqa_132",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_132"
+    },
+    {
+      "case_id": "refocus_tablevqa_133",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_133"
+    },
+    {
+      "case_id": "refocus_tablevqa_134",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_134"
+    },
+    {
+      "case_id": "refocus_tablevqa_135",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_135"
+    },
+    {
+      "case_id": "refocus_tablevqa_136",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_136"
+    },
+    {
+      "case_id": "refocus_tablevqa_137",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_137"
+    },
+    {
+      "case_id": "refocus_tablevqa_138",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_138"
+    },
+    {
+      "case_id": "refocus_tablevqa_139",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_139"
+    },
+    {
+      "case_id": "refocus_tablevqa_14",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_14"
+    },
+    {
+      "case_id": "refocus_tablevqa_140",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_140"
+    },
+    {
+      "case_id": "refocus_tablevqa_141",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_141"
+    },
+    {
+      "case_id": "refocus_tablevqa_142",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_142"
+    },
+    {
+      "case_id": "refocus_tablevqa_143",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_143"
+    },
+    {
+      "case_id": "refocus_tablevqa_144",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_144"
+    },
+    {
+      "case_id": "refocus_tablevqa_145",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_145"
+    },
+    {
+      "case_id": "refocus_tablevqa_146",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_146"
+    },
+    {
+      "case_id": "refocus_tablevqa_147",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_147"
+    },
+    {
+      "case_id": "refocus_tablevqa_148",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_148"
+    },
+    {
+      "case_id": "refocus_tablevqa_149",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_149"
+    },
+    {
+      "case_id": "refocus_tablevqa_15",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_15"
+    },
+    {
+      "case_id": "refocus_tablevqa_150",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_150"
+    },
+    {
+      "case_id": "refocus_tablevqa_151",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_151"
+    },
+    {
+      "case_id": "refocus_tablevqa_152",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_152"
+    },
+    {
+      "case_id": "refocus_tablevqa_153",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_153"
+    },
+    {
+      "case_id": "refocus_tablevqa_154",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_154"
+    },
+    {
+      "case_id": "refocus_tablevqa_155",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_155"
+    },
+    {
+      "case_id": "refocus_tablevqa_156",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_156"
+    },
+    {
+      "case_id": "refocus_tablevqa_157",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_157"
+    },
+    {
+      "case_id": "refocus_tablevqa_158",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_158"
+    },
+    {
+      "case_id": "refocus_tablevqa_159",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_159"
+    },
+    {
+      "case_id": "refocus_tablevqa_16",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_16"
+    },
+    {
+      "case_id": "refocus_tablevqa_160",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_160"
+    },
+    {
+      "case_id": "refocus_tablevqa_161",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_161"
+    },
+    {
+      "case_id": "refocus_tablevqa_162",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_162"
+    },
+    {
+      "case_id": "refocus_tablevqa_163",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_163"
+    },
+    {
+      "case_id": "refocus_tablevqa_164",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_164"
+    },
+    {
+      "case_id": "refocus_tablevqa_165",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_165"
+    },
+    {
+      "case_id": "refocus_tablevqa_166",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_166"
+    },
+    {
+      "case_id": "refocus_tablevqa_167",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_167"
+    },
+    {
+      "case_id": "refocus_tablevqa_168",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_168"
+    },
+    {
+      "case_id": "refocus_tablevqa_169",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_169"
+    },
+    {
+      "case_id": "refocus_tablevqa_17",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_17"
+    },
+    {
+      "case_id": "refocus_tablevqa_170",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_170"
+    },
+    {
+      "case_id": "refocus_tablevqa_171",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_171"
+    },
+    {
+      "case_id": "refocus_tablevqa_172",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_172"
+    },
+    {
+      "case_id": "refocus_tablevqa_173",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_173"
+    },
+    {
+      "case_id": "refocus_tablevqa_174",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_174"
+    },
+    {
+      "case_id": "refocus_tablevqa_175",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_175"
+    },
+    {
+      "case_id": "refocus_tablevqa_176",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_extrema",
+      "source_id": "refocus_tablevqa_176"
+    },
+    {
+      "case_id": "refocus_tablevqa_177",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_177"
+    },
+    {
+      "case_id": "refocus_tablevqa_178",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_178"
+    },
+    {
+      "case_id": "refocus_tablevqa_179",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_179"
+    },
+    {
+      "case_id": "refocus_tablevqa_18",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_18"
+    },
+    {
+      "case_id": "refocus_tablevqa_180",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_180"
+    },
+    {
+      "case_id": "refocus_tablevqa_181",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_181"
+    },
+    {
+      "case_id": "refocus_tablevqa_182",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_182"
+    },
+    {
+      "case_id": "refocus_tablevqa_183",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_comparison",
+      "source_id": "refocus_tablevqa_183"
+    },
+    {
+      "case_id": "refocus_tablevqa_184",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_184"
+    },
+    {
+      "case_id": "refocus_tablevqa_185",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_185"
+    },
+    {
+      "case_id": "refocus_tablevqa_186",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_186"
+    },
+    {
+      "case_id": "refocus_tablevqa_187",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_187"
+    },
+    {
+      "case_id": "refocus_tablevqa_188",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_188"
+    },
+    {
+      "case_id": "refocus_tablevqa_189",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_189"
+    },
+    {
+      "case_id": "refocus_tablevqa_19",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_19"
+    },
+    {
+      "case_id": "refocus_tablevqa_190",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_190"
+    },
+    {
+      "case_id": "refocus_tablevqa_191",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_191"
+    },
+    {
+      "case_id": "refocus_tablevqa_192",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_192"
+    },
+    {
+      "case_id": "refocus_tablevqa_193",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_193"
+    },
+    {
+      "case_id": "refocus_tablevqa_194",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_194"
+    },
+    {
+      "case_id": "refocus_tablevqa_195",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_195"
+    },
+    {
+      "case_id": "refocus_tablevqa_196",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_196"
+    },
+    {
+      "case_id": "refocus_tablevqa_197",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_197"
+    },
+    {
+      "case_id": "refocus_tablevqa_198",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_198"
+    },
+    {
+      "case_id": "refocus_tablevqa_199",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_199"
+    },
+    {
+      "case_id": "refocus_tablevqa_2",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_2"
+    },
+    {
+      "case_id": "refocus_tablevqa_20",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_20"
+    },
+    {
+      "case_id": "refocus_tablevqa_200",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_200"
+    },
+    {
+      "case_id": "refocus_tablevqa_201",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_201"
+    },
+    {
+      "case_id": "refocus_tablevqa_202",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_extrema",
+      "source_id": "refocus_tablevqa_202"
+    },
+    {
+      "case_id": "refocus_tablevqa_203",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_203"
+    },
+    {
+      "case_id": "refocus_tablevqa_204",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_204"
+    },
+    {
+      "case_id": "refocus_tablevqa_205",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_205"
+    },
+    {
+      "case_id": "refocus_tablevqa_206",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_206"
+    },
+    {
+      "case_id": "refocus_tablevqa_207",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_207"
+    },
+    {
+      "case_id": "refocus_tablevqa_208",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_comparison",
+      "source_id": "refocus_tablevqa_208"
+    },
+    {
+      "case_id": "refocus_tablevqa_209",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_209"
+    },
+    {
+      "case_id": "refocus_tablevqa_21",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_21"
+    },
+    {
+      "case_id": "refocus_tablevqa_210",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_210"
+    },
+    {
+      "case_id": "refocus_tablevqa_211",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_211"
+    },
+    {
+      "case_id": "refocus_tablevqa_212",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_212"
+    },
+    {
+      "case_id": "refocus_tablevqa_213",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_213"
+    },
+    {
+      "case_id": "refocus_tablevqa_214",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_214"
+    },
+    {
+      "case_id": "refocus_tablevqa_215",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_215"
+    },
+    {
+      "case_id": "refocus_tablevqa_216",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_216"
+    },
+    {
+      "case_id": "refocus_tablevqa_217",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_217"
+    },
+    {
+      "case_id": "refocus_tablevqa_218",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_218"
+    },
+    {
+      "case_id": "refocus_tablevqa_219",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_219"
+    },
+    {
+      "case_id": "refocus_tablevqa_22",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_22"
+    },
+    {
+      "case_id": "refocus_tablevqa_220",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_220"
+    },
+    {
+      "case_id": "refocus_tablevqa_221",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_221"
+    },
+    {
+      "case_id": "refocus_tablevqa_222",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_222"
+    },
+    {
+      "case_id": "refocus_tablevqa_223",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_223"
+    },
+    {
+      "case_id": "refocus_tablevqa_224",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_224"
+    },
+    {
+      "case_id": "refocus_tablevqa_225",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_225"
+    },
+    {
+      "case_id": "refocus_tablevqa_226",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_226"
+    },
+    {
+      "case_id": "refocus_tablevqa_227",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_227"
+    },
+    {
+      "case_id": "refocus_tablevqa_228",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_comparison",
+      "source_id": "refocus_tablevqa_228"
+    },
+    {
+      "case_id": "refocus_tablevqa_229",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_229"
+    },
+    {
+      "case_id": "refocus_tablevqa_23",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_23"
+    },
+    {
+      "case_id": "refocus_tablevqa_230",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_extrema",
+      "source_id": "refocus_tablevqa_230"
+    },
+    {
+      "case_id": "refocus_tablevqa_231",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_231"
+    },
+    {
+      "case_id": "refocus_tablevqa_232",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_232"
+    },
+    {
+      "case_id": "refocus_tablevqa_233",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_233"
+    },
+    {
+      "case_id": "refocus_tablevqa_234",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_234"
+    },
+    {
+      "case_id": "refocus_tablevqa_235",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_235"
+    },
+    {
+      "case_id": "refocus_tablevqa_236",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_236"
+    },
+    {
+      "case_id": "refocus_tablevqa_237",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_237"
+    },
+    {
+      "case_id": "refocus_tablevqa_238",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_238"
+    },
+    {
+      "case_id": "refocus_tablevqa_239",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_239"
+    },
+    {
+      "case_id": "refocus_tablevqa_24",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_24"
+    },
+    {
+      "case_id": "refocus_tablevqa_240",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_240"
+    },
+    {
+      "case_id": "refocus_tablevqa_241",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_241"
+    },
+    {
+      "case_id": "refocus_tablevqa_242",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_242"
+    },
+    {
+      "case_id": "refocus_tablevqa_243",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_243"
+    },
+    {
+      "case_id": "refocus_tablevqa_244",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_244"
+    },
+    {
+      "case_id": "refocus_tablevqa_245",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_245"
+    },
+    {
+      "case_id": "refocus_tablevqa_246",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_246"
+    },
+    {
+      "case_id": "refocus_tablevqa_247",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_247"
+    },
+    {
+      "case_id": "refocus_tablevqa_248",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_248"
+    },
+    {
+      "case_id": "refocus_tablevqa_249",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_249"
+    },
+    {
+      "case_id": "refocus_tablevqa_25",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_25"
+    },
+    {
+      "case_id": "refocus_tablevqa_250",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_250"
+    },
+    {
+      "case_id": "refocus_tablevqa_251",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_251"
+    },
+    {
+      "case_id": "refocus_tablevqa_252",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_252"
+    },
+    {
+      "case_id": "refocus_tablevqa_253",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_253"
+    },
+    {
+      "case_id": "refocus_tablevqa_254",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_254"
+    },
+    {
+      "case_id": "refocus_tablevqa_255",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_255"
+    },
+    {
+      "case_id": "refocus_tablevqa_256",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_comparison",
+      "source_id": "refocus_tablevqa_256"
+    },
+    {
+      "case_id": "refocus_tablevqa_257",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_extrema",
+      "source_id": "refocus_tablevqa_257"
+    },
+    {
+      "case_id": "refocus_tablevqa_258",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_258"
+    },
+    {
+      "case_id": "refocus_tablevqa_259",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_259"
+    },
+    {
+      "case_id": "refocus_tablevqa_26",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_26"
+    },
+    {
+      "case_id": "refocus_tablevqa_260",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_260"
+    },
+    {
+      "case_id": "refocus_tablevqa_261",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_261"
+    },
+    {
+      "case_id": "refocus_tablevqa_262",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_262"
+    },
+    {
+      "case_id": "refocus_tablevqa_263",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_263"
+    },
+    {
+      "case_id": "refocus_tablevqa_264",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_264"
+    },
+    {
+      "case_id": "refocus_tablevqa_265",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_265"
+    },
+    {
+      "case_id": "refocus_tablevqa_266",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_266"
+    },
+    {
+      "case_id": "refocus_tablevqa_267",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_267"
+    },
+    {
+      "case_id": "refocus_tablevqa_268",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_268"
+    },
+    {
+      "case_id": "refocus_tablevqa_269",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_269"
+    },
+    {
+      "case_id": "refocus_tablevqa_27",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_27"
+    },
+    {
+      "case_id": "refocus_tablevqa_270",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_270"
+    },
+    {
+      "case_id": "refocus_tablevqa_271",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_271"
+    },
+    {
+      "case_id": "refocus_tablevqa_272",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_272"
+    },
+    {
+      "case_id": "refocus_tablevqa_273",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_comparison",
+      "source_id": "refocus_tablevqa_273"
+    },
+    {
+      "case_id": "refocus_tablevqa_274",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_274"
+    },
+    {
+      "case_id": "refocus_tablevqa_275",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_count_or_total",
+      "source_id": "refocus_tablevqa_275"
+    },
+    {
+      "case_id": "refocus_tablevqa_276",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_276"
+    },
+    {
+      "case_id": "refocus_tablevqa_277",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_277"
+    },
+    {
+      "case_id": "refocus_tablevqa_278",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_278"
+    },
+    {
+      "case_id": "refocus_tablevqa_279",
+      "dataset_name": "refocus_tablevqa",
+      "capability_family": "refocus_tablevqa_tablevqa_generic",
+      "source_id": "refocus_tablevqa_279"
+    }
+  ]
+}
