@@ -1,0 +1,65 @@
+[
+  {
+    "figure_id": "nu-903",
+    "family": "count_or_total",
+    "pattern": "columns_draw",
+    "description": "Count qualifying years by focusing one relevant column and enumerating only visible qualifying entries.",
+    "assistant_text": "THOUGHT 0: To answer this, I only need the Open Cup column. I will focus that single column and count the years with a non-empty Open Cup result.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_draw(image_1, [\"Open Cup\"], columns_bbox)\ndisplay(image_with_focused_columns)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the focused Open Cup column, the non-empty qualifying entries appear in 1998 and 2007. That is 2 qualifying years.\nANSWER: The team qualified for the Open Cup 2 times. FINAL ANSWER: 2. TERMINATE"
+  },
+  {
+    "figure_id": "nu-2936",
+    "family": "count_or_total",
+    "pattern": "columns_mask",
+    "description": "Count duplicates by focusing the key category column and grouping repeated visible values.",
+    "assistant_text": "THOUGHT 0: To determine how many players had the same nationality, I only need the Nationality column. I will focus that column and count the players sharing the repeated nationality.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_mask(image_1, [\"Nationality\"], columns_bbox)\ndisplay(image_with_focused_columns)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the focused Nationality column, FIN appears for three players. Therefore, 3 players had the same nationality.\nANSWER: Three players had the same nationality. FINAL ANSWER: 3. TERMINATE"
+  },
+  {
+    "figure_id": "nu-1223",
+    "family": "generic",
+    "pattern": "rows_draw",
+    "description": "Use a single exact row label when the row alone exposes the requested fact.",
+    "assistant_text": "THOUGHT 0: The question asks for the aerial victory number associated with the foe being set afire in midair. The relevant exact row label is 5, so focusing that row is sufficient.\n\nACTION 0:\n```python\nimage_with_focused_rows = focus_on_rows_with_draw(image_1, [\"5\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: The focused row shows that the only aerial victory resulting in the foe being set afire in midair is number 5.\nANSWER: The aerial victory number was 5. FINAL ANSWER: 5. TERMINATE"
+  },
+  {
+    "figure_id": "nu-3651",
+    "family": "generic",
+    "pattern": "rows_draw",
+    "description": "For after/before year questions, focus the exact year row instead of scanning the full table.",
+    "assistant_text": "THOUGHT 0: The question asks for the organization listed after 2008. The next exact year row is 2010, so I only need to focus that row.\n\nACTION 0:\n```python\nimage_with_focused_rows = focus_on_rows_with_draw(image_1, [\"2010\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: The focused 2010 row shows the organization is Nikkan Sports Grand Prix (Fall).\nANSWER: The organization listed after 2008 is Nikkan Sports Grand Prix (Fall). FINAL ANSWER: Nikkan Sports Grand Prix (Fall). TERMINATE"
+  },
+  {
+    "figure_id": "nu-643",
+    "family": "generic",
+    "pattern": "rows_draw",
+    "description": "Distinguish the row/entity name from a descriptive cell value and return the entity the question asks for.",
+    "assistant_text": "THOUGHT 0: The question asks which film should be used. The exact row label K-14 process is the relevant section, so I will focus that row and identify the film name associated with sound movie use.\n\nACTION 0:\n```python\nimage_with_focused_rows = focus_on_rows_with_draw(image_1, [\"K-14 process\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the focused K-14 process row, the film name associated with sound movie use is Kodachrome 40 film. The phrase about sound movie film is a description, not the film name to return.\nANSWER: The correct film is Kodachrome 40 film. FINAL ANSWER: Kodachrome 40 film. TERMINATE"
+  },
+  {
+    "figure_id": "nu-1531",
+    "family": "comparison",
+    "pattern": "rows_highlight",
+    "description": "For differences between two episodes or rows, focus the two exact rows and compute only from the visible values.",
+    "assistant_text": "THOUGHT 0: I need the ratings for episode 1 and episode 8. Since columns_bbox is empty here, the safest move is to focus the two exact episode rows.\n\nACTION 0:\n```python\nimage_with_focused_rows = focus_on_rows_with_highlight(image_1, [\"1\", \"8\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: The focused rows show rating 1.7 for episode 1 and 1.6 for episode 8. The difference is 1.7 - 1.6 = 0.1.\nANSWER: The difference in ratings is 0.1. FINAL ANSWER: 0.1. TERMINATE"
+  },
+  {
+    "figure_id": "nu-781",
+    "family": "comparison",
+    "pattern": "columns_then_rows_draw",
+    "description": "For medal or rank comparisons, focus the value column and the exact winner rows before computing the difference.",
+    "assistant_text": "THOUGHT 0: I need the times for the gold and silver medal winners only. The exact winner row labels are 01 ! and 02 !, and the relevant value column is Time.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_draw(image_1, [\"Time\"], columns_bbox)\nimage_with_focused_rows = focus_on_rows_with_draw(image_with_focused_columns, [\"01 !\", \"02 !\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: The focused rows show 4:43.64 for the gold medal winner and 4:48.31 for the silver medal winner. The difference is 4:48.31 - 4:43.64 = 4.67 seconds.\nANSWER: The time difference is 4.67. FINAL ANSWER: 4.67. TERMINATE"
+  },
+  {
+    "figure_id": "2-18198579-6.html.csv_5",
+    "family": "comparison",
+    "pattern": "rows_highlight",
+    "description": "For binary range checks over several years, focus the exact rows and decide strictly from the visible values.",
+    "assistant_text": "THOUGHT 0: This is a binary statement about earnings from 2009 through 2012. I should focus the exact year rows and then check whether all of those visible earnings are less than 500000.\n\nACTION 0:\n```python\nimage_with_focused_rows = focus_on_rows_with_highlight(image_1, [\"2009\", \"2010\", \"2011\", \"2012\"], rows_bbox)\ndisplay(image_with_focused_rows)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: The focused rows show 2010 has 825477 and 2012 has 2287080, so the statement that earnings from 2009 to 2012 are less than 500000 is false.\nANSWER: The statement is false. FINAL ANSWER: 0. TERMINATE"
+  },
+  {
+    "figure_id": "nu-891",
+    "family": "extrema",
+    "pattern": "columns_draw",
+    "description": "For max/min over a value column, focus that single column and read off the winning row/item.",
+    "assistant_text": "THOUGHT 0: To find which conference has the most bids, I only need the # of Bids column. A single-column focus is enough.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_draw(image_1, [\"# of Bids\"], columns_bbox)\ndisplay(image_with_focused_columns)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the focused # of Bids column, the largest value is 6 for Southeastern.\nANSWER: The conference with the most bids is Southeastern. FINAL ANSWER: Southeastern. TERMINATE"
+  }
+]
