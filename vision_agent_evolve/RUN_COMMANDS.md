@@ -6,7 +6,13 @@
 # GPT-4o
 export VLM_MODEL="gpt-4o"
 
-# GPT-5.4（阿里内部）
+# GPT-5.4（routify，当前可用方式）
+export VLM_BASE_URL="https://routify.alibaba-inc.com/protocol/openai/v1"
+export VLM_API_KEY="sk-a8355bd4355e4e76be80981c0887b669"
+export VLM_MODEL="gpt-5.4-2026-03-05"
+# VLM_API_STYLE 不需要设置，代码自动识别为 openai
+
+# GPT-5.4（旧版 alibaba_chat，备用）
 export VLM_API_STYLE="alibaba_chat"
 export VLM_BASE_URL="https://llm-chat-api.alibaba-inc.com/v1/api/chat"
 export VLM_MODEL="gpt-5.4-0305-global"
