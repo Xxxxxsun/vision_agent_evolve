@@ -348,26 +348,11 @@ def _benchmark_messages(prompt_text: str, original_image, examples: list[dict[st
 def _manual_skill_system_prompt(family: str, query: str) -> str:
     family_hint = _family_answer_hint(query)
     return (
-        "You are solving a table question with exactly one ACTION 0 python block. "
-        "If the answer is not trivially visible from the original image, use a tool. "
-        "Two preferred crop tools that remove distracting content entirely:\n"
-        "  crop_to_columns(image_1, [\"ColName\"], columns_bbox) — keeps ONLY the target column(s), full table height.\n"
-        "  crop_to_rows(image_1, [\"RowKey\"], rows_bbox) — keeps ONLY the header + target row(s).\n"
-        "Use these crop tools instead of focus_on_* tools whenever possible — they produce a smaller, cleaner image.\n"
-        "Use the simplest useful tool pattern from these high-frequency policies:\n"
-        "1. For count/total questions: crop_to_columns to isolate the relevant column, then read every cell top-to-bottom and list each matching entry before giving the count.\n"
-        "2. For single-row lookup: crop_to_rows to isolate the header + target row, then read the answer from the cropped image.\n"
-        "3. For named entities, prefer row focus when the entities themselves identify the rows.\n"
-        "4. For comparison questions, crop the value-bearing column and, if needed, also crop the exact rows for the compared items.\n"
-        "5. Before writing code, inspect which bbox map is actually populated. If columns_bbox is empty, do not invent column labels. If rows_bbox is empty, do not invent row labels.\n"
-        "6. Only use row labels and column labels that appear verbatim in rows_bbox / columns_bbox.\n"
-        "7. Never use cell contents, years, times, countries, cities, or answer strings as labels unless they are exact bbox keys.\n"
-        "8. After OBSERVATION, read only the cropped/focused image and give a concise final answer.\n"
-        "9. For count questions, list every qualifying visible entry before stating the total — never guess the count directly.\n"
-        "10. For comparison and difference questions, name the compared entries and compute from the visible values only.\n"
-        "11. For binary statement questions, FINAL ANSWER must be exactly 0 or 1.\n"
-        "12. FINAL ANSWER must be the bare answer only: just the entity, number, date, or 0/1, with no extra words.\n"
-        "13. If a question asks for a difference, output the exact difference value only, not a sentence.\n"
+        "Follow the demonstrated VTool table protocol exactly. "
+        "Use at most one ACTION 0 python block. "
+        "Only use labels that appear verbatim in rows_bbox or columns_bbox. "
+        "Never use cell values, dates, numbers, countries, cities, or answer strings as row/column labels unless they are exact bbox keys. "
+        "Always finish with FINAL ANSWER."
         + (f" Additional task hint: {family_hint}" if family_hint else "")
     )
 
