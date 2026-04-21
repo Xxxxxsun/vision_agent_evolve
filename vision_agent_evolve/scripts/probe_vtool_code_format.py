@@ -76,7 +76,7 @@ def _exec_code(code: str, original_image, metadata, dataset_type):
     return _exec_code_original(_CROP_TOOL_PREAMBLE + "\n" + code, original_image, metadata, dataset_type)
 
 
-VTOOL_REPO = Path("/root/VTool-R1")
+VTOOL_REPO = Path("/root/VTool-R1-fork")
 DEFAULT_JINJA = VTOOL_REPO / "examples" / "format_prompt" / "chartQA.jinja"
 DEFAULT_MANUAL_TEACHER_BANK = Path("/root/vision_agent_evolve_rl/vision_agent_evolve/config/manual_vtool_table_teacher_bank.json")
 
