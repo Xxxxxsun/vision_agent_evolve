@@ -29,7 +29,7 @@ from eval_vtool_protocol import (
     _build_prompt_text,
     _bytes_to_pil,
     _call_api,
-    _exec_code,
+    _exec_code as _exec_code_original,
     _extract_final_answer_original_style,
     _first_rollout,
     _img_to_data_url,
@@ -39,6 +39,42 @@ from eval_vtool_protocol import (
     _second_rollout_messages,
     _second_rollout,
 )
+
+# Inject crop_to_columns / crop_to_rows into the exec context by prepending their
+# definitions as source code before the model-generated code block.  This works
+# without modifying eval_vtool_protocol.py or the VTool-R1 repo.
+_CROP_TOOL_PREAMBLE = '''
+def crop_to_columns(image, columns_to_show, all_columns_bounding_boxes, padding=8):
+    """Crop image to only the target columns (full table height). Better than mask for counting."""
+    if not all_columns_bounding_boxes or not columns_to_show:
+        return image
+    valid = [c for c in columns_to_show if c in all_columns_bounding_boxes]
+    if not valid:
+        return image
+    bboxes = [all_columns_bounding_boxes[c] for c in valid]
+    img_w, img_h = image.size
+    x1 = max(0, int(min(b["x1"] for b in bboxes)) - padding)
+    x2 = min(img_w, int(max(b["x2"] for b in bboxes)) + padding)
+    return image.crop((x1, 0, x2, img_h))
+
+def crop_to_rows(image, rows_to_show, all_rows_bounding_boxes, padding=8):
+    """Crop image to header + target rows only. Better than mask for single-row lookup."""
+    if not all_rows_bounding_boxes or not rows_to_show:
+        return image
+    img_w, img_h = image.size
+    header_key = list(all_rows_bounding_boxes.keys())[0]
+    keys = [header_key] + [r for r in rows_to_show if r in all_rows_bounding_boxes and r != header_key]
+    bboxes = [all_rows_bounding_boxes[k] for k in keys]
+    y1 = max(0, int(min(b["y1"] for b in bboxes)) - padding)
+    y2 = min(img_h, int(max(b["y2"] for b in bboxes)) + padding)
+    return image.crop((0, y1, img_w, y2))
+'''
+
+
+def _exec_code(code: str, original_image, metadata, dataset_type):
+    """Wrap _exec_code_original to prepend crop tool definitions."""
+    return _exec_code_original(_CROP_TOOL_PREAMBLE + "\n" + code, original_image, metadata, dataset_type)
+
 
 VTOOL_REPO = Path("/root/VTool-R1")
 DEFAULT_JINJA = VTOOL_REPO / "examples" / "format_prompt" / "chartQA.jinja"
