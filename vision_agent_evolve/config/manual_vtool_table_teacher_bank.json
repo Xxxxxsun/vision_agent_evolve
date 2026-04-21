@@ -2,16 +2,16 @@
   {
     "figure_id": "nu-903",
     "family": "count_or_total",
-    "pattern": "columns_draw",
-    "description": "Count qualifying years by focusing one relevant column, then explicitly enumerating each matching row before giving the total.",
-    "assistant_text": "THOUGHT 0: To answer this, I only need the Open Cup column. I will focus that single column and count the years with a non-empty Open Cup result.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_draw(image_1, [\"Open Cup\"], columns_bbox)\ndisplay(image_with_focused_columns)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: I scan the focused Open Cup column from top to bottom, checking each row for a non-empty entry. Going row by row: most rows show a dash or blank. The rows with an actual value are: 1998 (has a result), 2007 (has a result). All other rows are empty. Matching rows listed: [1998, 2007]. Count: 2.\nANSWER: The team qualified for the Open Cup 2 times. FINAL ANSWER: 2. TERMINATE"
+    "pattern": "crop_columns",
+    "description": "Count qualifying years by cropping to the single relevant column, then enumerating each matching row before giving the total.",
+    "assistant_text": "THOUGHT 0: To answer this, I only need the Open Cup column. I will crop the image to that single column so every row is clearly visible, then count the years with a non-empty Open Cup result.\n\nACTION 0:\n```python\ncropped = crop_to_columns(image_1, [\"Open Cup\"], columns_bbox)\ndisplay(cropped)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the cropped Open Cup column I read each row from top to bottom. Most rows show a dash or are blank. The rows with an actual non-empty result are: 1998, 2007. All other rows are empty. Matching rows listed: [1998, 2007]. Count: 2.\nANSWER: The team qualified for the Open Cup 2 times. FINAL ANSWER: 2. TERMINATE"
   },
   {
     "figure_id": "nu-2936",
     "family": "count_or_total",
-    "pattern": "columns_mask",
-    "description": "Count rows sharing a repeated value by focusing the key column, then enumerating each matching row explicitly before totalling.",
-    "assistant_text": "THOUGHT 0: To determine how many players had the same nationality, I only need the Nationality column. I will focus that column and count the players sharing the most frequent nationality.\n\nACTION 0:\n```python\nimage_with_focused_columns = focus_on_columns_with_mask(image_1, [\"Nationality\"], columns_bbox)\ndisplay(image_with_focused_columns)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: I scan the focused Nationality column from top to bottom, reading each cell. The nationality FIN appears repeatedly. Going row by row through all visible entries: row 1 → FIN (match), row 2 → FIN (match), row 3 → FIN (match), all remaining rows → other nationalities (no match). Matching rows listed: [row 1, row 2, row 3]. Count: 3.\nANSWER: Three players had the same nationality. FINAL ANSWER: 3. TERMINATE"
+    "pattern": "crop_columns",
+    "description": "Count rows sharing a repeated value by cropping to the key column, then reading each cell explicitly before totalling.",
+    "assistant_text": "THOUGHT 0: To determine how many players had the same nationality, I only need the Nationality column. I will crop the image to that column so every entry is clearly legible, then count players sharing the repeated nationality.\n\nACTION 0:\n```python\ncropped = crop_to_columns(image_1, [\"Nationality\"], columns_bbox)\ndisplay(cropped)\n```\nOBSERVATION: Execution success. The output is as follows:\n<the image outputs of the code is added as the second image>\nTHOUGHT 1: In the cropped Nationality column I read each cell from top to bottom. The value FIN appears for three consecutive players; all remaining cells show different nationalities. Matching entries: [player 1 → FIN, player 2 → FIN, player 3 → FIN]. Count: 3.\nANSWER: Three players had the same nationality. FINAL ANSWER: 3. TERMINATE"
   },
   {
     "figure_id": "nu-1223",
