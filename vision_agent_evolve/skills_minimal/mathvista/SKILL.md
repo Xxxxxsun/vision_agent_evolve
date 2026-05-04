@@ -1,6 +1,6 @@
 ---
 name: mathvista
-description: "Minimal skill for MathVista — Python calculation only"
+description: "Minimal MathVista skill — zoom to read, python to compute"
 level: mid
 tool_names: ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
 applicability_conditions: "Use for MathVista visual math questions."
@@ -8,14 +8,10 @@ applicability_conditions: "Use for MathVista visual math questions."
 
 # MathVista
 
-Use the original image directly by default. Some cases expose only `execute_python`; selected local-visual cases also expose `zoom_image`/`crop_image`.
+Tools are available by default. Use them proactively:
+1. If any value in the figure is small or hard to read → call `zoom_image` (factor 2–4) on that region.
+2. For all non-trivial arithmetic → call `execute_python` with `print()` for the result.
+3. For MCQ → return the matching option letter only. For free-form → return the number or short text directly.
 
-Default to answering directly when no tool is available. When `execute_python` is available for a MathVista case, first read all required numeric or symbolic inputs from the image/question, then call `execute_python` to verify the final arithmetic before answering.
-
-Good uses: arithmetic after reading visual values, sums/totals, subtraction/remaining-count questions, formulas, statistics, unit conversion, or evaluating numeric/expression answer choices. Always `print()` the result.
-
-Do not use Python to read the image, count objects, infer a visual option, answer yes/no visually, identify people/ages, or handle unclear visual details. If the answer is a direct read-off, simple count, visual pattern choice, or semantic MCQ, answer directly.
-
-When visual tools are available, use them only for small local details: ruler marks, arrows/dials, chart bars/labels, object counts/comparisons, medical width judgments, and diagram measurements. Zoom/crop first, then compute only if arithmetic remains.
-
-For multiple-choice questions: compute or reason first, then return the matching option letter only. For open-ended questions: return the numeric or text answer directly.
+Do not use tools for pure visual pattern matching ("comes next", IQ matrix), yes/no MCQ, or simple object counts.
+Do not include units, formulas, or alternatives in the final answer line.

@@ -760,150 +760,83 @@ def _apply_case_tool_gate(
     skill_context: ResolvedSkillContext,
     runtime_config: ToolCallingRuntimeConfig,
 ) -> None:
+    """Route MathVista cases to the appropriate tool tier.
+
+    Design principle: expose the full tool set (visual + python) by default.
+    Only suppress tools for the small minority of questions that are purely
+    visual perception with no arithmetic component — e.g. IQ-matrix pattern
+    completion, yes/no MCQ, or cube-net identification.  For everything else
+    the model should be free to zoom/crop and call execute_python.
+    """
     if not runtime_config.enable_tools:
         return
     metadata = case.metadata if isinstance(case.metadata, dict) else {}
     dataset_name = str(metadata.get("dataset_name", "") or "").strip().lower()
     if dataset_name != "mathvista":
         return
-    if _mathvista_should_expose_visual_tools(case):
-        visual_tools = ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
-        skill_context.effective_tool_names = visual_tools
-        skill_context.preferred_tool_names = visual_tools
+
+    all_tools = ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
+
+    if _mathvista_is_pure_visual_perception(case):
+        # No tools: pure visual pattern / yes-no / spatial reasoning with no arithmetic.
+        # Keep prompt_blocks cleared so the cleaner _build_mathvista_direct_prompt is used.
+        skill_context.effective_tool_names = ["__no_tools__"]
+        skill_context.preferred_tool_names = []
+        skill_context.prompt_blocks = []
+        skill_context.reference_blocks = []
         skill_context.routing_notes.append(
-            "MathVista visual-reading gate: use zoom/crop for small local visual evidence, then execute_python only for arithmetic."
+            "MathVista: pure visual perception — answering directly, no tools needed."
         )
         return
-    if _mathvista_should_expose_python(case):
-        skill_context.effective_tool_names = ["execute_python"]
-        skill_context.preferred_tool_names = ["execute_python"]
-        return
-    # Non-matching allowlist intentionally exposes no schemas.
-    skill_context.effective_tool_names = ["__no_tools__"]
-    skill_context.preferred_tool_names = []
-    skill_context.prompt_blocks = []
-    skill_context.reference_blocks = []
+
+    # Default for all other MathVista questions: expose the full tool set.
+    skill_context.effective_tool_names = all_tools
+    skill_context.preferred_tool_names = all_tools
     skill_context.routing_notes.append(
-        "MathVista Python gate: answer directly; no tool schema is exposed for this visual/non-calculation case."
+        "MathVista: full tool set — use zoom/crop to read visual values, execute_python for arithmetic."
     )
 
 
-def _mathvista_should_expose_visual_tools(case: TaskCase) -> bool:
+def _mathvista_is_pure_visual_perception(case: TaskCase) -> bool:
+    """Return True only for questions that are pure visual perception with no arithmetic.
+
+    We are deliberately conservative: only the clearest cases (IQ-style pattern
+    completion, yes/no MCQ, cube/paper-folding) are flagged.  Everything else
+    keeps tools so the model can inspect fine visual details and verify arithmetic.
+    """
     metadata = case.metadata if isinstance(case.metadata, dict) else {}
     prompt = str(case.prompt or "")
     lower = prompt.lower()
-    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
     choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
 
-    visual_read_patterns = [
-        "move the ruler",
-        "measure the length",
-        "arrow point",
-        "dial indicate",
-        "top facing number",
-        "what number is shown",
-        "what number does",
-        "what does the dial",
-        "overall ratio of male to female",
-        "ratio of male to female",
-        "people can commute",
-        "cardiac silhouette",
-        "thorax",
-        "diaphragm",
-        "highest lysine",
-        "least gpu days",
-        "peak success rate",
-        "smallest individual bar",
-        "smallest bar",
-        "least carbs",
-        "negative influence scores",
-        "potential maskers",
-        "missing value",
-        "from the right",
-        "از سمت راست",
+    # Yes/No MCQ — no arithmetic possible.
+    if choices:
+        values = {str(v).strip().lower() for v in choices.values()}
+        if values <= {"yes", "no"}:
+            return True
+
+    # Visual pattern completion / IQ-matrix / cube-net / paper-folding.
+    _pattern_keywords = [
+        "comes next",
+        "come next",
+        "next in the sequence",
+        "complete the sequence",
+        "complete the matrix",
+        "complete the pattern",
+        "missing picture",
+        "missing figure",
+        "missing image",
+        "unfolded cube",
+        "cube is identical",
+        "net of the cube",
+        "which net",
+        "paper folding",
+        "folded paper",
     ]
-    if any(pattern in lower for pattern in visual_read_patterns):
-        return True
-
-    visual_comparison_patterns = [
-        "are there fewer",
-        "is the number of",
-        "greater than the number",
-        "less than the number",
-        "is web green",
-        "is deep pink",
-        "is the sum of",
-        "sum of smallest",
-        "sum of two lowest",
-    ]
-    if choices and any(pattern in lower for pattern in visual_comparison_patterns):
-        return True
-
-    if choices and _has_explicit_math_signal(prompt) and any(
-        token in lower for token in ["find x", "find z", "find tan", "acceleration vector", "components"]
-    ):
-        return True
-
-    if answer_type in {"integer", "float"} and any(
-        token in lower for token in ["chart", "bar", "bars", "data", "given", "level"]
-    ) and any(token in lower for token in ["how many", "what is the value", "highest", "least", "smallest", "larger than"]):
+    if any(kw in lower for kw in _pattern_keywords):
         return True
 
     return False
-
-
-def _mathvista_should_expose_python(case: TaskCase) -> bool:
-    metadata = case.metadata if isinstance(case.metadata, dict) else {}
-    prompt = str(case.prompt or "")
-    lower = prompt.lower()
-    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
-    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
-
-    if choices:
-        values = [str(value) for value in choices.values()]
-        normalized_values = {_normalize_text_key(value) for value in values}
-        if normalized_values and normalized_values <= {"yes", "no"}:
-            return False
-        if any(phrase in lower for phrase in ["which object comes next", "what time is shown"]):
-            return False
-        if not all(_looks_like_numeric_or_formula_choice(value) for value in values):
-            return False
-        return _has_explicit_math_signal(prompt)
-
-    if answer_type not in {"integer", "float"}:
-        return False
-
-    visual_calc = _has_visual_calculation_language(prompt)
-    hard_direct_visual_patterns = [
-        "age gap",
-        "move the ruler",
-        "measure the length",
-        "what time is shown",
-        "what number is shown",
-        "are there",
-        "is the number",
-        "is there",
-    ]
-    if any(pattern in lower for pattern in hard_direct_visual_patterns):
-        return False
-    direct_count_patterns = [
-        "how many objects",
-        "how many triangles",
-        "how many people",
-        "how many bars",
-        "how many items",
-        "how many shapes",
-        "how many dots",
-        "how many units",
-        "how many times",
-    ]
-    if any(pattern in lower for pattern in direct_count_patterns) and not visual_calc:
-        return False
-
-    if answer_type == "float":
-        return _has_explicit_math_signal(prompt) or visual_calc
-
-    return (_has_explicit_math_signal(prompt) and _has_calculation_intent(prompt)) or visual_calc
 
 
 def _has_explicit_math_signal(text: str) -> bool:
@@ -1162,9 +1095,10 @@ def _contains_explicit_final_answer(text: str) -> bool:
 
 
 def _mathvista_direct_model_settings(settings: ModelSettings) -> ModelSettings:
+    # 200 tokens is far too short for multi-step visual reasoning; use 1024.
     return ModelSettings(
         temperature=settings.temperature,
-        max_tokens=200,
+        max_tokens=1024,
         timeout=max(settings.timeout, 240),
         max_retries=max(settings.max_retries, 5),
         retry_backoff_seconds=max(settings.retry_backoff_seconds, 3.0),
@@ -1279,7 +1213,7 @@ def _build_system_prompt(
 ) -> str:
     del benchmark_name
     if not enable_tools and str(dataset_name or "").strip().lower() == "mathvista":
-        return ""
+        return NO_TOOL_SYSTEM_PROMPT
     if enable_tools and _is_o4_mini_model(model_name):
         return O4_MINI_TOOL_SYSTEM_PROMPT
     return SYSTEM_PROMPT if enable_tools else NO_TOOL_SYSTEM_PROMPT
