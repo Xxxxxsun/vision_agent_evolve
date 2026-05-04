@@ -1550,6 +1550,10 @@ def normalize_choice_answer(value: str, choices: dict[str, str]) -> str:
     if not text:
         return ""
 
+    upper_text = text.upper()
+    if choices and upper_text in {str(label).strip().upper() for label in choices}:
+        return upper_text
+
     letter = _choice_letter(text)
     if letter and (not choices or letter in choices):
         return letter
@@ -1571,11 +1575,11 @@ def normalize_choice_answer(value: str, choices: dict[str, str]) -> str:
 
 
 def _choice_letter(text: str) -> str:
-    match = re.search(r"\b([A-D])\b", str(text).strip().upper())
+    match = re.search(r"\b([A-Z])\b", str(text).strip().upper())
     if match:
         return match.group(1)
     compact = re.sub(r"[^A-Z]", "", str(text).upper())
-    return compact if compact in {"A", "B", "C", "D"} else ""
+    return compact if len(compact) == 1 and "A" <= compact <= "Z" else ""
 
 
 def _resolve_choice_from_long_text(normalized_text: str, choices: dict[str, str]) -> str:

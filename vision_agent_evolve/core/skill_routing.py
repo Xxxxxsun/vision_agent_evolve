@@ -118,6 +118,9 @@ class SkillResolver:
 
     def _select_foundation_skills(self, case: TaskCase, skill_pool: dict[str, Skill]) -> list[Skill]:
         family = case.capability_family().strip().lower()
+        dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
+        if dataset_name == "mathvista" or family.startswith("mathvista_"):
+            return []
         foundation = [skill for skill in skill_pool.values() if skill.level == "foundation"]
         _skip_try_direct = {"vstar_direct_attributes", "vstar_relative_position", "chartqa"}
         selected: list[Skill] = []

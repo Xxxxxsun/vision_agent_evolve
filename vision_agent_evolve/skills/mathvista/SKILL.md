@@ -1,52 +1,21 @@
 ---
 name: mathvista
-description: "Router skill for visual math questions requiring figure inspection and optional calculation"
+description: "MathVista concise Python calculation gate"
 level: mid
-depends_on: ["vision_analysis", "reasoning"]
 tool_names: ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
-applicability_conditions: "Use for MathVista questions that require reading numeric values, geometric properties, or data from a figure and optionally computing a result."
+applicability_conditions: "Use for MathVista questions that require visual reasoning and may need arithmetic verification after values are read from the image."
 ---
 
 # MathVista
 
-## Trigger
-- The question requires extracting a numeric value, geometric property, or data point from a mathematical figure (geometry diagram, function graph, data plot, table, or logic puzzle).
-- The answer may be a multiple-choice option letter or a direct numeric/textual answer.
+Use the original image directly by default. Some cases expose only `execute_python`; selected local-visual cases also expose `zoom_image`/`crop_image`.
 
-## Routing Rule
-1. If the question provides labeled answer choices (A, B, C, D …), follow the **MCQ branch** — return an option letter.
-2. If the question is open-ended (no labeled choices), follow the **Free-form branch** — return a number or short text directly.
+Default to answering directly when no tool is available. When `execute_python` is available for a MathVista case, first read all required numeric or symbolic inputs from the image/question, then call `execute_python` to verify the final arithmetic before answering.
 
-See branch detail:
-- `references/mcq.md`
-- `references/free_form.md`
+Good uses: arithmetic after reading visual values, sums/totals, subtraction/remaining-count questions, formulas, statistics, unit conversion, or evaluating numeric/expression answer choices. Always `print()` the result.
 
-## Common Procedure (both branches)
-1. Identify what visual quantities the question requires: specific numbers, angles, lengths, coordinates, or labels in the figure.
-2. If those quantities are small, annotated, or hard to read at the original scale, use `zoom_image`:
-   - Estimate where the target value is in the image (center_x, center_y in [0, 1]).
-   - Use factor=2–3 for moderate details; factor=4 for very small annotations or tick marks.
-3. If the relevant region is densely packed (e.g., a crowded coordinate axis), use `crop_image` after getting the image dimensions via `get_image_info`.
-4. Once the values are clearly read, use `execute_python` for any arithmetic.
-5. Format the final answer according to the branch (option letter or direct answer).
+Do not use Python to read the image, count objects, infer a visual option, answer yes/no visually, identify people/ages, or handle unclear visual details. If the answer is a direct read-off, simple count, visual pattern choice, or semantic MCQ, answer directly.
 
-## Tool Hints
+When visual tools are available, use them only for small local details: ruler marks, arrows/dials, chart bars/labels, object counts/comparisons, medical width judgments, and diagram measurements. Zoom/crop first, then compute only if arithmetic remains.
 
-### zoom_image positioning by figure type:
-- **Geometry diagram**: numbers/angles are usually near vertices or edges — estimate their position from the diagram structure.
-- **Function graph / coordinate plot**: x-axis labels at center_y≈0.90, y-axis labels at center_x≈0.08, plot area at center=0.50.
-- **Bar/line data plot**: same as ChartQA region rules (legends top-right, axis labels at edges).
-- **Table**: rows and columns are spread across the image — zoom the specific cell needed.
-
-### execute_python:
-- Always extract the raw numbers first, then pass them to python.
-- For geometry: compute angles, areas, or lengths from extracted measurements.
-- For statistics: compute mean, median, or percentages.
-- Always `print()` the result.
-
-## Failure Checks
-- Do not mix visual estimation with exact arithmetic — if a number is readable, use the exact value.
-- Do not zoom to (0.5, 0.5) when the needed label is on an axis edge or corner.
-- Re-check units (degrees, cm, %, etc.) before the final answer.
-- For MCQ: always map the computed result to the closest option letter, do not return the raw number.
-- For free-form: match the expected answer format (integer vs decimal, with or without units).
+For multiple-choice questions: compute or reason first, then return the matching option letter only. For open-ended questions: return the numeric or text answer directly.

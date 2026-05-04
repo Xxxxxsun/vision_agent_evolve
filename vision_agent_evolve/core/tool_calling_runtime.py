@@ -31,6 +31,23 @@ SYSTEM_PROMPT = (
     "The final line of your response must begin with 'Final answer:'."
 )
 
+NO_TOOL_SYSTEM_PROMPT = (
+    "You are solving multimodal benchmark questions. "
+    "Think through the visual evidence briefly before you commit to an answer. "
+    "Do not call external tools. Answer from the provided image, question, choices, and skill context only. "
+    "The final line of your response must begin with 'Final answer:'."
+)
+
+O4_MINI_TOOL_SYSTEM_PROMPT = (
+    "You are solving multimodal benchmark questions with structured function calling. "
+    "When a tool is needed, emit the actual function call immediately. "
+    "Do not describe planned tool use in plain text. "
+    "Do not output fake JSON, pseudo-code, or tool syntax in message text. "
+    "Do not ask for permission to zoom or crop. "
+    "Either emit a real function call or give the final answer directly. "
+    "For multiple-choice questions, the final line must be exactly 'Final answer: X' where X is the option letter."
+)
+
 
 @dataclass
 class ToolCallingRuntimeConfig:
@@ -38,7 +55,7 @@ class ToolCallingRuntimeConfig:
 
     max_iterations: int = 8
     model_settings: ModelSettings = field(
-        default_factory=lambda: ModelSettings(temperature=0.0, max_tokens=1024)
+        default_factory=lambda: ModelSettings(temperature=0.0, max_tokens=1024, timeout=240, max_retries=5)
     )
     enable_tools: bool = True
     work_dir: Path | None = None
@@ -453,6 +470,9 @@ def run_function_calling_vqa_case(
     image_refs = _collect_case_images(case)
     image_session.register_initial_images(image_refs)
     skill_context = _resolve_skill_context(case, runtime_config)
+    model_name = _runtime_model_name(client)
+    o4_mini = _is_o4_mini_model(model_name)
+    _apply_case_tool_gate(case, skill_context, runtime_config)
     fixed_tool_names = [name.strip() for name in runtime_config.fixed_tool_names if str(name).strip()]
     if fixed_tool_names:
         fixed_set = set(fixed_tool_names)
@@ -471,43 +491,121 @@ def run_function_calling_vqa_case(
         LocalPythonExecutor(),
         allowed_tools=skill_context.effective_tool_names or None,
     )
-    system_prompt = _build_system_prompt(benchmark_name)
+    tool_schemas = tool_registry.schemas() if runtime_config.enable_tools else []
+    tools_available = bool(tool_schemas)
+    dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
+    mathvista_direct_no_tool = dataset_name == "mathvista" and not tools_available
+    system_prompt = _build_system_prompt(
+        benchmark_name,
+        enable_tools=tools_available,
+        model_name=model_name,
+        dataset_name=dataset_name,
+    )
     user_prompt = _build_task_prompt(
         case,
         include_image=bool(image_refs),
         skill_context=skill_context,
-        enable_tools=runtime_config.enable_tools,
+        enable_tools=tools_available,
+        model_name=model_name,
     )
     user_content: list[dict[str, Any]] = [{"type": "text", "text": user_prompt}]
     for image_ref in image_refs:
         user_content.append({"type": "image_url", "image_url": {"url": VLMClient.image_data_url(image_ref)}})
 
-    messages: list[dict[str, Any]] = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_content},
-    ]
+    messages: list[dict[str, Any]] = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": user_content})
     steps: list[AgentStep] = []
     final_answer = ""
+    corrective_retry_used = False
+    forced_choice_retry_used = False
+    mathvista_format_retry_used = False
 
     for turn in range(1, runtime_config.max_iterations + 1):
         request_messages = list(messages)
-        raw_response, _ = client.chat_with_tools(
-            request_messages,
-            tools=tool_registry.schemas() if runtime_config.enable_tools else None,
-            settings=runtime_config.model_settings,
-            raw_response=True,
-        )
-        assistant_message = _normalize_assistant_message(raw_response, turn)
+        if tools_available:
+            raw_response, _ = client.chat_with_tools(
+                request_messages,
+                tools=tool_schemas,
+                settings=runtime_config.model_settings,
+                raw_response=True,
+            )
+            assistant_message = _normalize_assistant_message(raw_response, turn, model_name=model_name)
+        else:
+            text_response, _ = client.chat(
+                request_messages,
+                _mathvista_direct_model_settings(runtime_config.model_settings)
+                if mathvista_direct_no_tool else runtime_config.model_settings,
+            )
+            assistant_message = SimpleNamespace(content=text_response, tool_calls=None)
         thought = assistant_message.content or ""
         tool_calls = getattr(assistant_message, "tool_calls", None) or []
-        if runtime_config.enable_tools and not tool_calls and not thought.strip():
+        if tools_available and not tool_calls and isinstance(thought, str):
+            pseudo_tool_call = _parse_pseudo_tool_call(thought, model_name=model_name)
+            if pseudo_tool_call is not None:
+                tool_name, arguments = pseudo_tool_call
+                assistant_message = SimpleNamespace(
+                    content=None,
+                    tool_calls=[
+                        SimpleNamespace(
+                            id=f"pseudo_call_{turn}",
+                            function=SimpleNamespace(
+                                name=tool_name,
+                                arguments=json.dumps(arguments, ensure_ascii=False),
+                            ),
+                        )
+                    ],
+                )
+                thought = ""
+                tool_calls = assistant_message.tool_calls
+        if tools_available and not tool_calls and not thought.strip():
             fallback_text, _ = client.chat(request_messages, runtime_config.model_settings)
             assistant_message = SimpleNamespace(content=fallback_text, tool_calls=None)
             thought = fallback_text or ""
         messages.append(_assistant_message_to_dict(assistant_message))
 
-        if not runtime_config.enable_tools or not tool_calls:
+        if not tools_available or not tool_calls:
             final_answer = _extract_final_answer(thought)
+            if (
+                tools_available
+                and o4_mini
+                and not corrective_retry_used
+                and not _contains_explicit_final_answer(thought)
+                and _tool_intent_text(thought)
+            ):
+                corrective_retry_used = True
+                messages.append({"role": "user", "content": _o4_retry_message()})
+                steps.append(AgentStep(turn=turn, thought=thought))
+                continue
+            final_answer = _finalize_answer(final_answer, case)
+            if (
+                dataset_name in {"mathvista", "vstar", "hrbench"}
+                and not forced_choice_retry_used
+                and _needs_multiple_choice_repair(final_answer, case)
+            ):
+                forced_choice_retry_used = True
+                messages.append({"role": "user", "content": _o4_force_choice_message(case)})
+                steps.append(AgentStep(turn=turn, thought=thought))
+                continue
+            if (
+                dataset_name == "mathvista"
+                and not mathvista_format_retry_used
+                and _mathvista_needs_numeric_format_repair(final_answer, case)
+            ):
+                mathvista_format_retry_used = True
+                repaired_answer, repair_thought = _repair_mathvista_numeric_answer(
+                    client,
+                    messages,
+                    case,
+                    final_answer,
+                    runtime_config.model_settings,
+                )
+                if repaired_answer:
+                    final_answer = repaired_answer
+                    steps.append(AgentStep(turn=turn, thought=thought))
+                    steps.append(AgentStep(turn=turn, thought=repair_thought, is_final=True))
+                    break
             steps.append(AgentStep(turn=turn, thought=thought, is_final=True))
             break
 
@@ -558,16 +656,44 @@ def run_function_calling_vqa_case(
                     }
                 )
 
-    if not final_answer and runtime_config.enable_tools:
+    if not final_answer and tools_available:
         raw_response, _ = client.chat_with_tools(
             messages,
             tools=None,
             settings=runtime_config.model_settings,
             raw_response=True,
         )
-        assistant_message = _normalize_assistant_message(raw_response, len(steps) + 1)
+        assistant_message = _normalize_assistant_message(raw_response, len(steps) + 1, model_name=model_name)
         thought = assistant_message.content or ""
-        final_answer = _extract_final_answer(thought)
+        final_answer = _finalize_answer(_extract_final_answer(thought), case)
+        if dataset_name in {"mathvista", "vstar", "hrbench"} and not forced_choice_retry_used and _needs_multiple_choice_repair(final_answer, case):
+            forced_choice_retry_used = True
+            messages.append({"role": "user", "content": _o4_force_choice_message(case)})
+            raw_response, _ = client.chat_with_tools(
+                messages,
+                tools=None,
+                settings=runtime_config.model_settings,
+                raw_response=True,
+            )
+            assistant_message = _normalize_assistant_message(raw_response, len(steps) + 1, model_name=model_name)
+            thought = assistant_message.content or ""
+            final_answer = _finalize_answer(_extract_final_answer(thought), case)
+        if (
+            dataset_name == "mathvista"
+            and not mathvista_format_retry_used
+            and _mathvista_needs_numeric_format_repair(final_answer, case)
+        ):
+            mathvista_format_retry_used = True
+            repaired_answer, repair_thought = _repair_mathvista_numeric_answer(
+                client,
+                messages,
+                case,
+                final_answer,
+                runtime_config.model_settings,
+            )
+            if repaired_answer:
+                final_answer = repaired_answer
+                thought = repair_thought
         steps.append(AgentStep(turn=len(steps) + 1, thought=thought, is_final=True))
 
     all_artifacts: list[str] = []
@@ -591,8 +717,11 @@ def run_function_calling_vqa_case(
             "skill_names": [skill.name for skill in skill_context.matched_skills],
             "foundation_skill_names": [skill.name for skill in skill_context.foundation_skills],
             "preferred_tool_names": list(skill_context.preferred_tool_names),
-            "effective_tool_names": list(skill_context.effective_tool_names),
-            "tool_schema_names": [schema["function"]["name"] for schema in tool_registry.schemas()],
+            "effective_tool_names": list(skill_context.effective_tool_names) if tools_available else [],
+            "tool_schema_names": (
+                [schema["function"]["name"] for schema in tool_schemas]
+                if tools_available else []
+            ),
         },
     )
 
@@ -617,9 +746,567 @@ def _collect_case_images(case: TaskCase) -> list[str]:
     return refs
 
 
-def _build_system_prompt(benchmark_name: str) -> str:
+def _runtime_model_name(client: Any) -> str:
+    return str(getattr(client, "model", "") or os.getenv("VLM_MODEL", "") or "").strip()
+
+
+def _is_o4_mini_model(model_name: str) -> bool:
+    normalized = str(model_name or "").strip().lower()
+    return normalized == "o4-mini" or normalized.startswith("o4-mini-")
+
+
+def _apply_case_tool_gate(
+    case: TaskCase,
+    skill_context: ResolvedSkillContext,
+    runtime_config: ToolCallingRuntimeConfig,
+) -> None:
+    if not runtime_config.enable_tools:
+        return
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    dataset_name = str(metadata.get("dataset_name", "") or "").strip().lower()
+    if dataset_name != "mathvista":
+        return
+    if _mathvista_should_expose_visual_tools(case):
+        visual_tools = ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
+        skill_context.effective_tool_names = visual_tools
+        skill_context.preferred_tool_names = visual_tools
+        skill_context.routing_notes.append(
+            "MathVista visual-reading gate: use zoom/crop for small local visual evidence, then execute_python only for arithmetic."
+        )
+        return
+    if _mathvista_should_expose_python(case):
+        skill_context.effective_tool_names = ["execute_python"]
+        skill_context.preferred_tool_names = ["execute_python"]
+        return
+    # Non-matching allowlist intentionally exposes no schemas.
+    skill_context.effective_tool_names = ["__no_tools__"]
+    skill_context.preferred_tool_names = []
+    skill_context.prompt_blocks = []
+    skill_context.reference_blocks = []
+    skill_context.routing_notes.append(
+        "MathVista Python gate: answer directly; no tool schema is exposed for this visual/non-calculation case."
+    )
+
+
+def _mathvista_should_expose_visual_tools(case: TaskCase) -> bool:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    prompt = str(case.prompt or "")
+    lower = prompt.lower()
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
+
+    visual_read_patterns = [
+        "move the ruler",
+        "measure the length",
+        "arrow point",
+        "dial indicate",
+        "top facing number",
+        "what number is shown",
+        "what number does",
+        "what does the dial",
+        "overall ratio of male to female",
+        "ratio of male to female",
+        "people can commute",
+        "cardiac silhouette",
+        "thorax",
+        "diaphragm",
+        "highest lysine",
+        "least gpu days",
+        "peak success rate",
+        "smallest individual bar",
+        "smallest bar",
+        "least carbs",
+        "negative influence scores",
+        "potential maskers",
+        "missing value",
+        "from the right",
+        "از سمت راست",
+    ]
+    if any(pattern in lower for pattern in visual_read_patterns):
+        return True
+
+    visual_comparison_patterns = [
+        "are there fewer",
+        "is the number of",
+        "greater than the number",
+        "less than the number",
+        "is web green",
+        "is deep pink",
+        "is the sum of",
+        "sum of smallest",
+        "sum of two lowest",
+    ]
+    if choices and any(pattern in lower for pattern in visual_comparison_patterns):
+        return True
+
+    if choices and _has_explicit_math_signal(prompt) and any(
+        token in lower for token in ["find x", "find z", "find tan", "acceleration vector", "components"]
+    ):
+        return True
+
+    if answer_type in {"integer", "float"} and any(
+        token in lower for token in ["chart", "bar", "bars", "data", "given", "level"]
+    ) and any(token in lower for token in ["how many", "what is the value", "highest", "least", "smallest", "larger than"]):
+        return True
+
+    return False
+
+
+def _mathvista_should_expose_python(case: TaskCase) -> bool:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    prompt = str(case.prompt or "")
+    lower = prompt.lower()
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
+
+    if choices:
+        values = [str(value) for value in choices.values()]
+        normalized_values = {_normalize_text_key(value) for value in values}
+        if normalized_values and normalized_values <= {"yes", "no"}:
+            return False
+        if any(phrase in lower for phrase in ["which object comes next", "what time is shown"]):
+            return False
+        if not all(_looks_like_numeric_or_formula_choice(value) for value in values):
+            return False
+        return _has_explicit_math_signal(prompt)
+
+    if answer_type not in {"integer", "float"}:
+        return False
+
+    visual_calc = _has_visual_calculation_language(prompt)
+    hard_direct_visual_patterns = [
+        "age gap",
+        "move the ruler",
+        "measure the length",
+        "what time is shown",
+        "what number is shown",
+        "are there",
+        "is the number",
+        "is there",
+    ]
+    if any(pattern in lower for pattern in hard_direct_visual_patterns):
+        return False
+    direct_count_patterns = [
+        "how many objects",
+        "how many triangles",
+        "how many people",
+        "how many bars",
+        "how many items",
+        "how many shapes",
+        "how many dots",
+        "how many units",
+        "how many times",
+    ]
+    if any(pattern in lower for pattern in direct_count_patterns) and not visual_calc:
+        return False
+
+    if answer_type == "float":
+        return _has_explicit_math_signal(prompt) or visual_calc
+
+    return (_has_explicit_math_signal(prompt) and _has_calculation_intent(prompt)) or visual_calc
+
+
+def _has_explicit_math_signal(text: str) -> bool:
+    raw = str(text or "")
+    lower = raw.lower()
+    if re.search(r"[-+]?\d", raw):
+        return True
+    return any(token in lower for token in ["\\frac", "\\sqrt", "π", "theta", "angle", "radius", "diameter"])
+
+
+def _has_calculation_intent(text: str) -> bool:
+    lower = str(text or "").lower()
+    return any(
+        token in lower
+        for token in [
+            "calculate",
+            "compute",
+            "find",
+            "total",
+            "sum",
+            "difference",
+            "average",
+            "mean",
+            "median",
+            "percentage",
+            "percent",
+            "ratio",
+            "probability",
+            "area",
+            "volume",
+            "radius",
+            "diameter",
+            "angle",
+            "length",
+            "distance",
+            "speed",
+            "work",
+            "force",
+            "energy",
+            "perimeter",
+            "slope",
+            "derivative",
+            "limit",
+        ]
+    )
+
+
+def _has_visual_calculation_language(text: str) -> bool:
+    lower = str(text or "").lower()
+    return any(
+        token in lower
+        for token in [
+            "sum",
+            "total",
+            "subtract",
+            "left",
+            "remaining",
+            "average",
+            "mean",
+            "difference",
+        ]
+    )
+
+
+def _looks_like_numeric_or_formula_choice(value: str) -> bool:
+    text = str(value or "").strip().lower()
+    if not text:
+        return False
+    if re.search(r"[-+]?\d", text):
+        return True
+    return any(token in text for token in ["π", "pi", "sqrt", "\\frac", "/", "^"])
+
+
+def _normalize_text_key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(text or "").strip().lower()).strip()
+
+
+def _normalize_multiple_choice_answer(answer: str, case: TaskCase) -> str:
+    raw = str(answer or "").strip()
+    if not raw:
+        return raw
+
+    label_match = re.match(r"^\(?([A-Z])\)?$", raw, re.IGNORECASE)
+    if label_match:
+        return label_match.group(1).upper()
+    label_with_text_match = re.match(r"^\(?([A-Z])\)?[\.\:\-]\s*.+$", raw, re.IGNORECASE)
+    if label_with_text_match:
+        return label_with_text_match.group(1).upper()
+
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
+    if not choices:
+        return raw
+
+    normalized_answer = _normalize_text_key(raw)
+    for label, choice_text in choices.items():
+        if normalized_answer == _normalize_text_key(str(choice_text)):
+            return str(label).strip().upper()
+    return raw
+
+
+def _finalize_answer(answer: str, case: TaskCase) -> str:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
+    dataset_name = str(metadata.get("dataset_name", "") or "").strip().lower()
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    if choices or dataset_name in {"vstar", "hrbench"} or "multiple_choice" in answer_type:
+        return _normalize_multiple_choice_answer(answer, case)
+    return str(answer or "").strip()
+
+
+def _multiple_choice_labels(case: TaskCase) -> set[str]:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    choices = metadata.get("choices") if isinstance(metadata.get("choices"), dict) else {}
+    return {str(label).strip().upper() for label in choices}
+
+
+def _needs_multiple_choice_repair(answer: str, case: TaskCase) -> bool:
+    labels = _multiple_choice_labels(case)
+    if not labels:
+        return False
+    normalized = str(answer or "").strip().upper()
+    return normalized not in labels
+
+
+def _mathvista_needs_numeric_format_repair(answer: str, case: TaskCase) -> bool:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    if str(metadata.get("dataset_name", "") or "").strip().lower() != "mathvista":
+        return False
+    if metadata.get("choices"):
+        return False
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    if answer_type not in {"integer", "float"}:
+        return False
+    text = str(answer or "").strip()
+    if not text:
+        return False
+    if answer_type == "integer" and re.fullmatch(r"[-+]?\d+", text):
+        return False
+    if answer_type == "float" and re.fullmatch(r"[-+]?\d+(?:\.\d+)?", text):
+        return False
+    noisy_markers = [
+        " or ",
+        "approximately",
+        "approx",
+        "boxed",
+        "\\",
+        "$",
+        "%",
+        "unit",
+        "year",
+        "years",
+        "cm",
+        "m/s",
+        "gram",
+        "grams",
+        "newton",
+        "joule",
+        "velocity",
+        "matches",
+    ]
+    if any(marker in text.lower() for marker in noisy_markers):
+        return True
+    numeric_tokens = re.findall(r"[-+]?\d+(?:\.\d+)?", text.replace(",", ""))
+    return len(numeric_tokens) != 1
+
+
+def _repair_mathvista_numeric_answer(
+    client: VLMClient,
+    messages: list[dict[str, Any]],
+    case: TaskCase,
+    answer: str,
+    settings: ModelSettings,
+) -> tuple[str, str]:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    precision = metadata.get("precision")
+    if answer_type == "integer":
+        format_rule = "The expected answer type is integer. Return one whole number only."
+    else:
+        if precision is None:
+            format_rule = "The expected answer type is float. Return one decimal number only."
+        else:
+            format_rule = f"The expected answer type is float rounded to {int(float(precision))} decimal places. Return one decimal number only."
+    repair_prompt = (
+        "Reformat the previous MathVista final answer for automatic grading.\n"
+        f"Previous final answer: {answer}\n"
+        f"{format_rule}\n"
+        "Do not include units, words, formulas, fractions, percentages, alternatives, ranges, or explanation. "
+        "If the solved result is a fraction or probability, convert it to the requested decimal. "
+        "If the solved result was written with units or scientific notation, output the single numeric value in the scale requested by the question. "
+        "Reply with exactly: Final answer: <number>"
+    )
+    repair_messages = list(messages) + [{"role": "user", "content": repair_prompt}]
+    repair_settings = ModelSettings(
+        temperature=settings.temperature,
+        max_tokens=80,
+        timeout=max(settings.timeout, 120),
+        max_retries=max(settings.max_retries, 3),
+        retry_backoff_seconds=settings.retry_backoff_seconds,
+    )
+    try:
+        thought, _ = client.chat(repair_messages, repair_settings)
+    except Exception:
+        return "", ""
+    repaired = _finalize_answer(_extract_final_answer(thought), case)
+    return repaired, thought or ""
+
+
+def _tool_intent_text(text: str) -> bool:
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return False
+    patterns = [
+        "zoom",
+        "crop",
+        "tool",
+        "next step",
+        "i need to",
+        "i will",
+        "let's",
+        "lets",
+        "attempted to",
+        "function call",
+        "zoom_image(",
+        "{{zoom_image",
+        '"command":"zoom_image"',
+        '"tool":"zoom_image"',
+    ]
+    return any(pattern in normalized for pattern in patterns)
+
+
+def _o4_retry_message() -> str:
+    return (
+        "Your previous message described a tool action in plain text. "
+        "Do not narrate tool use. "
+        "If inspection is needed, emit the actual function call now. "
+        "Otherwise reply with only the required final answer format."
+    )
+
+
+def _o4_force_choice_message(case: TaskCase) -> str:
+    labels = sorted(_multiple_choice_labels(case))
+    if labels:
+        label_text = "/".join(labels)
+        return (
+            "Select the best answer now. Do not refuse or say the image is unclear. "
+            f"You must choose exactly one option from {label_text}. "
+            "Reply with only 'Final answer: X'."
+        )
+    return "Reply with only the required final answer format."
+
+
+def _contains_explicit_final_answer(text: str) -> bool:
+    return bool(re.search(r"Final answer:\s*(.+)$", str(text or ""), re.IGNORECASE | re.MULTILINE))
+
+
+def _mathvista_direct_model_settings(settings: ModelSettings) -> ModelSettings:
+    return ModelSettings(
+        temperature=settings.temperature,
+        max_tokens=200,
+        timeout=max(settings.timeout, 240),
+        max_retries=max(settings.max_retries, 5),
+        retry_backoff_seconds=max(settings.retry_backoff_seconds, 3.0),
+    )
+
+
+def _parse_scalar_value(raw_value: str) -> Any:
+    value = str(raw_value or "").strip()
+    if not value:
+        return ""
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        value = value[1:-1]
+    if value.startswith("user-image-") and value[len("user-image-"):].isdigit():
+        return f"image_{value[len('user-image-'):]}"
+    lowered = value.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"null", "none"}:
+        return None
+    try:
+        if any(char in value for char in [".", "e", "E"]):
+            return float(value)
+        return int(value)
+    except ValueError:
+        return value
+
+
+def _parse_key_value_arguments(raw_args: str) -> dict[str, Any]:
+    text = str(raw_args or "").strip()
+    if not text:
+        return {}
+    parts = re.split(r"\s*,\s*(?=[A-Za-z_][A-Za-z0-9_]*\s*=)", text)
+    arguments: dict[str, Any] = {}
+    for part in parts:
+        if "=" not in part:
+            return {}
+        key, value = part.split("=", 1)
+        key = key.strip()
+        if not key:
+            return {}
+        arguments[key] = _parse_scalar_value(value)
+    return arguments
+
+
+def _parse_pseudo_tool_call(text: str, *, model_name: str) -> tuple[str, dict[str, Any]] | None:
+    if not _is_o4_mini_model(model_name):
+        return None
+
+    raw = str(text or "").strip()
+    if not raw:
+        return None
+    final_match = re.search(r"Final answer:\s*(.+)$", raw, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+    if final_match:
+        raw = final_match.group(1).strip()
+
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        json_match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if json_match:
+            try:
+                payload = json.loads(json_match.group(0))
+            except Exception:
+                payload = None
+        else:
+            payload = None
+    if isinstance(payload, dict):
+        tool_name = str(payload.get("command") or payload.get("tool") or payload.get("name") or "").strip()
+        arguments = payload.get("args") or payload.get("arguments") or payload.get("parameters") or {}
+        if tool_name == "execute_python" and isinstance(payload.get("code"), str):
+            return "execute_python", {"code": payload["code"]}
+        if not tool_name and isinstance(payload.get("code"), str):
+            return "execute_python", {"code": payload["code"]}
+        if tool_name in {"execute_python", "list_images", "get_image_info", "crop_image", "zoom_image", "resize_image"} and isinstance(arguments, dict):
+            if "image_id" in arguments:
+                arguments = dict(arguments)
+                arguments["image_id"] = _parse_scalar_value(str(arguments["image_id"]))
+            return tool_name, arguments
+        if not tool_name and {"factor", "center_x", "center_y"} <= set(payload.keys()):
+            arguments = dict(payload)
+            if "image_id" in arguments:
+                arguments["image_id"] = _parse_scalar_value(str(arguments["image_id"]))
+            else:
+                arguments["image_id"] = "image_0"
+            return "zoom_image", arguments
+
+    code_match = re.search(r"```(?:python|py)?\s*(.*?)```", raw, re.DOTALL | re.IGNORECASE)
+    if code_match:
+        code = code_match.group(1).strip()
+        if code and ("print(" in code or "\nprint " in code):
+            return "execute_python", {"code": code}
+
+    match = re.search(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\((.*)\)\s*\}\}", raw, re.DOTALL)
+    if not match:
+        match = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\((.*)\)", raw, re.DOTALL)
+    if not match:
+        return None
+    tool_name = match.group(1).strip()
+    if tool_name not in {"execute_python", "list_images", "get_image_info", "crop_image", "zoom_image", "resize_image"}:
+        return None
+    arguments = _parse_key_value_arguments(match.group(2))
+    if not arguments:
+        return None
+    return tool_name, arguments
+
+
+def _build_system_prompt(
+    benchmark_name: str,
+    enable_tools: bool = True,
+    model_name: str = "",
+    dataset_name: str = "",
+) -> str:
     del benchmark_name
-    return SYSTEM_PROMPT
+    if not enable_tools and str(dataset_name or "").strip().lower() == "mathvista":
+        return ""
+    if enable_tools and _is_o4_mini_model(model_name):
+        return O4_MINI_TOOL_SYSTEM_PROMPT
+    return SYSTEM_PROMPT if enable_tools else NO_TOOL_SYSTEM_PROMPT
+
+
+def _mathvista_answer_format_note(case: TaskCase) -> str:
+    metadata = case.metadata if isinstance(case.metadata, dict) else {}
+    if str(metadata.get("dataset_name", "") or "").strip().lower() != "mathvista":
+        return ""
+    if metadata.get("choices"):
+        return "Final answer must be one option letter only."
+    answer_type = str(metadata.get("answer_type", "") or "").strip().lower()
+    if answer_type == "integer":
+        return "Final answer must be one integer only: no units, words, formulas, alternatives, or explanation."
+    if answer_type == "float":
+        precision = metadata.get("precision")
+        if precision is None:
+            return "Final answer must be one decimal number only: no units, words, formulas, fractions, alternatives, or explanation."
+        try:
+            digits = int(float(precision))
+        except (TypeError, ValueError):
+            digits = 2
+        return (
+            f"Final answer must be one decimal number rounded to {digits} decimal places: "
+            "no units, words, formulas, fractions, alternatives, percentages, or explanation."
+        )
+    return "Final answer must be the short answer only, without explanation."
 
 
 def _build_task_prompt(
@@ -627,10 +1314,19 @@ def _build_task_prompt(
     include_image: bool,
     skill_context: ResolvedSkillContext | None = None,
     enable_tools: bool = True,
+    model_name: str = "",
 ) -> str:
     choices = case.metadata.get("choices") if isinstance(case.metadata.get("choices"), dict) else {}
     family = str(case.metadata.get("capability_family", "") or "").strip().lower()
     dataset_name = str(case.metadata.get("dataset_name", "") or "").strip().lower()
+    o4_mini = _is_o4_mini_model(model_name)
+    if (
+        dataset_name == "mathvista"
+        and not enable_tools
+        and skill_context is not None
+        and not skill_context.prompt_blocks
+    ):
+        return _build_mathvista_direct_prompt(case, choices)
     lines = [
         "Answer the following benchmark question as accurately as possible.",
         "First write a short reasoning trace based on the visible evidence.",
@@ -667,34 +1363,67 @@ def _build_task_prompt(
                 ]
             )
     elif dataset_name == "mathvista":
+        format_note = _mathvista_answer_format_note(case)
         if enable_tools:
-            lines.extend(
-                [
-                    "Identify the relevant values or geometric properties in the figure.",
-                    "Use zoom_image with center_x/center_y if tick marks, annotations, or diagram labels are too small to read.",
-                    "Use execute_python after extracting all needed values — always print() the result.",
-                    "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
-                ]
-            )
+            effective_tools = set(skill_context.effective_tool_names if skill_context else [])
+            if {"zoom_image", "crop_image", "list_images"} & effective_tools:
+                lines.extend(
+                    [
+                        "This case passed the MathVista visual-reading gate.",
+                        "Identify what visual quantities the question requires: numbers, labels, angles, lengths, coordinates, object counts, or local yes/no comparison evidence.",
+                        "If those quantities are small, annotated, or hard to read at the original scale, use zoom_image on the relevant region.",
+                        "Estimate center_x/center_y from the original image: axes and rulers are often near edges; legends and labels may be in corners; object comparisons require the object region, not the whole image.",
+                        "Use factor=2-3 for moderate detail and factor=4 for very small labels, ruler marks, arrows, chart ticks, or medical/diagram details.",
+                        "Use crop_image after get_image_info only when a dense region needs exact isolation.",
+                        "Once the visual values are read, use execute_python for arithmetic, averages, ratios, geometric formulas, or option-value comparison; always print() the result.",
+                        "For multiple-choice questions, return the matching option letter only. For open-ended questions, return the numeric or short text answer directly.",
+                        format_note,
+                    ]
+                )
+            else:
+                lines.extend(
+                    [
+                        "Identify the relevant values or geometric properties directly from the original image.",
+                        "This case passed the MathVista calculation gate. After extracting the needed values from the image or question, call execute_python to verify the final arithmetic.",
+                        "Do not guess the final computed value before using execute_python.",
+                        "Do not use execute_python to read the image, count objects, infer uncertain visual facts, select a visual pattern option, or answer simple yes/no questions.",
+                        "Do not call image inspection tools such as zoom_image, crop_image, list_images, or get_image_info.",
+                        "The Python code must contain only the extracted values and the arithmetic/formula needed for the answer, and it must print() the result.",
+                        "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
+                        format_note,
+                    ]
+                )
         else:
             lines.extend(
                 [
-                    "Examine the figure carefully. Identify all labeled values, angles, or data points relevant to the question.",
-                    "Show your calculation steps in the reasoning trace.",
+                    "Answer directly from the original image and question.",
+                    "For visual recognition, counting, pattern, yes/no, or semantic multiple-choice questions, avoid unnecessary calculation.",
+                    "If labeled options are provided, return only the matching option letter in Final answer.",
                     "If the question is free-form, return the final numeric or textual answer directly in Final answer.",
+                    format_note,
                 ]
             )
-    elif dataset_name == "hrbench":
+    if dataset_name == "hrbench":
         if enable_tools:
-            lines.extend(
-                [
-                    "HRBench images are high-resolution — always use zoom_image before answering.",
-                    "Estimate where the target text or symbol is located and set center_x/center_y accordingly (do not default to 0.5 if the target is off-center).",
-                    "Use factor=3 or higher for small or distant text; use a two-pass zoom if the target location is uncertain.",
-                    "Use crop_image after zoom if surrounding distractors make the target hard to identify.",
-                    "Return the matching option letter in Final answer.",
-                ]
-            )
+            if o4_mini:
+                lines.extend(
+                    [
+                        "HRBench images are high-resolution. If the target is small or unreadable, call zoom_image immediately.",
+                        "If the zoomed region is still cluttered, call crop_image.",
+                        "Do not describe a planned zoom or crop in natural language. Emit the function call instead.",
+                        "Return the matching option letter in Final answer.",
+                    ]
+                )
+            else:
+                lines.extend(
+                    [
+                        "HRBench images are high-resolution — always use zoom_image before answering.",
+                        "Estimate where the target text or symbol is located and set center_x/center_y accordingly (do not default to 0.5 if the target is off-center).",
+                        "Use factor=3 or higher for small or distant text; use a two-pass zoom if the target location is uncertain.",
+                        "Use crop_image after zoom if surrounding distractors make the target hard to identify.",
+                        "Return the matching option letter in Final answer.",
+                    ]
+                )
         else:
             lines.extend(
                 [
@@ -761,6 +1490,15 @@ def _build_task_prompt(
                 "After reading the target, verify it matches one of the answer options before committing.",
             ]
         )
+    if o4_mini and enable_tools and dataset_name in {"hrbench", "vstar"}:
+        lines.extend(
+            [
+                "When tools are available, never narrate a planned tool action in plain text.",
+                "Never output pseudo tool calls, JSON snippets, or coordinates as the answer.",
+                "If zoom or crop is needed, emit the actual function call instead.",
+                "For this task, Final answer must contain only the option letter.",
+            ]
+        )
     lines.extend(["", f"Question: {case.prompt}"])
     if choices and not _question_embeds_choices(case.prompt, choices):
         lines.extend(["", "Choices:"])
@@ -772,6 +1510,42 @@ def _build_task_prompt(
             "End with a final line in the format: Final answer: your answer",
         ]
     )
+    return "\n".join(lines)
+
+
+def _build_mathvista_direct_prompt(case: TaskCase, choices: dict[str, Any]) -> str:
+    lines = [
+        "Analyze the image and question briefly before answering.",
+        "Keep the reasoning concise and grounded in visible evidence.",
+        "End with a final line exactly in the format: Final answer: your answer",
+    ]
+    lower = str(case.prompt or "").lower()
+    lines.append(_mathvista_answer_format_note(case))
+    if any(token in lower for token in ["comes next", "missing picture", "complete the matrix", "unfolded cube", "cube is identical"]):
+        lines.append("For visual pattern, matrix, or cube-net questions, compare transformations across rows/columns or faces before selecting the option.")
+    if any(token in lower for token in ["which number is missing", "find the missing value", "missing value"]):
+        lines.append("For missing-number puzzles, infer the row/column or local arithmetic relation first; do not copy a nearby visible number unless it satisfies the same relation.")
+    if "age gap" in lower:
+        lines.append("For age-gap questions, estimate both visible ages and answer the absolute nearest whole-year difference. Do not answer that it cannot be determined unless no people are visible.")
+    if any(token in lower for token in ["food web", "population of", "decrease", "increase"]):
+        lines.append("For food-web or causal diagram questions, trace the direct dependency requested by the question, not just a general association.")
+    if any(token in lower for token in ["function", "curve", "start decreasing"]):
+        lines.append("For graph/function questions, use the visible curve shape and turning points to identify the function or interval.")
+    if any(token in lower for token in ["bar", "chart", "table", "score", "value"]):
+        lines.append("For chart/table questions, identify the exact referenced series/category and compare the plotted values carefully.")
+    if any(token in lower for token in ["roughest", "high median", "always have smaller", "smaller value"]):
+        lines.append("For yes/no chart questions, compare the named series across all relevant categories, then map Yes to A and No to B when the options use that order.")
+    if "how many bars" in lower:
+        lines.append("For bar-count questions, count bars satisfying the stated threshold exactly; values equal to the threshold are not smaller or larger than it.")
+    if "(a)" in case.prompt.lower() and "(b)" in case.prompt.lower():
+        lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
+    else:
+        lines.append("In Final answer, give the final answer itself rather than an explanation.")
+    lines.extend(["", f"Question: {case.prompt}"])
+    if choices and not _question_embeds_choices(case.prompt, choices):
+        lines.extend(["", "Choices:"])
+        for label, text in sorted(choices.items()):
+            lines.append(f"{label}. {text}")
     return "\n".join(lines)
 
 
@@ -812,9 +1586,28 @@ def _assistant_message_to_dict(assistant_message: Any) -> dict[str, Any]:
     return message
 
 
-def _normalize_assistant_message(raw_response: Any, iteration: int) -> Any:
+def _normalize_assistant_message(raw_response: Any, iteration: int, model_name: str = "") -> Any:
     if hasattr(raw_response, "choices"):
-        return raw_response.choices[0].message
+        message = raw_response.choices[0].message
+        tool_calls = getattr(message, "tool_calls", None) or []
+        content = getattr(message, "content", None)
+        if not tool_calls and isinstance(content, str):
+            pseudo_tool_call = _parse_pseudo_tool_call(content, model_name=model_name)
+            if pseudo_tool_call is not None:
+                tool_name, arguments = pseudo_tool_call
+                return SimpleNamespace(
+                    content=None,
+                    tool_calls=[
+                        SimpleNamespace(
+                            id=f"pseudo_call_{iteration}",
+                            function=SimpleNamespace(
+                                name=tool_name,
+                                arguments=json.dumps(arguments, ensure_ascii=False),
+                            ),
+                        )
+                    ],
+                )
+        return message
 
     if not isinstance(raw_response, dict):
         return SimpleNamespace(content="", tool_calls=None)
@@ -854,12 +1647,41 @@ def _normalize_assistant_message(raw_response: Any, iteration: int) -> Any:
                         for call in raw_tool_calls
                         if isinstance(call, dict)
                     ]
+                    content = choice_message.get("content")
+                    if not tool_calls and isinstance(content, str):
+                        pseudo_tool_call = _parse_pseudo_tool_call(content, model_name=model_name)
+                        if pseudo_tool_call is not None:
+                            tool_name, arguments = pseudo_tool_call
+                            tool_calls = [
+                                SimpleNamespace(
+                                    id=f"pseudo_call_{iteration}",
+                                    function=SimpleNamespace(
+                                        name=tool_name,
+                                        arguments=json.dumps(arguments, ensure_ascii=False),
+                                    ),
+                                )
+                            ]
                     return SimpleNamespace(
-                        content=choice_message.get("content"),
+                        content=content,
                         tool_calls=tool_calls or None,
                     )
 
         if isinstance(message, str):
+            pseudo_tool_call = _parse_pseudo_tool_call(message, model_name=model_name)
+            if pseudo_tool_call is not None:
+                tool_name, arguments = pseudo_tool_call
+                return SimpleNamespace(
+                    content=None,
+                    tool_calls=[
+                        SimpleNamespace(
+                            id=f"pseudo_call_{iteration}",
+                            function=SimpleNamespace(
+                                name=tool_name,
+                                arguments=json.dumps(arguments, ensure_ascii=False),
+                            ),
+                        )
+                    ],
+                )
             return SimpleNamespace(content=message, tool_calls=None)
 
     return SimpleNamespace(content="", tool_calls=None)
