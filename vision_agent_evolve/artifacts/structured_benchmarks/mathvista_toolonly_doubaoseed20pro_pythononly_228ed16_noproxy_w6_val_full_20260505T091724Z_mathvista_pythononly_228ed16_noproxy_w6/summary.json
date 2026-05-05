@@ -1,0 +1,88 @@
+{
+  "config": {
+    "dataset": "mathvista",
+    "datasets": [
+      "mathvista"
+    ],
+    "raw_data_root": "/root/vqa_datasets/datasets/mathvista",
+    "normalized_data_root": "datasets/structured_multibench",
+    "subset_id": "mathvista_toolonly_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6",
+    "evolve_split": "val",
+    "held_out_split": "val",
+    "k": 200,
+    "train_subset_size": 900,
+    "held_out_limit": 0,
+    "max_attempts": 10,
+    "max_planning_rounds": 5,
+    "families_per_round_limit": 3,
+    "representatives_per_cluster": 3,
+    "tool_preference": "balanced",
+    "readability_judge_enabled": false,
+    "forced_skill_name": null,
+    "fixed_tool_names": [],
+    "disable_generated_tools": false,
+    "vlm_base_url": "https://llm-chat-api.alibaba-inc.com/v1/api/chat",
+    "vlm_model": "doubao-seed-2.0-pro",
+    "vlm_api_style": "alibaba_chat",
+    "vlm_api_key_present": false,
+    "vlm_user_id_present": true,
+    "vlm_access_key_present": true,
+    "vlm_quota_id_present": true,
+    "uses_alibaba_chat_api": true,
+    "gta_tool_mode": "",
+    "gta_tool_server": "",
+    "gta_official_repo": "",
+    "gta_device": "",
+    "serper_api_key_present": false,
+    "mathpix_app_id_present": false,
+    "mathpix_app_key_present": false
+  },
+  "snapshot_name": "",
+  "records_path": "/root/vision_agent_evolve/vision_agent_evolve/artifacts/structured_benchmarks/mathvista_toolonly_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6/per_case.jsonl",
+  "subset_evolution_rounds": [],
+  "settings": {
+    "function_calling_vqa": {
+      "split": "val",
+      "total": 900,
+      "correct": 778,
+      "accuracy": 0.8644444444444445,
+      "per_dataset_accuracy": {
+        "mathvista": 0.8644444444444445
+      },
+      "per_family_accuracy": {
+        "mathvista_generic_free_form": 0.8349514563106796,
+        "mathvista_generic_multi_choice": 0.889344262295082
+      },
+      "full_agent_accuracy": 0.0,
+      "post_evolve_recovery_accuracy": 0.0,
+      "scratch_code_rate": 0.0,
+      "scratch_code_success_rate": 0.0,
+      "tool_usage_rate": 0.6433333333333333,
+      "avg_tool_calls_per_case": 0.6433333333333333,
+      "artifact_production_rate": 0.0,
+      "readability_summary": {
+        "judged_cases": 0,
+        "readability_improved_rate": 0.0,
+        "avg_target_region_clearer": 0.0,
+        "avg_text_or_marks_more_legible": 0.0,
+        "avg_overall_usefulness": 0.0,
+        "manual_spotcheck_case_ids": []
+      }
+    }
+  },
+  "full_agent_accuracy": 0.0,
+  "post_evolve_recovery_accuracy": 0.0,
+  "skill_only_full_agent_accuracy": 0.0,
+  "skill_only_post_evolve_recovery_accuracy": 0.0,
+  "preset_tools_only_accuracy": 0.0,
+  "same_tool_preset_tools_only_accuracy": 0.0,
+  "reasoned_vlm_accuracy": 0.0,
+  "function_calling_vqa_accuracy": 0.8644444444444445,
+  "frozen_inference_accuracy": 0.0,
+  "skill_only_frozen_inference_accuracy": 0.0,
+  "forced_skill_frozen_accuracy": 0.0,
+  "scratch_skill_full_agent_accuracy": 0.0,
+  "scratch_skill_post_evolve_recovery_accuracy": 0.0,
+  "scratch_skill_frozen_accuracy": 0.0,
+  "scratch_skill_forced_accuracy": 0.0
+}

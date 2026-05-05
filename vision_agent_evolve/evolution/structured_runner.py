@@ -6,6 +6,7 @@ import hashlib
 import inspect
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,7 @@ class StructuredExperimentConfig:
     capability_root: Path | None = None
     use_skills: bool = True
     fc_enable_tools: bool = True
+    fc_case_workers: int = 1
 
 
 @dataclass
@@ -536,33 +538,13 @@ class StructuredBenchmarkRunner:
         return records
 
     def _run_function_calling_vqa(self, cases: list[TaskCase]) -> list[StructuredCaseRecord]:
+        workers = max(1, int(self.config.fc_case_workers or 1))
+        if workers > 1:
+            return self._run_function_calling_vqa_parallel(cases, workers=workers)
+
         records: list[StructuredCaseRecord] = []
         for index, case in enumerate(cases, start=1):
-            work_dir = self.output_dir / "function_calling_vqa" / f"case_{case.case_id}"
-            try:
-                result = run_function_calling_vqa_case(
-                    self.vlm_client,
-                    case,
-                    benchmark_name=case.dataset_name(),
-                    config=ToolCallingRuntimeConfig(
-                        enable_tools=self.config.fc_enable_tools,
-                        work_dir=work_dir,
-                        capability_root=self.config.capability_root,
-                        static_skills_dir=self.project_root / "skills",
-                        use_skills=self.config.use_skills,
-                        fixed_tool_names=list(self.config.fixed_tool_names),
-                    ),
-                )
-            except Exception as exc:
-                result = self._runtime_failure_result(case, exc)
-            record = self._record_from_agent_result(
-                setting="function_calling_vqa",
-                split=self.config.evolve_split,
-                case=case,
-                result=result,
-                correct=self._check_answer(result.final_answer, case),
-                chain_trace=[],
-            )
+            record = self._run_function_calling_vqa_one(case)
             self._append_record(record)
             records.append(record)
             print(
@@ -570,6 +552,60 @@ class StructuredBenchmarkRunner:
                 f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
             )
         return records
+
+    def _run_function_calling_vqa_parallel(self, cases: list[TaskCase], *, workers: int) -> list[StructuredCaseRecord]:
+        records: list[StructuredCaseRecord] = []
+        print(f"[function_calling_vqa] case_workers={workers}")
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_case = {executor.submit(self._run_function_calling_vqa_one, case): case for case in cases}
+            for index, future in enumerate(as_completed(future_to_case), start=1):
+                case = future_to_case[future]
+                try:
+                    record = future.result()
+                except Exception as exc:  # pragma: no cover - worker has its own guard; keep pool robust.
+                    result = self._runtime_failure_result(case, exc)
+                    record = self._record_from_agent_result(
+                        setting="function_calling_vqa",
+                        split=self.config.evolve_split,
+                        case=case,
+                        result=result,
+                        correct=False,
+                        chain_trace=[],
+                    )
+                self._append_record(record)
+                records.append(record)
+                print(
+                    f"[{index:03d}/{len(cases):03d}] "
+                    f"{'OK' if record.correct else 'FAIL'} case={case.case_id} answer={record.answer!r}"
+                )
+        return records
+
+    def _run_function_calling_vqa_one(self, case: TaskCase) -> StructuredCaseRecord:
+        work_dir = self.output_dir / "function_calling_vqa" / f"case_{case.case_id}"
+        try:
+            result = run_function_calling_vqa_case(
+                self.vlm_client,
+                case,
+                benchmark_name=case.dataset_name(),
+                config=ToolCallingRuntimeConfig(
+                    enable_tools=self.config.fc_enable_tools,
+                    work_dir=work_dir,
+                    capability_root=self.config.capability_root,
+                    static_skills_dir=self.project_root / "skills",
+                    use_skills=self.config.use_skills,
+                    fixed_tool_names=list(self.config.fixed_tool_names),
+                ),
+            )
+        except Exception as exc:
+            result = self._runtime_failure_result(case, exc)
+        return self._record_from_agent_result(
+            setting="function_calling_vqa",
+            split=self.config.evolve_split,
+            case=case,
+            result=result,
+            correct=self._check_answer(result.final_answer, case),
+            chain_trace=[],
+        )
 
     def _run_agent_train_adaptive(self, cases: list[TaskCase]) -> tuple[list[StructuredCaseRecord], str]:
         subset_loop = self._make_subset_loop(cases)

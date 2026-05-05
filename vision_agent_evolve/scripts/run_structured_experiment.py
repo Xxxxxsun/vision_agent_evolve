@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -67,6 +68,12 @@ def main() -> None:
         help="Disable tool exposure inside function_calling_vqa while keeping the runtime/skills active.",
     )
     parser.add_argument(
+        "--fc-case-workers",
+        type=int,
+        default=int(os.getenv("FC_CASE_WORKERS", "1")),
+        help="Parallel case workers for function_calling_vqa. Defaults to FC_CASE_WORKERS or 1.",
+    )
+    parser.add_argument(
         "--settings",
         nargs="+",
         default=["reasoned_vlm", "pure_react", "agent_train_adaptive", "preset_tools_only", "frozen_inference"],
@@ -101,6 +108,7 @@ def main() -> None:
         capability_root=None if args.capability_root is None else Path(args.capability_root),
         use_skills=not args.disable_skills,
         fc_enable_tools=not args.disable_fc_tools,
+        fc_case_workers=max(1, args.fc_case_workers),
     )
     runner = StructuredBenchmarkRunner(config=config, project_root=PROJECT_ROOT)
     summary = runner.run_experiment()
