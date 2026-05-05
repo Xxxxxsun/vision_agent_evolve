@@ -122,30 +122,45 @@ def run_classification_tests() -> None:
 
 
 def run_gate_tests() -> None:
-    """Verify that the gate correctly sets effective_tool_names."""
+    """Verify that the gate correctly sets effective_tool_names.
+
+    New strategy (data-driven from doubao-seed-2.0-pro 900-case analysis):
+      - pure visual perception (yes/no MCQ, IQ matrix) → no tools
+      - everything else → execute_python only (no zoom/crop)
+    """
     print("\n" + "=" * 60)
     print("Tool gate integration tests")
     print("=" * 60)
 
     config = ToolCallingRuntimeConfig(enable_tools=True)
 
-    no_tool_prompt = "Which figure comes next in the sequence?"
-    tool_prompt = "What is the area of the triangle shown in the figure?"
+    # (prompt, choices, expected_tool_set)
+    test_cases = [
+        # Pure visual perception → no tools
+        ("Which figure comes next in the sequence?", {"A": "△", "B": "□"}, set()),
+        ("Is the blue bar taller than the red bar?", {"A": "Yes", "B": "No"}, set()),
+        # Everything else → python only, no zoom
+        ("What is the area of the triangle shown in the figure?", None, {"execute_python"}),
+        ("Find the value of angle x.", {"A": "30", "B": "45"}, {"execute_python"}),
+        ("What is the mean of the values in the chart?", None, {"execute_python"}),
+        ("How many triangles are in the figure?", None, {"execute_python"}),
+    ]
 
-    for prompt, choices, expect_tools in [
-        (no_tool_prompt, {"A": "△", "B": "□"}, False),
-        (tool_prompt, None, True),
-        ("Find the value of x given the diagram.", {"A": "30", "B": "45"}, True),
-        ("Is the blue bar taller than the red bar?", {"A": "Yes", "B": "No"}, False),
-    ]:
+    passed = failed = 0
+    for prompt, choices, expected_tools in test_cases:
         case = make_case(prompt, choices)
         ctx = ResolvedSkillContext()
         ctx.effective_tool_names = ["dummy"]
         _apply_case_tool_gate(case, ctx, config)
 
-        has_real_tools = bool(ctx.effective_tool_names) and ctx.effective_tool_names != ["__no_tools__"]
-        ok = has_real_tools == expect_tools
-        print(f"  {'✓' if ok else '✗'}  tools={'yes' if has_real_tools else 'no '}  {prompt[:55]!r}")
+        actual_tools = set(t for t in ctx.effective_tool_names if t != "__no_tools__")
+        ok = actual_tools == expected_tools
+        passed += ok; failed += not ok
+        zoom_exposed = "zoom_image" in actual_tools or "crop_image" in actual_tools
+        tools_str = str(sorted(actual_tools)) if actual_tools else "none"
+        print(f"  {'✓' if ok else '✗'}  tools={tools_str:<30} zoom={'YES ← BAD' if zoom_exposed else 'no'}  {prompt[:45]!r}")
+
+    print(f"\n{passed}/{passed+failed} passed")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -762,11 +762,17 @@ def _apply_case_tool_gate(
 ) -> None:
     """Route MathVista cases to the appropriate tool tier.
 
-    Design principle: expose the full tool set (visual + python) by default.
-    Only suppress tools for the small minority of questions that are purely
-    visual perception with no arithmetic component — e.g. IQ-matrix pattern
-    completion, yes/no MCQ, or cube-net identification.  For everything else
-    the model should be free to zoom/crop and call execute_python.
+    Data-driven design (doubao-seed-2.0-pro, 900 cases):
+      - no_tool        n=282  acc=90.78%
+      - python_only    n=472  acc=91.31%  ← best
+      - zoom_only      n=90   acc=74.44%  ← hurts
+      - zoom+python    n=56   acc=67.86%  ← hurts most
+    Counterfactual: removing zoom raises overall from 88.00% → ~91.11%
+
+    Strong models can read images directly; zoom_image loses global context
+    (e.g. a bar is zoomed without the y-axis scale, giving a wrong reading).
+    Strategy: expose only execute_python for most questions; no visual tools.
+    Pure visual perception cases (yes/no MCQ, IQ-matrix) get no tools at all.
     """
     if not runtime_config.enable_tools:
         return
@@ -774,8 +780,6 @@ def _apply_case_tool_gate(
     dataset_name = str(metadata.get("dataset_name", "") or "").strip().lower()
     if dataset_name != "mathvista":
         return
-
-    all_tools = ["list_images", "get_image_info", "zoom_image", "crop_image", "execute_python"]
 
     if _mathvista_is_pure_visual_perception(case):
         # No tools: pure visual pattern / yes-no / spatial reasoning with no arithmetic.
@@ -789,11 +793,13 @@ def _apply_case_tool_gate(
         )
         return
 
-    # Default for all other MathVista questions: expose the full tool set.
-    skill_context.effective_tool_names = all_tools
-    skill_context.preferred_tool_names = all_tools
+    # Default: expose execute_python only (no zoom/crop).
+    # The model reads the image directly and uses Python only for arithmetic verification.
+    skill_context.effective_tool_names = ["execute_python"]
+    skill_context.preferred_tool_names = ["execute_python"]
     skill_context.routing_notes.append(
-        "MathVista: full tool set — use zoom/crop to read visual values, execute_python for arithmetic."
+        "MathVista: python-only — read visual values directly from the image, "
+        "use execute_python only for arithmetic verification."
     )
 
 
