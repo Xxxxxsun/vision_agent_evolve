@@ -1,0 +1,21 @@
+isolated_raw_start ['225', '358', '39', '437', '519', '541', '704', '78']
+=== raw direct case 225 ===
+case=225 raw_process_timeout
+=== raw direct case 358 ===
+case=358 raw_process_timeout
+=== raw direct case 39 ===
+case=39 raw_process_timeout
+=== raw direct case 437 ===
+case=437 raw_process_timeout
+=== raw direct case 519 ===
+case=519 raw_process_timeout
+=== raw direct case 541 ===
+case=541 raw_process_timeout
+=== raw direct case 704 ===
+case=704 raw='C' err=None
+Traceback (most recent call last):
+  File "<stdin>", line 51, in <module>
+TypeError: AgentResult.__init__() got an unexpected keyword argument 'artifacts'
+=== raw direct case 78 ===
+case=78 raw_process_timeout
+final 786 0.873333 ['225', '358', '39', '437', '519', '541', '704', '78']

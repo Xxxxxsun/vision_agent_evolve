@@ -1,0 +1,14 @@
+seed20mini_raw_start ['225', '358', '39', '437', '519', '541', '704', '78']
+=== seed20mini raw direct case 225 ===
+case=225 mini_raw_process_timeout
+=== seed20mini raw direct case 358 ===
+case=358 raw='' err='<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)>'
+=== seed20mini raw direct case 39 ===
+case=39 mini_raw_process_timeout
+=== seed20mini raw direct case 437 ===
+case=437 mini_raw_process_timeout
+=== seed20mini raw direct case 519 ===
+case=519 mini_raw_process_timeout
+=== seed20mini raw direct case 541 ===
+case=541 mini_raw_process_timeout
+=== seed20mini raw direct case 704 ===
