@@ -1,0 +1,21 @@
+=== toolonly openrouter rerun start error_ids=['10', '437', '541', '704', '73'] ===
+[toolonly] case=10 OK answer='E' runtime_error=None
+[toolonly] summary correct=781 acc=0.867778 remaining_errors=4 ['437', '541', '704', '73']
+[toolonly] case=437 FAIL answer='150' runtime_error=None
+[toolonly] summary correct=781 acc=0.867778 remaining_errors=3 ['541', '704', '73']
+[toolonly] case=541 OK answer='D' runtime_error=None
+[toolonly] summary correct=782 acc=0.868889 remaining_errors=2 ['704', '73']
+[toolonly] case=704 OK answer='B' runtime_error=None
+[toolonly] summary correct=783 acc=0.870000 remaining_errors=1 ['73']
+[toolonly] case=73 FAIL answer='F' runtime_error=None
+[toolonly] summary correct=783 acc=0.870000 remaining_errors=0 []
+[toolonly] summary correct=783 acc=0.870000 remaining_errors=0 []
+=== skilltool openrouter rerun start error_ids=['10', '148', '19', '198', '225', '358', '39', '437', '519', '541', '704', '73', '78', '780'] ===
+[skilltool] case=10 OK answer='E' runtime_error=None
+[skilltool] summary correct=782 acc=0.868889 remaining_errors=13 ['148', '19', '198', '225', '358', '39', '437', '519', '541', '704', '73', '78', '780']
+[skilltool] case=148 OK answer='D' runtime_error=None
+[skilltool] summary correct=783 acc=0.870000 remaining_errors=12 ['19', '198', '225', '358', '39', '437', '519', '541', '704', '73', '78', '780']
+[skilltool] case=19 FAIL answer='600' runtime_error=None
+[skilltool] summary correct=783 acc=0.870000 remaining_errors=11 ['198', '225', '358', '39', '437', '519', '541', '704', '73', '78', '780']
+[skilltool] case=198 OK answer='A' runtime_error=None
+[skilltool] summary correct=784 acc=0.871111 remaining_errors=10 ['225', '358', '39', '437', '519', '541', '704', '73', '78', '780']

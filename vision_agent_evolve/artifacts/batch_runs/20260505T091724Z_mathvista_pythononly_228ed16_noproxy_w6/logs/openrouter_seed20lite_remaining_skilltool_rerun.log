@@ -1,0 +1,25 @@
+remaining_start ['225', '358', '39', '437', '519', '541', '704', '73', '78', '780']
+=== skilltool case 225 ===
+case=225 process_timeout_kept_original
+=== skilltool case 358 ===
+case=358 process_timeout_kept_original
+=== skilltool case 39 ===
+case=39 process_timeout_kept_original
+=== skilltool case 437 ===
+case=437 process_timeout_kept_original
+=== skilltool case 519 ===
+case=519 process_timeout_kept_original
+=== skilltool case 541 ===
+case=541 process_timeout_kept_original
+=== skilltool case 704 ===
+case=704 process_timeout_kept_original
+=== skilltool case 73 ===
+case=73 OK answer='D' runtime_error=None
+summary correct=785 acc=0.872222 remaining=['225', '358', '39', '437', '519', '541', '704', '78', '780']
+=== skilltool case 78 ===
+case=78 process_timeout_kept_original
+=== skilltool case 780 ===
+case=780 OK answer='7' runtime_error=None
+summary correct=786 acc=0.873333 remaining=['225', '358', '39', '437', '519', '541', '704', '78']
+mathvista_skilltool_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6 correct 786 acc 0.873333 errors ['225', '358', '39', '437', '519', '541', '704', '78']
+mathvista_toolonly_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6 correct 783 acc 0.870000 errors []
