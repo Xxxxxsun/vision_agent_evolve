@@ -760,24 +760,36 @@ def _apply_case_tool_gate(
     skill_context: ResolvedSkillContext,
     runtime_config: ToolCallingRuntimeConfig,
 ) -> None:
-    """Route MathVista cases to the appropriate tool tier.
+    """Route MathVista and ChartQA cases to the appropriate tool tier.
 
-    Data-driven design (doubao-seed-2.0-pro, 900 cases):
+    MathVista (doubao-seed-2.0-pro, 900 cases):
       - no_tool        n=282  acc=90.78%
       - python_only    n=472  acc=91.31%  ← best
       - zoom_only      n=90   acc=74.44%  ← hurts
       - zoom+python    n=56   acc=67.86%  ← hurts most
-    Counterfactual: removing zoom raises overall from 88.00% → ~91.11%
+    Zoom loses global context (bar zoomed without y-axis scale → wrong reading).
+    Strategy: execute_python only for most; no tools for pure visual perception.
 
-    Strong models can read images directly; zoom_image loses global context
-    (e.g. a bar is zoomed without the y-axis scale, giving a wrong reading).
-    Strategy: expose only execute_python for most questions; no visual tools.
-    Pure visual perception cases (yes/no MCQ, IQ-matrix) get no tools at all.
+    ChartQA: same zoom-hurts reasoning applies. Empirical tool_usage_rate=0.0
+    (model never calls zoom despite it being offered). Expose execute_python only
+    so the model can verify arithmetic while reading chart values directly.
     """
     if not runtime_config.enable_tools:
         return
     metadata = case.metadata if isinstance(case.metadata, dict) else {}
     dataset_name = str(metadata.get("dataset_name", "") or "").strip().lower()
+
+    if dataset_name == "chartqa":
+        # ChartQA: python-only (no zoom/crop).
+        # Model reads chart values directly at original scale; execute_python for arithmetic.
+        skill_context.effective_tool_names = ["execute_python"]
+        skill_context.preferred_tool_names = ["execute_python"]
+        skill_context.routing_notes.append(
+            "ChartQA: python-only — read chart values directly from the image, "
+            "use execute_python only for arithmetic (difference, ratio, mean)."
+        )
+        return
+
     if dataset_name != "mathvista":
         return
 
@@ -1284,24 +1296,16 @@ def _build_task_prompt(
     elif dataset_name == "mathvista" and choices:
         lines.append("If the question provides labeled options, return only the matching option letter in Final answer.")
     elif dataset_name == "chartqa":
-        if enable_tools:
-            lines.extend(
-                [
-                    "Read the chart carefully before answering.",
-                    "Identify which chart region (bar, line, legend, axis label) contains the needed value.",
-                    "Use zoom_image with center_x/center_y targeting that region — legends are often top-right (center_y≈0.1), x-axis labels at the bottom (center_y≈0.9), y-axis labels at the left (center_x≈0.08).",
-                    "Extract the numeric values first, then use execute_python for arithmetic.",
-                    "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
-                ]
-            )
-        else:
-            lines.extend(
-                [
-                    "Read the chart values directly from the image.",
-                    "Identify the specific bar, line, or label the question refers to, then read its value from the y-axis scale.",
-                    "Return the final numeric value or short text directly in Final answer — do not return an option letter.",
-                ]
-            )
+        lines.extend(
+            [
+                "Read the chart carefully and identify the specific bar, line, or label the question refers to.",
+                "Confirm the category or series label matches the question before reading the value.",
+                "Read the value exactly as shown — if a number is printed on the bar, use that exact number; otherwise align with the y-axis scale precisely.",
+                "Check the y-axis unit (%, K, M, billions) before extracting.",
+                "Use execute_python for arithmetic (difference, ratio, percentage, mean) — always print() the result.",
+                "Return the final answer in Final answer: as a number or short text only — no extra words, no units, no explanation.",
+            ]
+        )
     elif dataset_name == "mathvista":
         format_note = _mathvista_answer_format_note(case)
         if enable_tools:
@@ -1412,8 +1416,9 @@ def _build_task_prompt(
     elif dataset_name == "chartqa":
         lines.extend(
             [
-                "Confirm the category or series label before reading the numeric value to avoid confusing adjacent bars or lines.",
-                "For comparisons or differences, read both values explicitly before computing.",
+                "Confirm the category or series label before reading — do not read the wrong bar or line.",
+                "Read labeled numbers exactly as printed; do not approximate values that are annotated.",
+                "For arithmetic questions, use execute_python with the extracted values.",
             ]
         )
     elif dataset_name == "mathvista":
