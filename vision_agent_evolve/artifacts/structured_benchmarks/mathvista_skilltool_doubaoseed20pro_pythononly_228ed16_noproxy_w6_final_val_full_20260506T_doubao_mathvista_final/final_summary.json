@@ -1,0 +1,68 @@
+{
+  "source_skilltool_subset": "mathvista_skilltool_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6",
+  "fallback_toolonly_subset": "mathvista_toolonly_doubaoseed20pro_pythononly_228ed16_noproxy_w6_val_full_20260505T091724Z_mathvista_pythononly_228ed16_noproxy_w6",
+  "output_subset": "mathvista_skilltool_doubaoseed20pro_pythononly_228ed16_noproxy_w6_final_val_full_20260506T_doubao_mathvista_final",
+  "total": 900,
+  "correct": 789,
+  "accuracy": 0.8766666666666667,
+  "runtime_errors": 0,
+  "replacements": [
+    {
+      "case_id": "225",
+      "expected": "[0, 2, 0, 2, 1, 7, 1, 2, 0, 3, 0, 6]",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "[0,0,1,1,2,3,2,3,4,4,6,6,5,6]",
+      "fallback_correct": false
+    },
+    {
+      "case_id": "358",
+      "expected": "A",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "B",
+      "fallback_correct": false
+    },
+    {
+      "case_id": "39",
+      "expected": "A",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "B",
+      "fallback_correct": false
+    },
+    {
+      "case_id": "437",
+      "expected": "839",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "150",
+      "fallback_correct": false
+    },
+    {
+      "case_id": "519",
+      "expected": "12",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "12",
+      "fallback_correct": true
+    },
+    {
+      "case_id": "541",
+      "expected": "D",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "D",
+      "fallback_correct": true
+    },
+    {
+      "case_id": "704",
+      "expected": "B",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "B",
+      "fallback_correct": true
+    },
+    {
+      "case_id": "78",
+      "expected": "8",
+      "old_error": "Remote end closed connection without response",
+      "fallback_answer": "20",
+      "fallback_correct": false
+    }
+  ],
+  "wrong_total": 111
+}
